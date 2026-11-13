@@ -32,6 +32,8 @@ export interface RowResult {
   reason?: string;
   /** Missing parts, e.g. "Postleitzahl" or "Position 2: Menge" */
   missing: string[];
+  /** Possible irregularities of this row (hints, not a status) */
+  hints: string[];
   values: ShownValue[];
   groups: GroupDisplay[];
 }
@@ -240,6 +242,7 @@ function evaluateRow(model: InvoiceModel, row: Pflichtangabe, mode: Mode): RowRe
     status,
     ...(status === 'einzelfall' && need.kind !== 'immer' ? { reason: need.because } : {}),
     missing: status === 'fehlt' ? missing : [],
+    hints: (row.hints ?? []).filter((hint) => holds(model, hint.when)).map((hint) => hint.text),
     values: shown(model, row.show, currency),
     groups,
   };

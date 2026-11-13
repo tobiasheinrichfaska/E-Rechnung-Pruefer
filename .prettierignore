@@ -1,8 +1,14 @@
 dist/
 coverage/
 .tmp/
+import/
+import-archiv/
 node_modules/
 package-lock.json
 docs/*.html
 schemas/
 tests/fixtures/
+# Verbatim copies of the workspace templates
+LICENSE
+LICENSE_COMMERCIAL.md
+CONTRIBUTING.md

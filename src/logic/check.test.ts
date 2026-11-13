@@ -491,6 +491,27 @@ describe('display', () => {
   });
 });
 
+describe('hint on a "Gutschrift" that is no Gutschrift (F11)', () => {
+  const note = { 'BG-1': [{ 'BT-22': 'Gutschrift zu Rechnung R-1' }] };
+
+  it('points out a Rechnungskorrektur named "Gutschrift"', () => {
+    const result = checkPflichtangaben(model({ 'BT-3': '381', ...note }));
+    expect(row(result, 'gutschrift').hints).toEqual([
+      expect.stringContaining('Eine Rechnungskorrektur (z. B. 381) ist keine Gutschrift'),
+    ]);
+    // a hint is no status: the row stays "nur im Einzelfall nötig", nothing is "missing"
+    expect(row(result, 'gutschrift').status).toBe('einzelfall');
+    expect(result.missingLabels).toEqual([]);
+  });
+
+  it('says nothing for a real Gutschrift or without the word', () => {
+    expect(row(checkPflichtangaben(model({ 'BT-3': '389', ...note })), 'gutschrift').hints).toEqual(
+      [],
+    );
+    expect(row(checkPflichtangaben(model({ 'BT-3': '381' })), 'gutschrift').hints).toEqual([]);
+  });
+});
+
 describe('wording of the result (screenshot review 2026-11-13)', () => {
   it('ends the summary with one full stop when the last label ends with "USt-IdNr."', () => {
     const result = checkPflichtangaben(model({ 'BG-11': [{ 'BT-62': 'Vertreter GmbH' }] }));

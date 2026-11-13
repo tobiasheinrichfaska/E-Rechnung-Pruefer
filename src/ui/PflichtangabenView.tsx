@@ -56,6 +56,11 @@ function Row({ result }: { result: RowResult }) {
           </div>
         )}
         {result.reason && <div className="muted">{result.reason}</div>}
+        {result.hints.map((hint) => (
+          <div key={hint} className="row-hint" data-testid="row-hint">
+            {hint}
+          </div>
+        ))}
       </td>
       <td>
         <span className={`badge badge-${result.status}`} data-testid="status">

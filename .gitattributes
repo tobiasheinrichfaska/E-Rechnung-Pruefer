@@ -1,4 +1,29 @@
+# Workspace template (c:\skripte\private\general stuff\templates\.gitattributes):
+# line endings are repo-controlled, LF in the repo and the working tree.
+* text=auto eol=lf
+
+# Windows batch files must stay CRLF (cmd.exe can mishandle LF-only scripts)
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+
+# SVG is text — keep it normalized
+*.svg   text eol=lf
+
+# Binary assets — never convert
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.ico   binary
+*.gif   binary
+*.webp  binary
+*.pdf   binary
+*.zip   binary
+*.ttf   binary
+*.otf   binary
+*.woff  binary
+*.woff2 binary
+
 # Official artefacts stay byte-identical to their source (verifiable against docs/quellen.md):
-# no line-ending conversion, whatever the repo-wide text=auto eol=lf rule says.
+# no line-ending conversion. Listed last so they win over "* text=auto".
 schemas/**/*.xsd -text
 tests/fixtures/** -text

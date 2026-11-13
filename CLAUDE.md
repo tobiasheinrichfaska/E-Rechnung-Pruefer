@@ -1,11 +1,13 @@
-# CLAUDE.md — E-Rechnung prüfen (`e-rechnung/`)
+# CLAUDE.md — E-Rechnung-Pruefer („E-Rechnung prüfen“)
 
 > Workspace-wide conventions (language, git, build, architecture, testing, collaboration):
-> [`c:\skripte\private\general stuff\CLAUDE.md`](../../../private/general%20stuff/CLAUDE.md)
+> [`c:\skripte\private\general stuff\CLAUDE.md`](../../private/general%20stuff/CLAUDE.md)
 >
-> Parent repo: [`../CLAUDE.md`](../CLAUDE.md) (Fragebogen). This sub-project shares the repo, the
-> licence and the hosting subdomain, **nothing else**: own `package.json`, build, tests and upload
-> target. Never change the Fragebogen app from here; never import from `../src/`.
+> **Own project** (Tobias 2026-11-13). It started as the sub-project `e-rechnung/` of the
+> Fragebogen repo and was moved out with its history (`git subtree split`, 4 commits). It shares
+> nothing with Fragebogen except — **for the time being** — the hosting subdomain: the upload
+> target `NebenprojektERechnung/` on the Fragebogen subdomain (access `fragebogen` in
+> `private/Auslieferung`).
 
 ---
 
@@ -30,8 +32,7 @@ BR-DE rules as errors (B2B needs no XRechnung), no PDF/A check, no tax judgement
 online VAT-ID lookup.
 
 **Workflow (Tobias 2026-11-13):** commit without asking and report the commits; **push and upload
-only after his explicit OK**. Another session may be working in the parent repo at the same time:
-never switch branches, commit only own paths (`git commit -- e-rechnung/ …`), never `git add -A`.
+only after his explicit OK**. No GitHub remote yet (creating the public repo needs his OK).
 
 - Plan and step status: [`docs/plan.md`](docs/plan.md) (German)
 - Sources, versions, licences, SHA-256: [`docs/quellen.md`](docs/quellen.md)
@@ -44,14 +45,18 @@ never switch branches, commit only own paths (`git commit -- e-rechnung/ …`), 
 | File/Folder                                                | Purpose                                                                                                                                                                                                                                                                                   |
 | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `CLAUDE.md`                                                | This file                                                                                                                                                                                                                                                                                 |
-| `README.md`                                                | Public description (German), licence pointer                                                                                                                                                                                                                                              |
+| `README.md`                                                | Public description (German), licence section                                                                                                                                                                                                                                              |
+| `LICENSE`, `LICENSE_COMMERCIAL.md`, `CONTRIBUTING.md`      | AGPLv3 + commercial dual licensing, CLA (verbatim workspace templates)                                                                                                                                                                                                                    |
+| `.gitattributes`                                           | Workspace template (LF) plus `-text` for the official XSD and test files (byte-identical to their source)                                                                                                                                                                                 |
+| `.prettierrc.json`                                         | Formatting (same settings as the Fragebogen app)                                                                                                                                                                                                                                          |
+| `import/`                                                  | Inbox for delivered material (gitignored); empty after processing — processed files go to `import-archiv/<JJJJ-MM-TT_HH-MM-SS>/` (gitignored)                                                                                                                                             |
 | `FEATURES_REQUIRED.md`                                     | Critical user paths                                                                                                                                                                                                                                                                       |
 | `package.json` / `package-lock.json`                       | Scripts and exactly pinned dependencies (versions as in the Fragebogen app)                                                                                                                                                                                                               |
 | `vite.config.ts`                                           | Vite + single-file build, CSP plugin, Vitest config (`pool: 'forks'` for pdf.js)                                                                                                                                                                                                          |
 | `tsconfig.json`                                            | Strict TS like the Fragebogen app                                                                                                                                                                                                                                                         |
 | `eslint.config.js`                                         | Layering (`src/logic` free of UI/IO/engines) and a ban on storage and network APIs in `src/`                                                                                                                                                                                              |
 | `playwright.config.ts`                                     | E2E in Chromium, Firefox, WebKit on the built file                                                                                                                                                                                                                                        |
-| `.gitignore`, `.prettierignore`                            | Own ignores (`.tmp/`, `tests/fixtures/lokal/`, `deploy/.local/`)                                                                                                                                                                                                                          |
+| `.gitignore`, `.prettierignore`                            | Ignores (`node_modules/`, `dist/`, `.tmp/`, `import/`, `import-archiv/`, `tests/fixtures/lokal/`, `deploy/.local/`)                                                                                                                                                                       |
 | `index.html`                                               | Entry HTML (`lang="de"`, no external URLs)                                                                                                                                                                                                                                                |
 | `src/main.tsx`                                             | Mounts the React app                                                                                                                                                                                                                                                                      |
 | `src/appInfo.ts`                                           | App name + version (`__APP_VERSION__` from `package.json`)                                                                                                                                                                                                                                |
@@ -127,14 +132,14 @@ Report only results observed in the same session (workspace test-integrity rule)
 
 ## Development Server Ports
 
-| Server                    | Port                                               |
-| ------------------------- | -------------------------------------------------- |
-| Vite dev server / preview | 5178 (same as Fragebogen — never run both at once) |
+| Server                    | Port                                                       |
+| ------------------------- | ---------------------------------------------------------- |
+| Vite dev server / preview | 5178 (workspace standard — never run two projects at once) |
 
 ## Versioning
 
-Semantic versioning in `package.json`, injected as `__APP_VERSION__`. Tags for this sub-project:
-`e-rechnung-vX.Y.Z` (the repo's plain `vX.Y.Z` tags belong to the Fragebogen app).
+Semantic versioning in `package.json`, injected as `__APP_VERSION__`. Workflow: bump
+`package.json` → `chore: bump version to X.Y.Z` → `git tag vX.Y.Z`.
 
 ---
 
@@ -142,9 +147,10 @@ Semantic versioning in `package.json`, injected as `__APP_VERSION__`. Tags for t
 
 - **In development** — steps 2b–3a not built yet (see `docs/plan.md`).
 - **Pflichtangaben are hints from the data, not a tax review.** Provisional decisions waiting for
-  Tobias: F7 (Nr. 6a not shown — not in the current law text), F10 (complete address = street or
-  P.O. box, postcode, city), F11 (no hint for 381 + "Gutschrift"), F12 (strict on positions without
-  a period), F13 (Kleinunternehmer before Kleinbetrag), F14 (how the cases are detected).
+  Tobias: F5 (ZUGFeRD 1.0 / unknown ids), F7 (Nr. 6a not shown — not in the current law text),
+  F10 (complete address = street or P.O. box, postcode, city), F12 (strict on positions without a
+  period) — research running. Decided: F11 (hint on a "Gutschrift" that is no Gutschrift), F13
+  (Kleinunternehmer before Kleinbetrag), F14 (how the cases are detected).
 - **Text detection** (notes, exemption reasons) uses German keywords as data
   (`pflichtangaben.ts`); other languages or unusual wording are not recognised.
 - **§ 3c UStG** (distance sales, excluded from § 33 UStDV) and new vehicles (§ 14a Abs. 4) cannot be
@@ -164,17 +170,22 @@ Semantic versioning in `package.json`, injected as `__APP_VERSION__`. Tags for t
   Files attached only as page annotations are not seen. At most 50 attachments are read.
 - **Password-protected PDF** is tested with a synthetic encryption dictionary (the reader asks for
   a password); a real protected supplier PDF is not in the tests.
-- **Tested on file://** only so far; the hosted copy (same file) follows with the first upload.
-- **FeRD ZUGFeRD 2.5.2 package not yet available** (download needs a form with personal data —
-  Tobias downloads). Its sample invoices may not be redistributed → they will stay local in
-  `tests/fixtures/lokal/`; tests that need them are skipped where the folder is missing, and a
-  skipped test is not a pass.
+- **E2E runs on file://**; the hosted copy is the same file (uploaded 2026-11-13 at Fragebogen
+  commit 76828a3, "online identisch").
+- **FeRD ZUGFeRD 2.5.2 package** (Tobias downloaded it, `import/` → processed per the import rule).
+  Its sample invoices may not be redistributed → they stay local in `tests/fixtures/lokal/`; tests
+  that need them are skipped where the folder is missing, and a skipped test is not a pass.
 - **Mapping source:** KoSIT/FeRD recommendation, Stand 25.07.2025 — copyrighted, not in the repo;
   our data table cites it per row. Deviations from the hand-over's provisional table: F9.
 
 ---
 
 ## Status / next step
+
+**2026-11-13 — own project:** moved out of `Fragebogen/e-rechnung/` with its history; workspace
+conventions added (licences, `.gitattributes`, `import/` rule); registered in the workspace
+projects table. Phase 1 uploaded to `NebenprojektERechnung/`. Next: process the FeRD package
+(profile ids, profile XSDs, local samples), research answers F5/F7/F10/F12, then phase 2b.
 
 **2026-11-13 — phase 0 done:** plan approved; sources downloaded to `.tmp/quellen/` (KoSIT config +
 testsuite, CEN 1.3.17, KoSIT/FeRD recommendation); scaffold; `npm install --ignore-scripts`; spike

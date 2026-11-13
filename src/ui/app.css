@@ -231,6 +231,14 @@ button.primary:disabled {
   margin-top: 2px;
 }
 
+.row-hint {
+  color: var(--warn);
+  background: var(--warn-bg);
+  border-radius: 4px;
+  padding: 4px 8px;
+  margin-top: 4px;
+}
+
 .badge {
   display: inline-block;
   border-radius: 10px;

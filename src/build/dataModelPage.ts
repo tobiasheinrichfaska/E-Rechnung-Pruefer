@@ -272,6 +272,13 @@ export const ENTITIES: EntityDoc[] = [
         meaning: 'Fehlende Teile (z. B. Postleitzahl, Position 2: Menge)',
       },
       {
+        name: 'hints',
+        type: 'string[]',
+        required: true,
+        meaning:
+          'Mögliche Auffälligkeiten der Zeile (Hinweis, kein Status), z. B. „Gutschrift“ bei Typcode 381',
+      },
+      {
         name: 'values',
         type: 'ShownValue[]',
         required: true,

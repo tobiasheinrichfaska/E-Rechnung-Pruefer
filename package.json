@@ -1,5 +1,5 @@
 {
-  "name": "e-rechnung",
+  "name": "e-rechnung-pruefer",
   "private": true,
   "version": "0.1.0",
   "description": "E-Rechnungs-Prüfer: zeigt im Browser, ob eine Datei eine E-Rechnung ist, welche Pflichtangaben sie enthält und ob die Beträge zusammenpassen. Die Datei verlässt den Rechner nicht.",
@@ -21,8 +21,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "hochladen": "powershell -NoProfile -ExecutionPolicy Bypass -File ../../../private/Auslieferung/upload.ps1 -Projekt .",
-    "tester": "powershell -NoProfile -ExecutionPolicy Bypass -File ../../../private/Auslieferung/tester.ps1 -Projekt . -Ziel test"
+    "hochladen": "powershell -NoProfile -ExecutionPolicy Bypass -File ../../private/Auslieferung/upload.ps1 -Projekt .",
+    "tester": "powershell -NoProfile -ExecutionPolicy Bypass -File ../../private/Auslieferung/tester.ps1 -Projekt . -Ziel test"
   },
   "dependencies": {
     "libxml2-wasm": "0.7.2",

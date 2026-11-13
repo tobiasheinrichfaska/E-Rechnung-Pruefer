@@ -1,15 +1,31 @@
-# Dependencies & build output (the repo root ignores node_modules/, dist/ and .tmp/ at any depth too)
+# Dependencies & build output
 node_modules/
 dist/
 coverage/
 playwright-report/
 test-results/
 
-# Downloaded official artefacts and throw-away spikes — never committed (see docs/quellen.md)
+# Project-bound scratch area (workspace rule): downloaded official artefacts, throw-away spikes
 .tmp/
+
+# Inbox for delivered material and its timestamped archive (workspace import rule) — local only
+import/
+import-archiv/
 
 # Sample invoices whose licence forbids redistribution (FeRD Musterrechnungen) — local only
 tests/fixtures/lokal/
 
 # Upload tool: tester list (hashes) and generated access rules — local only
 deploy/.local/
+
+# Local environment / editor
+.env
+.env.*
+.vscode/
+.idea/
+*.wsb
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini

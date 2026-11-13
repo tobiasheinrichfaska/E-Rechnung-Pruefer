@@ -52,6 +52,8 @@ export interface Pflichtangabe {
   needs: Record<Mode, Need>;
   /** Shown only in these modes (rows that exist for a special list of minimum content) */
   onlyFor?: Mode[];
+  /** Possible irregularities shown with the row when their condition holds (never a status) */
+  hints?: { when: Condition; text: string }[];
   /** Where the KoSIT/FeRD recommendation or the law names it */
   source: string;
 }
@@ -447,6 +449,19 @@ export const PFLICHTANGABEN: readonly Pflichtangabe[] = [
         because: 'Nur nötig, wenn der Leistungsempfänger die Rechnung ausstellt (Typcode 389).',
       },
     },
+    // Tobias 2026-11-13 (F11): a Rechnungskorrektur called "Gutschrift" is no Gutschrift
+    hints: [
+      {
+        when: {
+          kind: 'all',
+          of: [
+            { kind: 'text', paths: NOTES, pattern: 'gutschrift' },
+            { kind: 'not', of: { kind: 'equals', path: 'BT-3', values: ['389'] } },
+          ],
+        },
+        text: 'Mögliche Auffälligkeit: In einer Bemerkung steht „Gutschrift“, die Art der Rechnung ist aber nicht 389. Eine Gutschrift im Sinne des § 14 Abs. 2 Satz 2 UStG stellt der Leistungsempfänger aus (Typcode 389). Eine Rechnungskorrektur (z. B. 381) ist keine Gutschrift in diesem Sinne.',
+      },
+    ],
     source: 'KoSIT/FeRD S. 7: BT-3 = 389, BG-1 (F2)',
   },
   {
