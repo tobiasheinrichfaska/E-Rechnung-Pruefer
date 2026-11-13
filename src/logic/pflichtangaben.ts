@@ -90,6 +90,19 @@ const NICHT_KU: Need = {
 
 export const SMALL_AMOUNT_LIMIT = '250';
 
+/** A note like "Leistungsdatum entspricht Rechnungsdatum" (F15: not enough in an e-invoice). */
+const SAME_DATE_NOTE =
+  '(leistungs|liefer)(datum|zeitpunkt|tag)[^.\\n]{0,40}(entspricht|gleich|=|identisch)[^.\\n]{0,25}rechnungsdatum|rechnungsdatum[^.\\n]{0,25}(entspricht|gleich|=|identisch)[^.\\n]{0,25}(leistungs|liefer)(datum|zeitpunkt|tag)';
+
+/** Every place a time of supply can sit in the structured data. */
+const NO_DATE_AT_ALL = [
+  'BG-13/BT-72',
+  'BG-14/BT-73',
+  'BG-14/BT-74',
+  'BG-25/BG-26/BT-134',
+  'BG-25/BG-26/BT-135',
+];
+
 /**
  * F10 (Tobias 2026-11-13, research): any address under which the business can be reached is
  * enough, also a P.O. box or a Großkundenadresse — so a missing street is a hint, not a gap.
@@ -247,17 +260,25 @@ export const PFLICHTANGABEN: readonly Pflichtangabe[] = [
         // Tobias 2026-11-13 (F12): periods on some positions count; positions without one get a
         // hint (a Nebenleistung shares the time of the Hauptleistung, Abschnitt 3.10 Abs. 5 UStAE)
         { kind: 'some', group: 'BG-25', paths: ['BG-26/BT-134', 'BG-26/BT-135'] },
-        // Tobias 2026-11-13 (F3): a note "Leistungsdatum = Rechnungsdatum" counts as present
-        {
-          kind: 'text',
-          paths: NOTES,
-          pattern:
-            '(leistungs|liefer)(datum|zeitpunkt|tag)[^.\\n]{0,40}(entspricht|gleich|=|identisch)[^.\\n]{0,25}rechnungsdatum|rechnungsdatum[^.\\n]{0,25}(entspricht|gleich|=|identisch)[^.\\n]{0,25}(leistungs|liefer)(datum|zeitpunkt|tag)',
-        },
+        // Tobias 2026-11-13 (F15, replaces F3): a note "Leistungsdatum = Rechnungsdatum" does NOT
+        // count in an e-invoice (Abschnitt 14.5 Abs. 16 Sätze 3–4 UStAE) — it only gets a hint.
       ],
     },
     needs: { regel: IMMER, kleinbetrag: NICHT_KB, kleinunternehmer: NICHT_KU },
     hints: [
+      {
+        when: {
+          kind: 'all',
+          of: [
+            { kind: 'text', paths: NOTES, pattern: SAME_DATE_NOTE },
+            ...NO_DATE_AT_ALL.map((path): Condition => ({
+              kind: 'not',
+              of: { kind: 'present', path },
+            })),
+          ],
+        },
+        text: 'Die Rechnung nennt den Leistungszeitpunkt nur als Vermerk („Leistungsdatum entspricht Rechnungsdatum“). Das genügt nur bei sonstigen Rechnungen; in einer E-Rechnung muss die Angabe im strukturierten Datenformat stehen (Abschnitt 14.5 Abs. 16 Sätze 3–4 UStAE).',
+      },
       {
         when: {
           kind: 'all',

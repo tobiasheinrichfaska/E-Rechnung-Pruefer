@@ -256,19 +256,31 @@ describe('time of supply (§ 14 Abs. 4 Nr. 6 UStG, § 31 Abs. 4 UStDV)', () => {
     'Leistungszeitpunkt = Rechnungsdatum',
     'Rechnungsdatum entspricht dem Leistungsdatum',
     'Liefertag gleich Rechnungsdatum',
-  ])('counts the note "%s" (F3)', (note) => {
-    const result = checkPflichtangaben(model({ ...withoutDate, 'BG-1': [{ 'BT-22': note }] }));
-    expect(row(result, 'leistungszeitpunkt').status).toBe('vorhanden');
+  ])('does not count the note "%s" in an e-invoice, but explains why (F15)', (note) => {
+    const result = row(
+      checkPflichtangaben(model({ ...withoutDate, 'BG-1': [{ 'BT-22': note }] })),
+      'leistungszeitpunkt',
+    );
+    expect(result.status).toBe('fehlt');
+    expect(result.hints).toEqual([expect.stringContaining('Abschnitt 14.5 Abs. 16')]);
   });
 
-  it('does not count an unrelated note', () => {
-    const result = checkPflichtangaben(
-      model({
-        ...withoutDate,
-        'BG-1': [{ 'BT-22': 'Zahlbar bis zum Rechnungsdatum plus 14 Tage' }],
-      }),
+  it('gives no such hint when a structured date is there or the note is unrelated', () => {
+    const note = { 'BG-1': [{ 'BT-22': 'Leistungsdatum entspricht Rechnungsdatum' }] };
+    expect(row(checkPflichtangaben(model(note)), 'leistungszeitpunkt')).toMatchObject({
+      status: 'vorhanden',
+      hints: [],
+    });
+    const unrelated = row(
+      checkPflichtangaben(
+        model({
+          ...withoutDate,
+          'BG-1': [{ 'BT-22': 'Zahlbar bis zum Rechnungsdatum plus 14 Tage' }],
+        }),
+      ),
+      'leistungszeitpunkt',
     );
-    expect(row(result, 'leistungszeitpunkt').status).toBe('fehlt');
+    expect(unrelated).toMatchObject({ status: 'fehlt', hints: [] });
   });
 });
 

@@ -150,8 +150,8 @@ Semantic versioning in `package.json`, injected as `__APP_VERSION__`. Workflow: 
 - **Pflichtangaben are hints from the data, not a tax review.** Decided or researched with official
   sources (`docs/offene-fragen.md`): F5, F7 (Nr. 6a only for invoices from 01.01.2028), F10 (any
   reachable address; missing street = hint), F11, F12 (periods on some positions count, hint on
-  Nebenleistung), F13, F14. **Open: F15** — UStAE 14.5 Abs. 16 says "Leistungsdatum entspricht
-  Rechnungsdatum" is not enough in an e-invoice; F3 (note counts) stays until Tobias decides.
+  Nebenleistung), F13, F14, F15 (replaces F3: a note "Leistungsdatum entspricht Rechnungsdatum"
+  is not enough in an e-invoice, UStAE 14.5 Abs. 16 — "fehlt" with a hint).
 - **Text detection** (notes, exemption reasons) uses German keywords as data
   (`pflichtangaben.ts`); other languages or unusual wording are not recognised.
 - **§ 3c UStG** (distance sales, excluded from § 33 UStDV) and new vehicles (§ 14a Abs. 4) cannot be
