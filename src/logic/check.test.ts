@@ -113,12 +113,14 @@ describe('the Pflichtangaben table as data', () => {
         paths.push(p.group, ...p.paths.map((x) => `${p.group}/${x}`));
         if (p.unless) paths.push(`${p.group}/${p.unless.path}`);
       }
+      if (p.kind === 'some') paths.push(p.group, ...p.paths.map((x) => `${p.group}/${x}`));
       if (p.kind === 'anyOf' || p.kind === 'allOf') p.of.forEach(fromPresence);
     };
     const fromCondition = (c: Condition): void => {
       if (c.kind === 'equals' || c.kind === 'present' || c.kind === 'atMost') paths.push(c.path);
       if (c.kind === 'differ') paths.push(c.a, c.b);
       if (c.kind === 'text') paths.push(...c.paths);
+      if (c.kind === 'partial') paths.push(c.group, ...c.paths.map((x) => `${c.group}/${x}`));
       if (c.kind === 'all' || c.kind === 'any') c.of.forEach(fromCondition);
       if (c.kind === 'not') fromCondition(c.of);
     };
@@ -128,6 +130,7 @@ describe('the Pflichtangaben table as data', () => {
       fromPresence(p.presence);
       for (const need of Object.values(p.needs))
         if (need.kind === 'bedingt') fromCondition(need.when);
+      for (const hint of p.hints ?? []) fromCondition(hint.when);
     }
     MODES.forEach((m) => fromCondition(m.when));
     expect(paths.filter((path) => !known(path))).toEqual([]);
@@ -157,7 +160,7 @@ describe('checkPflichtangaben – regular invoice', () => {
     );
     expect(row(result, 'anschrift-empfaenger')).toMatchObject({
       status: 'fehlt',
-      missing: ['Straße oder Postfach', 'Postleitzahl'],
+      missing: ['Postleitzahl oder Straße/Postfach'],
     });
   });
 
@@ -228,15 +231,23 @@ describe('time of supply (§ 14 Abs. 4 Nr. 6 UStG, § 31 Abs. 4 UStDV)', () => {
         'leistungszeitpunkt',
       ).status,
     ).toBe('vorhanden');
+    // F12: a period on some positions counts; the others get the Nebenleistung hint
+    const partial = row(
+      checkPflichtangaben(model({ ...withoutDate, 'BG-25': lines(false) })),
+      'leistungszeitpunkt',
+    );
+    expect(partial.status).toBe('vorhanden');
+    expect(partial.hints).toEqual([expect.stringContaining('Abschnitt 3.10 Abs. 5 UStAE')]);
+    // all positions with a period, or a common date: no hint
     expect(
       row(
-        checkPflichtangaben(model({ ...withoutDate, 'BG-25': lines(false) })),
+        checkPflichtangaben(model({ ...withoutDate, 'BG-25': lines(true) })),
         'leistungszeitpunkt',
-      ),
-    ).toMatchObject({
-      status: 'fehlt',
-      missing: ['Position 2: Beginn'],
-    });
+      ).hints,
+    ).toEqual([]);
+    expect(
+      row(checkPflichtangaben(model({ 'BG-25': lines(false) })), 'leistungszeitpunkt').hints,
+    ).toEqual([]);
   });
 
   it.each([
@@ -488,6 +499,60 @@ describe('display', () => {
     expect(row(result, 'steuerbetrag').values).toEqual([
       { label: 'Summe der Umsatzsteuer', value: '190,00 EUR' },
     ]);
+  });
+});
+
+describe('complete address (F10: any address under which the business can be reached)', () => {
+  const seller = (address: Spec) =>
+    checkPflichtangaben(
+      model({ 'BG-4': [{ 'BT-27': 'V GmbH', 'BT-31': 'DE123456789', 'BG-5': [address] }] }),
+    );
+
+  it('accepts postcode and city without a street (e.g. a Großkundenadresse) with a hint', () => {
+    const result = row(
+      seller({ 'BT-38': '76127', 'BT-37': 'Karlsruhe', 'BT-40': 'DE' }),
+      'anschrift-leistender',
+    );
+    expect(result.status).toBe('vorhanden');
+    expect(result.hints).toEqual([expect.stringContaining('Abschnitt 14.5 Abs. 2 UStAE')]);
+  });
+
+  it('accepts a P.O. box line and city without a hint', () => {
+    const result = row(
+      seller({ 'BT-35': 'Postfach 1234', 'BT-37': 'Karlsruhe' }),
+      'anschrift-leistender',
+    );
+    expect(result).toMatchObject({ status: 'vorhanden', hints: [] });
+  });
+
+  it('asks for the city and for postcode or street', () => {
+    expect(row(seller({ 'BT-38': '76127', 'BT-40': 'DE' }), 'anschrift-leistender')).toMatchObject({
+      status: 'fehlt',
+      missing: ['Ort'],
+    });
+  });
+});
+
+describe('§ 14 Abs. 4 Satz 1 Nr. 6a UStG from 1 January 2028 (F7)', () => {
+  const ids = (issued: string | string[]) =>
+    checkPflichtangaben(model({ 'BT-2': issued })).rows.map((r) => r.row.id);
+
+  it('appears only for invoices issued on or after 1 January 2028', () => {
+    expect(ids('2027-12-31')).not.toContain('ist-versteuerung');
+    expect(ids('2028-01-01')).toContain('ist-versteuerung');
+    expect(ids([] as string[])).not.toContain('ist-versteuerung');
+  });
+
+  it('is only needed in individual cases and finds the wording in a note', () => {
+    const plain = row(checkPflichtangaben(model({ 'BT-2': '2028-03-01' })), 'ist-versteuerung');
+    expect(plain.status).toBe('einzelfall');
+    const noted = checkPflichtangaben(
+      model({
+        'BT-2': '2028-03-01',
+        'BG-1': [{ 'BT-22': 'Versteuerung nach vereinnahmten Entgelten' }],
+      }),
+    );
+    expect(row(noted, 'ist-versteuerung').status).toBe('vorhanden');
   });
 });
 

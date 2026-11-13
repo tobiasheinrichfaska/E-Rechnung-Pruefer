@@ -26,9 +26,10 @@ test('shows every Pflichtangabe of a complete invoice with its values', async ({
   expect(await sideEffects(page)).toEqual([]);
 });
 
-test('names what is missing, with the missing parts', async ({ page }) => {
+test('names what is missing, with the missing parts, and shows hints', async ({ page }) => {
   const problems = await openApp(page);
-  // KoSIT test file: seller and buyer address without street, tax representative without address
+  // KoSIT test file: seller and buyer address without street (postcode + city: enough, with a
+  // hint – F10), tax representative with a country only (missing)
   await upload(
     page,
     '01.14a.xml',
@@ -36,16 +37,16 @@ test('names what is missing, with the missing parts', async ({ page }) => {
     'application/xml',
   );
 
-  await expect(page.getByTestId('pflicht-summary')).toContainText(
-    'Es fehlt: Anschrift des leistenden Unternehmers',
+  await expect(page.getByTestId('pflicht-summary')).toHaveText(
+    'Es fehlt: Fiskalvertreter: Name, Anschrift und USt-IdNr.',
   );
   const address = page.getByTestId('pflicht-anschrift-leistender');
-  await expect(address.getByTestId('status')).toHaveText('fehlt');
-  await expect(address).toContainText('Es fehlt: Straße oder Postfach.');
+  await expect(address.getByTestId('status')).toHaveText('vorhanden');
+  await expect(address.getByTestId('row-hint')).toContainText('Ohne Straße oder Postfach');
   await expect(page.getByRole('heading', { name: /Angaben in besonderen Fällen/ })).toBeVisible();
-  await expect(page.getByTestId('pflicht-fiskalvertreter').getByTestId('status')).toHaveText(
-    'fehlt',
-  );
+  const representative = page.getByTestId('pflicht-fiskalvertreter');
+  await expect(representative.getByTestId('status')).toHaveText('fehlt');
+  await expect(representative).toContainText('Es fehlt: Ort; Postleitzahl oder Straße/Postfach.');
 
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);

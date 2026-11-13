@@ -15,8 +15,9 @@ export const TEXTS = {
   keineERechnungPdf: 'PDF mit Rechnungsdaten, Profil {profile}: keine E-Rechnung im Sinne des UStG',
   keineERechnungXml: 'Rechnungsdaten im Profil {profile}: keine E-Rechnung im Sinne des UStG',
   minimumReason:
-    'Nach dem BMF-Schreiben vom 15.10.2024 gelten ZUGFeRD- und Factur-X-Rechnungen in den Profilen MINIMUM und BASIC WL nicht als E-Rechnung.',
-  zugferd1Reason: 'Das BMF erkennt ZUGFeRD erst ab Version 2.0.1 als E-Rechnung an.',
+    'Nach dem BMF-Schreiben vom 15.10.2024 (Rn. 25 und 30) und Abschnitt 14.1 Abs. 14 UStAE gelten ZUGFeRD- und Factur-X-Rechnungen in den Profilen MINIMUM und BASIC WL nicht als E-Rechnung.',
+  zugferd1Reason:
+    'Das BMF erkennt ZUGFeRD erst ab Version 2.0.1 als E-Rechnung an; das ursprüngliche ZUGFeRD-Format beruht nicht auf der Normenreihe EN 16931 (BMF-Schreiben vom 15.10.2024, Rn. 30).',
 
   nichtBeurteilt: 'Rechnungsdaten erkannt, Spezifikation unbekannt: nicht beurteilt',
   specUnknown: 'Spezifikation unbekannt',
@@ -34,7 +35,7 @@ export const TEXTS = {
   otherXml: 'XML-Datei ohne bekanntes Rechnungsformat',
   rootIs: 'Wurzelelement: {name} (Namensraum {namespace}).',
   otherFormats:
-    'Das Tool kennt UBL und CII nach EN 16931. Andere Formate können eine E-Rechnung sein, wenn Sie das mit dem Lieferanten vereinbart haben. Das Tool beurteilt sie nicht.',
+    'Das Tool kennt UBL und CII nach EN 16931. Andere Formate (z. B. EDI) können eine E-Rechnung sein, wenn Sie das mit dem Lieferanten vereinbart haben (§ 14 Abs. 1 Satz 6 Nr. 2 UStG; EDI übergangsweise bis Ende 2027, § 27 Abs. 38 UStG). Das Tool beurteilt sie nicht.',
 
   plainPdf: 'Keine E-Rechnung: einfaches PDF',
   pdfWithoutInvoiceData: 'Keine E-Rechnung: PDF ohne Rechnungsdaten',
@@ -51,9 +52,8 @@ export const TEXTS = {
   besondereHeading: 'Angaben in besonderen Fällen (§ 14 Abs. 5, § 14a, § 22c UStG)',
   allPresent: 'Alle Pflichtfelder belegt. Bitte prüfen Sie die Werte.',
   missingList: 'Es fehlt: {list}.',
-  addressStreet: 'Straße oder Postfach',
-  addressPostcode: 'Postleitzahl',
   addressCity: 'Ort',
+  addressPostcodeOrStreet: 'Postleitzahl oder Straße/Postfach',
   noGroup: 'keine Angabe „{group}“',
   statusVorhanden: 'vorhanden',
   statusFehlt: 'fehlt',

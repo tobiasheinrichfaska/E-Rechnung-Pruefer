@@ -1,7 +1,7 @@
 // Specification identifiers (BT-24) → what the tool says about them. Hybrid formats (ZUGFeRD from
-// 2.0.1, Factur-X) count as e-invoices except the profiles MINIMUM and BASIC WL (BMF 15.10.2024).
-// Unknown identifiers are not judged (open question F5). Sources per entry; entries marked
-// `checked: false` wait for the FeRD 2.5.2 specification.
+// 2.0.1, Factur-X) count as e-invoices except the profiles MINIMUM and BASIC WL (BMF 15.10.2024
+// Rn. 25, 30; Abschnitt 14.1 Abs. 14 UStAE). Unknown identifiers are not judged (F5, Tobias
+// 2026-11-13). Sources per entry; `checked: false` = not backed by an official sample file.
 
 export type Einordnung = 'eRechnung' | 'keineERechnung' | 'nichtBeurteilt';
 
@@ -28,8 +28,8 @@ export const PROFILES: readonly ProfileEntry[] = [
     label: 'ZUGFeRD/Factur-X, Profil MINIMUM',
     profile: 'MINIMUM',
     einordnung: 'keineERechnung',
-    source: 'Übergabe 2026-11-13; FeRD-Spezifikation',
-    checked: false,
+    source: 'FeRD ZUGFeRD 2.5.2 Musterrechnungen (Infopaket vom 04.08.2026)',
+    checked: true,
   },
   {
     id: `${FEX}:basicwl`,
@@ -37,8 +37,8 @@ export const PROFILES: readonly ProfileEntry[] = [
     label: 'ZUGFeRD/Factur-X, Profil BASIC WL',
     profile: 'BASIC WL',
     einordnung: 'keineERechnung',
-    source: 'Übergabe 2026-11-13; FeRD-Spezifikation',
-    checked: false,
+    source: 'FeRD ZUGFeRD 2.5.2 Musterrechnungen (Infopaket vom 04.08.2026)',
+    checked: true,
   },
   {
     id: `${CEN}#compliant#${FEX}:basic`,
@@ -46,8 +46,8 @@ export const PROFILES: readonly ProfileEntry[] = [
     label: 'ZUGFeRD/Factur-X, Profil BASIC',
     profile: 'BASIC',
     einordnung: 'eRechnung',
-    source: 'Übergabe 2026-11-13; FeRD-Spezifikation',
-    checked: false,
+    source: 'FeRD ZUGFeRD 2.5.2 Musterrechnungen (Infopaket vom 04.08.2026)',
+    checked: true,
   },
   {
     id: `${CEN}#conformant#${FEX}:extended`,
@@ -55,8 +55,8 @@ export const PROFILES: readonly ProfileEntry[] = [
     label: 'ZUGFeRD/Factur-X, Profil EXTENDED',
     profile: 'EXTENDED',
     einordnung: 'eRechnung',
-    source: 'Übergabe 2026-11-13; FeRD-Spezifikation',
-    checked: false,
+    source: 'FeRD ZUGFeRD 2.5.2 Musterrechnungen (Infopaket vom 04.08.2026)',
+    checked: true,
   },
   {
     id: `${CEN}#compliant#${KOSIT}:xrechnung_3.0#conformant#${KOSIT}:extension:xrechnung_3.0`,
@@ -95,8 +95,9 @@ export const PROFILES: readonly ProfileEntry[] = [
     match: 'prefix',
     label: 'XRechnung (ältere Fassung 1.x/2.x)',
     einordnung: 'eRechnung',
-    source: 'Kennungsschema der KoSIT bis XRechnung 2.3',
-    checked: false,
+    source:
+      'FeRD-Musterrechnung mit xrechnung_2.1 (Infopaket 2.5.2); Kennungsschema der KoSIT bis XRechnung 2.3',
+    checked: true,
   },
   {
     id: `${CEN}#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0`,
@@ -121,7 +122,8 @@ export const PROFILES: readonly ProfileEntry[] = [
     label: 'ZUGFeRD 1.0',
     profile: 'ZUGFeRD 1.0',
     einordnung: 'keineERechnung',
-    source: 'BMF 15.10.2024: ZUGFeRD erst ab Version 2.0.1 (F5, Bestätigung offen)',
+    source:
+      'BMF 15.10.2024 Rn. 25, 30; Abschnitt 14.1 Abs. 14 UStAE: ZUGFeRD erst ab Version 2.0.1 (F5)',
     checked: false,
   },
 ];

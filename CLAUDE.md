@@ -93,6 +93,7 @@ only after his explicit OK**. No GitHub remote yet (creating the public repo nee
 | `tests/io/extract.test.ts`                                 | Every binding XPath compiles (3 syntaxes); **21 KoSIT invoices in UBL and CII give the same model** (documented differences inside the test files themselves); values of one official invoice; credit-note lines; CII dates                                                               |
 | `tests/docs/dataModel.test.ts`                             | `docs/data-model.html` up to date (file snapshot), every field of real objects documented, self-contained                                                                                                                                                                                 |
 | `tests/io/analyze.test.ts`                                 | Every verdict path with official files and own PDFs: XRechnung UBL/CII/Extension/CVD, MINIMUM/BASIC WL, ZUGFeRD 1.0, unknown/missing id, same invoice in UBL+CII, contradicting XML, password, damaged, too large, empty, PNG                                                             |
+| `tests/io/ferdLokal.test.ts`                               | All 61 official FeRD 2.5.2 Factur-X sample PDFs (local only, `tests/fixtures/lokal/ferd/`): MINIMUM/BASIC WL "keine E-Rechnung", all others recognised, model and Pflichtangaben built — skipped where the folder is missing                                                              |
 | `src/logic/*.test.ts`                                      | Profiles, decimals, dates, verdict texts and comparison, detail rows; `check.test.ts`: table integrity (every path exists in the binding), every status path, F1–F3, § 33/§ 34a modes, § 14a/§ 22c cases, display                                                                         |
 | `tests/e2e/helpers.ts`                                     | `openApp` (spy for storage/cookie/CSP, request and console listeners), `upload` (waits for the result of exactly this file), `sideEffects`                                                                                                                                                |
 | `tests/e2e/erkennen.spec.ts`                               | Playwright on `dist/index.html` (file://): recognition paths, drop, CSP; a spy counts storage/cookie access, CSP violations, requests and console errors — all must be none (spy self-checked)                                                                                            |
@@ -146,11 +147,11 @@ Semantic versioning in `package.json`, injected as `__APP_VERSION__`. Workflow: 
 ## Known Limitations
 
 - **In development** — steps 2b–3a not built yet (see `docs/plan.md`).
-- **Pflichtangaben are hints from the data, not a tax review.** Provisional decisions waiting for
-  Tobias: F5 (ZUGFeRD 1.0 / unknown ids), F7 (Nr. 6a not shown — not in the current law text),
-  F10 (complete address = street or P.O. box, postcode, city), F12 (strict on positions without a
-  period) — research running. Decided: F11 (hint on a "Gutschrift" that is no Gutschrift), F13
-  (Kleinunternehmer before Kleinbetrag), F14 (how the cases are detected).
+- **Pflichtangaben are hints from the data, not a tax review.** Decided or researched with official
+  sources (`docs/offene-fragen.md`): F5, F7 (Nr. 6a only for invoices from 01.01.2028), F10 (any
+  reachable address; missing street = hint), F11, F12 (periods on some positions count, hint on
+  Nebenleistung), F13, F14. **Open: F15** — UStAE 14.5 Abs. 16 says "Leistungsdatum entspricht
+  Rechnungsdatum" is not enough in an e-invoice; F3 (note counts) stays until Tobias decides.
 - **Text detection** (notes, exemption reasons) uses German keywords as data
   (`pflichtangaben.ts`); other languages or unusual wording are not recognised.
 - **§ 3c UStG** (distance sales, excluded from § 33 UStDV) and new vehicles (§ 14a Abs. 4) cannot be
@@ -161,20 +162,19 @@ Semantic versioning in `package.json`, injected as `__APP_VERSION__`. Workflow: 
   stylesheet also accepts a separate preceding three-letter note).
 - **UBL `ChargeIndicator`** accepted as false/true and 0/1; CII `TaxTotalAmount` without a currency
   attribute counts as BT-110 (the D16B schema allows it, KoSIT does not).
-- **Profile identifiers of FeRD not yet checked** against the ZUGFeRD 2.5.2 specification
-  (`checked: false` in `profiles.ts`: MINIMUM, BASIC WL, BASIC, EXTENDED, old XRechnung ids,
-  ZUGFeRD 1.0). The ZUGFeRD 1.0 namespaces in `syntax.ts` are from memory, not from a sample file.
-- **ZUGFeRD 1.0 and unknown identifiers:** decided provisionally (F5, confirmation open) — also an
-  official CEN example in CII D16B carrying the ZUGFeRD 1.0 id is called "keine E-Rechnung".
+- **Profile identifiers** are backed by official sample files (FeRD 2.5.2, KoSIT, CEN) except
+  ZUGFeRD 1.0: its namespaces in `syntax.ts` are from memory, not from a sample file (`checked:
+false`). An official CEN example in CII D16B carrying the ZUGFeRD 1.0 id is called "keine
+  E-Rechnung" (F5).
 - **Attachments only from the EmbeddedFiles name tree** (where Factur-X/ZUGFeRD put the XML).
   Files attached only as page annotations are not seen. At most 50 attachments are read.
 - **Password-protected PDF** is tested with a synthetic encryption dictionary (the reader asks for
   a password); a real protected supplier PDF is not in the tests.
 - **E2E runs on file://**; the hosted copy is the same file (uploaded 2026-11-13 at Fragebogen
   commit 76828a3, "online identisch").
-- **FeRD ZUGFeRD 2.5.2 package** (Tobias downloaded it, `import/` → processed per the import rule).
-  Its sample invoices may not be redistributed → they stay local in `tests/fixtures/lokal/`; tests
-  that need them are skipped where the folder is missing, and a skipped test is not a pass.
+- **FeRD ZUGFeRD 2.5.2 sample invoices** may not be redistributed → they stay local in
+  `tests/fixtures/lokal/ferd/` (61 Factur-X PDFs); `tests/io/ferdLokal.test.ts` checks all of them
+  and is **skipped** where the folder is missing — a skipped test is not a pass.
 - **Mapping source:** KoSIT/FeRD recommendation, Stand 25.07.2025 — copyrighted, not in the repo;
   our data table cites it per row. Deviations from the hand-over's provisional table: F9.
 

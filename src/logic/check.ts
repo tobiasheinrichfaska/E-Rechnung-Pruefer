@@ -121,6 +121,12 @@ export function holds(model: InvoiceModel, condition: Condition): boolean {
     }
     case 'text':
       return matches(model, condition.paths, condition.pattern);
+    case 'partial': {
+      const filled = groupsOf(model, condition.group).map((group) =>
+        condition.paths.some((path) => has(group, path)),
+      );
+      return filled.includes(true) && filled.includes(false);
+    }
     case 'all':
       return condition.of.every((c) => holds(model, c));
     case 'any':
@@ -151,12 +157,22 @@ export function present(model: InvoiceModel, presence: Presence): PresenceResult
       const address = groupsOf(model, presence.group)[0];
       if (!parts) throw new Error(`No address parts for ${presence.group}`);
       if (!address) return { ok: false, missing: [] };
+      // F10: any address under which the business can be reached is enough (§ 31 Abs. 2 UStDV,
+      // Abschnitt 14.5 Abs. 2 UStAE): a city plus a postcode or a street line; a missing street
+      // alone is a hint on the row, not a gap.
+      const street = parts.street.some((bt) => has(address, bt));
       const missing = [
-        parts.street.some((bt) => has(address, bt)) ? undefined : TEXTS.addressStreet,
-        has(address, parts.postcode) ? undefined : TEXTS.addressPostcode,
         has(address, parts.city) ? undefined : TEXTS.addressCity,
+        street || has(address, parts.postcode) ? undefined : TEXTS.addressPostcodeOrStreet,
       ].filter((part): part is string => part !== undefined);
       return { ok: missing.length === 0, missing };
+    }
+    case 'some': {
+      const groups = groupsOf(model, presence.group);
+      return {
+        ok: groups.some((group) => presence.paths.some((path) => has(group, path))),
+        missing: [],
+      };
     }
     case 'each': {
       const groups = groupsOf(model, presence.group);
@@ -250,9 +266,11 @@ function evaluateRow(model: InvoiceModel, row: Pflichtangabe, mode: Mode): RowRe
 
 export function checkPflichtangaben(model: InvoiceModel): PflichtResult {
   const { mode, text } = modeOf(model);
-  const rows = PFLICHTANGABEN.filter((row) => !row.onlyFor || row.onlyFor.includes(mode)).map(
-    (row) => evaluateRow(model, row, mode),
-  );
+  const issued = isoDate(firstValue(model, 'BT-2'));
+  const rows = PFLICHTANGABEN.filter((row) => !row.onlyFor || row.onlyFor.includes(mode))
+    // A rule in force only later applies to invoices issued on or after that day (ISO compare)
+    .filter((row) => !row.validFrom || (issued !== undefined && issued >= row.validFrom))
+    .map((row) => evaluateRow(model, row, mode));
   const missingLabels = rows.filter((r) => r.status === 'fehlt').map((r) => r.row.label);
   return {
     mode,

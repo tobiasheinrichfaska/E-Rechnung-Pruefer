@@ -21,6 +21,8 @@ export type Presence =
   | { kind: 'address'; group: string }
   /** every occurrence of `group` (at least one) has a value at every relative path */
   | { kind: 'each'; group: string; paths: string[]; unless?: { path: string; values: string[] } }
+  /** at least one occurrence of `group` has a value at one of the relative paths */
+  | { kind: 'some'; group: string; paths: string[] }
   /** a value matches the pattern (case-insensitive) at one of the paths */
   | { kind: 'text'; paths: string[]; pattern: string }
   | { kind: 'equals'; path: string; values: string[] }
@@ -34,6 +36,8 @@ export type Condition =
   | { kind: 'differ'; a: string; b: string }
   | { kind: 'atMost'; path: string; limit: string }
   | { kind: 'text'; paths: string[]; pattern: string }
+  /** some occurrences of `group` have a value at one of the paths, others have none */
+  | { kind: 'partial'; group: string; paths: string[] }
   | { kind: 'all'; of: Condition[] }
   | { kind: 'any'; of: Condition[] }
   | { kind: 'not'; of: Condition };
@@ -52,6 +56,8 @@ export interface Pflichtangabe {
   needs: Record<Mode, Need>;
   /** Shown only in these modes (rows that exist for a special list of minimum content) */
   onlyFor?: Mode[];
+  /** Law in force only from this day (ISO): shown for invoices issued (BT-2) on or after it */
+  validFrom?: string;
   /** Possible irregularities shown with the row when their condition holds (never a status) */
   hints?: { when: Condition; text: string }[];
   /** Where the KoSIT/FeRD recommendation or the law names it */
@@ -83,6 +89,30 @@ const NICHT_KU: Need = {
 };
 
 export const SMALL_AMOUNT_LIMIT = '250';
+
+/**
+ * F10 (Tobias 2026-11-13, research): any address under which the business can be reached is
+ * enough, also a P.O. box or a Großkundenadresse — so a missing street is a hint, not a gap.
+ */
+function noStreetHint(
+  group: string,
+  street: string[],
+  city: string,
+): { when: Condition; text: string } {
+  return {
+    when: {
+      kind: 'all',
+      of: [
+        { kind: 'present', path: `${group}/${city}` },
+        ...street.map((bt): Condition => ({
+          kind: 'not',
+          of: { kind: 'present', path: `${group}/${bt}` },
+        })),
+      ],
+    },
+    text: 'Ohne Straße oder Postfach. Das genügt, wenn der Unternehmer unter dieser Anschrift erreichbar ist (z. B. eine Großkundenadresse; § 31 Abs. 2 UStDV, Abschnitt 14.5 Abs. 2 UStAE).',
+  };
+}
 
 /**
  * § 14 Abs. 4 Satz 1 Nr. 8 UStG: rate and tax amount for taxable supplies; for exempt or not
@@ -126,7 +156,9 @@ export const PFLICHTANGABEN: readonly Pflichtangabe[] = [
     ],
     presence: { kind: 'address', group: 'BG-4/BG-5' },
     needs: { regel: IMMER, kleinbetrag: IMMER, kleinunternehmer: IMMER },
-    source: 'KoSIT/FeRD S. 2: BG-5, BT-35 – BT-40, BT-162',
+    hints: [noStreetHint('BG-4/BG-5', ['BT-35', 'BT-36', 'BT-162'], 'BT-37')],
+    source:
+      'KoSIT/FeRD S. 2: BG-5, BT-35 – BT-40, BT-162; § 31 Abs. 2 UStDV, Abschnitt 14.5 Abs. 2 UStAE (F10)',
   },
   {
     id: 'name-empfaenger',
@@ -154,7 +186,9 @@ export const PFLICHTANGABEN: readonly Pflichtangabe[] = [
     ],
     presence: { kind: 'address', group: 'BG-7/BG-8' },
     needs: { regel: IMMER, kleinbetrag: NICHT_KB, kleinunternehmer: IMMER },
-    source: 'KoSIT/FeRD S. 2: BG-8, BT-50 – BT-55, BT-163',
+    hints: [noStreetHint('BG-7/BG-8', ['BT-50', 'BT-51', 'BT-163'], 'BT-52')],
+    source:
+      'KoSIT/FeRD S. 2: BG-8, BT-50 – BT-55, BT-163; § 31 Abs. 2 UStDV, Abschnitt 14.5 Abs. 2 UStAE (F10)',
   },
   {
     id: 'steuernummer',
@@ -210,8 +244,9 @@ export const PFLICHTANGABEN: readonly Pflichtangabe[] = [
       kind: 'anyOf',
       of: [
         { kind: 'any', paths: ['BG-13/BT-72', 'BG-14/BT-73', 'BG-14/BT-74'] },
-        { kind: 'each', group: 'BG-25', paths: ['BG-26/BT-134'] },
-        { kind: 'each', group: 'BG-25', paths: ['BG-26/BT-135'] },
+        // Tobias 2026-11-13 (F12): periods on some positions count; positions without one get a
+        // hint (a Nebenleistung shares the time of the Hauptleistung, Abschnitt 3.10 Abs. 5 UStAE)
+        { kind: 'some', group: 'BG-25', paths: ['BG-26/BT-134', 'BG-26/BT-135'] },
         // Tobias 2026-11-13 (F3): a note "Leistungsdatum = Rechnungsdatum" counts as present
         {
           kind: 'text',
@@ -222,7 +257,45 @@ export const PFLICHTANGABEN: readonly Pflichtangabe[] = [
       ],
     },
     needs: { regel: IMMER, kleinbetrag: NICHT_KB, kleinunternehmer: NICHT_KU },
+    hints: [
+      {
+        when: {
+          kind: 'all',
+          of: [
+            { kind: 'not', of: { kind: 'present', path: 'BG-13/BT-72' } },
+            { kind: 'not', of: { kind: 'present', path: 'BG-14/BT-73' } },
+            { kind: 'not', of: { kind: 'present', path: 'BG-14/BT-74' } },
+            { kind: 'partial', group: 'BG-25', paths: ['BG-26/BT-134', 'BG-26/BT-135'] },
+          ],
+        },
+        text: 'Nicht jede Position hat einen eigenen Leistungszeitraum, und die Rechnung nennt keinen gemeinsamen Leistungszeitpunkt. Eine Nebenleistung (z. B. Porto oder Versand) teilt umsatzsteuerlich das Schicksal der Hauptleistung (Abschnitt 3.10 Abs. 5 UStAE). Bitte prüfen Sie, ob die Positionen ohne Zeitraum solche Nebenleistungen sind.',
+      },
+    ],
     source: 'KoSIT/FeRD S. 3–4: BT-72, BG-14, BG-26',
+  },
+  {
+    id: 'ist-versteuerung',
+    norm: '§ 14 Abs. 4 Satz 1 Nr. 6a UStG (ab 01.01.2028, Art. 27 JStG 2024)',
+    label: 'Angabe „Versteuerung nach vereinnahmten Entgelten“',
+    section: 'paragraph14',
+    show: [],
+    validFrom: '2028-01-01',
+    presence: { kind: 'text', paths: NOTES, pattern: 'vereinnahmten entgelten' },
+    needs: {
+      regel: {
+        kind: 'einzelfall',
+        because:
+          'Nur nötig, wenn der leistende Unternehmer die Steuer nach vereinnahmten Entgelten berechnet (§ 20 UStG).',
+      },
+      kleinbetrag: {
+        kind: 'einzelfall',
+        because:
+          'Nur nötig, wenn der leistende Unternehmer die Steuer nach vereinnahmten Entgelten berechnet (§ 33 Satz 1 Nr. 3a UStDV ab 01.01.2028).',
+      },
+      kleinunternehmer: NICHT_KU,
+    },
+    source:
+      'KoSIT/FeRD S. 4: BG-1 (BT-7, BT-8); BGBl. 2024 I Nr. 387 Art. 27 Nr. 1, Art. 56 Abs. 12 (F7)',
   },
   {
     id: 'vereinnahmung',
