@@ -32,7 +32,9 @@ BR-DE rules as errors (B2B needs no XRechnung), no PDF/A check, no tax judgement
 online VAT-ID lookup.
 
 **Workflow (Tobias 2026-11-13):** commit without asking and report the commits; **push and upload
-only after his explicit OK**. No GitHub remote yet (creating the public repo needs his OK).
+only after his explicit OK**. GitHub: https://github.com/tobiasheinrichfaska/E-Rechnung-Pruefer
+(public, created 2026-11-14 on his request; Claude Code on the web works from his GitHub account —
+keep `main` pushed after his OK so web sessions see the current state).
 
 - Plan and step status: [`docs/plan.md`](docs/plan.md) (German)
 - Sources, versions, licences, SHA-256: [`docs/quellen.md`](docs/quellen.md)
@@ -189,6 +191,13 @@ false`). An official CEN example in CII D16B carrying the ZUGFeRD 1.0 id is call
 ---
 
 ## Status / next step
+
+**2026-11-14 — tester samples, F8/F9, GitHub:** manual tests reduced to what automation cannot
+cover (phone width is now an e2e test); `beispiele/` (26 samples, `npm run beispiele`) with
+coverage of every headline/case text/hint; F8 and F9 decided; fixes: exemption reason per VAT
+category, text-found rows show their text, "aufzubewahren". Repo pushed to GitHub. Upload of the
+samples to `NebenprojektERechnung/` postponed by Tobias ("lassen wir"). Next: phase 2b (schema
+view, FeRD profile XSDs), then 3a (rules).
 
 **2026-11-13 — own project:** moved out of `Fragebogen/e-rechnung/` with its history; workspace
 conventions added (licences, `.gitattributes`, `import/` rule); registered in the workspace
