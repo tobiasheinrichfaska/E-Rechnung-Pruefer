@@ -1,4 +1,4 @@
-import { germanDate, isoDate } from './dates';
+import { germanDate, germanMoment, isoDate } from './dates';
 
 describe('isoDate', () => {
   it('reads UBL and CII format 102', () => {
@@ -18,6 +18,14 @@ describe('isoDate', () => {
 
   it('shows German dates', () => {
     expect(germanDate('2026-01-05')).toBe('05.01.2026');
+  });
+
+  it('shows the moment of a check in local time', () => {
+    expect(germanMoment(new Date(2026, 0, 5, 8, 3))).toEqual({ date: '05.01.2026', time: '08:03' });
+    expect(germanMoment(new Date(2026, 10, 14, 18, 52))).toEqual({
+      date: '14.11.2026',
+      time: '18:52',
+    });
   });
 });
 

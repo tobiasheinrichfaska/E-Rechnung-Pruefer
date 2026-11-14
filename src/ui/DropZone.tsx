@@ -2,18 +2,25 @@ import { useRef, useState } from 'react';
 import type { DragEvent } from 'react';
 
 interface Props {
-  onFile: (file: File) => void;
+  /** The first file and how many came with it (only the first counts) */
+  onFile: (file: File, count: number) => void;
   disabled?: boolean;
+  /** A file is dragged somewhere over the page (the whole page takes it, App) */
+  pageDrag?: boolean;
 }
 
+/** Text or a link dragged from elsewhere carries no file: no invitation to drop (audit A-09) */
+const carriesFiles = (event: DragEvent<HTMLDivElement>) =>
+  event.dataTransfer.types.includes('Files');
+
 /** Drop a file or pick one; only the first file of a drop counts. */
-export function DropZone({ onFile, disabled = false }: Props) {
+export function DropZone({ onFile, disabled = false, pageDrag = false }: Props) {
   const input = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
 
   const take = (files: FileList | null) => {
     const file = files?.[0];
-    if (file) onFile(file);
+    if (file) onFile(file, files.length);
   };
 
   const onDrop = (event: DragEvent<HTMLDivElement>) => {
@@ -24,8 +31,9 @@ export function DropZone({ onFile, disabled = false }: Props) {
 
   return (
     <div
-      className={`dropzone${over ? ' over' : ''}`}
+      className={`dropzone${over || (pageDrag && !disabled) ? ' over' : ''}`}
       onDragOver={(event) => {
+        if (!carriesFiles(event)) return;
         event.preventDefault();
         if (!disabled) setOver(true);
       }}

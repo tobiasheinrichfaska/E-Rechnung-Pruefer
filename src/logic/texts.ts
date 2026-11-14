@@ -3,6 +3,9 @@
 import type { FileProblemKind } from './analysis';
 import type { Tone } from './verdict';
 
+/** F4 (Tobias 2026-11-13), word for word — one constant for every place it is shown (V-03) */
+const FORMAT_ERROR = 'Formatfehler, gem. Rn. 6a ggf. keine E-Rechnung.';
+
 export const TEXTS = {
   fixedNotice:
     'Technische Erstprüfung, keine steuerliche Prüfung. Maßgeblich sind die Daten in der XML. Bei Fragen wenden Sie sich an Ihre Kanzlei.',
@@ -55,7 +58,7 @@ export const TEXTS = {
     'Der Anhang „{name}“ ist größer als 20 MB. So große XML-Dateien liest das Tool nicht.',
   attachmentsTruncated: 'Das PDF hat sehr viele Anhänge. Das Tool hat nur die ersten 50 gelesen.',
   notJudged: 'Ob das PDF eine E-Rechnung ist, kann das Tool deshalb nicht sagen.',
-  formatError: 'Formatfehler, gem. Rn. 6a ggf. keine E-Rechnung.',
+  formatError: FORMAT_ERROR,
 
   // Step 2b: the official schema (F4 for the statement)
   schemaErrorHeadline: 'Rechnungsdaten mit Formatfehler ({spec})',
@@ -73,6 +76,16 @@ export const TEXTS = {
   // The parser's own message (English) marked as such (audit 2026-11-14, U-07)
   problemAtLine: 'Technische Meldung (Zeile {line}): {message}',
   problemMessage: 'Technische Meldung: {message}',
+
+  // Above the result: which file and when — on paper the Kanzlei sees when it was checked
+  // (audit Bedienung, E-02/A-12)
+  checkedFile: 'Geprüfte Datei: „{name}“ – geprüft am {date} um {time} Uhr',
+  differingLine: 'Unterschiedlich: {items}.',
+  differingItem: '{label} ({values})',
+  // Heading of each part when a PDF holds several invoice XML (audit Bedienung, E-04)
+  partHeading: 'Rechnungsdaten {index} von {count} – Anhang „{name}“',
+  // Only the first file of a drop counts — said, not silent (audit Bedienung, A-04)
+  onlyFirstFile: 'Sie haben {count} Dateien abgelegt. Geprüft wurde nur die erste.',
 
   announceChecking: '„{name}“ wird geprüft.',
   announceResult: 'Ergebnis: {headline}.',
@@ -94,6 +107,15 @@ export const TEXTS = {
   ruleStatusNichtPruefbar: 'nicht prüfbar',
   ruleOccurrence: 'Kategorie {category}, {rate}',
   ruleLineSum: 'Summe der Positionen (BT-131)',
+  ruleSumAllowances: 'Summe der Nachlässe auf Dokumentebene (BT-92)',
+  ruleSumCharges: 'Summe der Zuschläge auf Dokumentebene (BT-99)',
+  ruleSumTaxes: 'Summe der Steuerbeträge je Kategorie (BT-117)',
+  // What the rule computes from the other values — the client compares it with the invoice
+  // (audit Bedienung, V-04)
+  ruleExpected: 'Nach der Regel erwartet',
+  rulesNone: 'Keine der ausgewählten Regeln lässt sich auf diese Rechnung anwenden.',
+  rulesOneNotChecked: 'Eine Regel ließ sich nicht prüfen (siehe unten).',
+  rulesSomeNotChecked: '{count} Regeln ließen sich nicht prüfen (siehe unten).',
   ruleMissing: '– nicht angegeben',
   ruleNoNumber: '– keine Zahl',
 
@@ -119,6 +141,15 @@ export const TEXTS = {
 
   fileProblems: {
     empty: { tone: 'bad', headline: 'Die Datei ist leer', explanation: [] },
+    // The browser cannot read it: a dropped folder, or a file moved or deleted meanwhile — the
+    // browser's own (English) message is not shown (audit Bedienung, A-03)
+    unreadable: {
+      tone: 'bad',
+      headline: 'Die Datei lässt sich nicht öffnen',
+      explanation: [
+        'Vielleicht ist es ein Ordner, oder die Datei wurde inzwischen verschoben. Bitte wählen Sie eine einzelne PDF- oder XML-Datei.',
+      ],
+    },
     unsupportedType: {
       tone: 'bad',
       headline: 'Diese Dateiart prüft das Tool nicht',
@@ -151,7 +182,7 @@ export const TEXTS = {
     xmlBroken: {
       tone: 'bad',
       headline: 'Die XML-Datei ist fehlerhaft',
-      explanation: ['Formatfehler, gem. Rn. 6a ggf. keine E-Rechnung.'],
+      explanation: [FORMAT_ERROR],
     },
   } satisfies Record<FileProblemKind, { tone: Tone; headline: string; explanation: string[] }>,
 };

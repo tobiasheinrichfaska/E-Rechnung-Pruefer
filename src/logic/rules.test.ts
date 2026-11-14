@@ -127,8 +127,44 @@ describe('calculation rules (step 3a)', () => {
     expect(status(rules(off), 'BR-E-08')).toEqual(['auffaellig']);
   });
 
-  it('cannot check what is not a number', () => {
-    expect(status(rules({}, { 'BT-115': '166,60' }), 'BR-CO-16')).toEqual(['nichtPruefbar']);
+  it('cannot check what is not a number — and says so in the summary (V-05)', () => {
+    const result = rules({}, { 'BT-115': '166,60' });
+    expect(status(result, 'BR-CO-16')).toEqual(['nichtPruefbar']);
+    expect(result.notChecked).toBe(1);
+    expect(result.summary).toBe(
+      'Die geprüften Beträge passen zusammen. Eine Regel ließ sich nicht prüfen (siehe unten).',
+    );
+    const two = rules({}, { 'BT-115': '166,60', 'BT-112': '166,60' });
+    expect(two.summary).toMatch(/ \d Regeln ließen sich nicht prüfen \(siehe unten\)\.$/);
+  });
+
+  it('applies BR-CO-14 only where BT-110 is given, as the CEN Schematron does', () => {
+    const base = BASE['BG-22'] as Spec[];
+    const withoutVat = Object.fromEntries(
+      Object.entries(base[0] as Spec).filter(([key]) => key !== 'BT-110'),
+    );
+    const model = group('INVOICE', { ...BASE, 'BG-22': [withoutVat] }) as InvoiceModel;
+    expect(status(checkRules(model), 'BR-CO-14')).toEqual([]);
+    // with nothing left to check (EXTENDED takes over only BR-CO-14) the summary says so
+    const extended = checkRules(model, { ownRules: true });
+    expect(extended.results).toEqual([]);
+    expect(extended.summary).toBe(
+      'Keine der ausgewählten Regeln lässt sich auf diese Rechnung anwenden.',
+    );
+  });
+
+  it('names the values and shows what the rule expects (V-04)', () => {
+    const co15 = rules({}, { 'BT-112': '170.00' }).results.find((r) => r.id === 'BR-CO-15');
+    expect(co15?.values).toEqual([
+      { label: 'Gesamtbetrag ohne Umsatzsteuer (BT-109)', value: '140,00 EUR' },
+      { label: 'Summe der Umsatzsteuer (BT-110)', value: '26,60 EUR' },
+      { label: 'Gesamtbetrag mit Umsatzsteuer (BT-112)', value: '170,00 EUR' },
+      { label: 'Nach der Regel erwartet', value: '166,60 EUR' },
+    ]);
+    const co17 = rules().results.find((r) => r.id === 'BR-CO-17');
+    expect(co17?.values.at(-1)).toEqual({ label: 'Nach der Regel erwartet', value: '26,60 EUR' });
+    const s08 = rules().results.find((r) => r.id === 'BR-S-08');
+    expect(s08?.values.at(-1)).toEqual({ label: 'Nach der Regel erwartet', value: '140,00 EUR' });
   });
 });
 

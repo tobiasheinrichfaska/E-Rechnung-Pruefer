@@ -50,11 +50,20 @@ test('names the Pflichtangaben of several invoice XML apart', async ({ page }) =
     'application/pdf',
   );
   await expect(
-    page.getByRole('region', { name: /^Rechnungsdaten 1 von 2 Pflichtangaben/ }),
+    page.getByRole('region', { name: /^Rechnungsdaten 1 von 2 – Anhang „a\.xml“ Pflichtangaben/ }),
   ).toHaveCount(1);
   await expect(
-    page.getByRole('region', { name: /^Rechnungsdaten 2 von 2 Pflichtangaben/ }),
+    page.getByRole('region', { name: /^Rechnungsdaten 2 von 2 – Anhang „b\.xml“ Pflichtangaben/ }),
   ).toHaveCount(1);
+  // The calculation sections and the tables too (audit Bedienung, Z-03: axe landmark-unique)
+  for (const n of [1, 2]) {
+    await expect(
+      page.getByRole('region', { name: new RegExp(`^Rechnungsdaten ${n} von 2 .* Rechnerische`) }),
+    ).toHaveCount(1);
+    await expect(
+      page.getByRole('table', { name: new RegExp(`^Rechnungsdaten ${n} von 2 .* Pflichtangaben`) }),
+    ).toHaveCount(1);
+  }
 
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);
