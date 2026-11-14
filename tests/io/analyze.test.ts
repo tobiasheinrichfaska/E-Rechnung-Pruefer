@@ -42,7 +42,7 @@ describe('XML files', () => {
       'ubl-invoice',
       'E-Rechnung erkannt (XRechnung 3.0 mit Extension)',
     ],
-    ['kosit/02.01a-cvd_INVOICE_ubl.xml', 'ubl-invoice', 'E-Rechnung erkannt (XRechnung 3.0 (CVD))'],
+    ['kosit/02.01a-cvd_INVOICE_ubl.xml', 'ubl-invoice', 'E-Rechnung erkannt (XRechnung 3.0, CVD)'],
   ])('%s is recognised as %s', async (path, syntax, headline) => {
     const { analysis, verdict } = await check(path, official(path));
     expect(analysis.invoices.map((i) => i.syntax)).toEqual([syntax]);

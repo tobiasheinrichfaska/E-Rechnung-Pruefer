@@ -1,6 +1,6 @@
 import type { Analysis, InvoicePart } from './analysis';
 import { invoiceDetails } from './details';
-import { TEXTS } from './texts';
+import { TEXTS, fill } from './texts';
 import { differingTerms, verdictOf } from './verdict';
 
 const part = (overrides: Partial<InvoicePart['header']> = {}, origin = 'a.xml'): InvoicePart => ({
@@ -114,5 +114,26 @@ describe('invoiceDetails', () => {
     expect(rows['Rechnungsnummer (BT-1)']).toBe('– (fehlt)');
     expect(rows['Rechnungsdatum (BT-2)']).toBe('13.11.2026');
     expect(rows['Betrag brutto (BT-112)']).toBe('1.000,00');
+  });
+});
+
+describe('several invoice XML with another specification (audit 2026-11-14, L-03)', () => {
+  it('compares BT-24 too, so the result does not depend on the order', () => {
+    const xr = part(
+      { 'BT-24': ['urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0'] },
+      'a.xml',
+    );
+    const min = part({ 'BT-24': ['urn:factur-x.eu:1p0:minimum'] }, 'b.xml');
+    const one = verdictOf(analysis({ invoices: [xr, min] }));
+    const other = verdictOf(analysis({ invoices: [min, xr] }));
+    expect(one.headline).toBe(TEXTS.contradicting);
+    expect(other.headline).toBe(TEXTS.contradicting);
+    expect(one.comparison).toEqual({ same: false, differing: ['BT-24'] });
+  });
+});
+
+describe('fill (audit 2026-11-14, L-11)', () => {
+  it('fills only own keys, never names of Object.prototype', () => {
+    expect(fill('{toString} {name}', { name: 'X' })).toBe('{toString} X');
   });
 });

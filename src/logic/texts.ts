@@ -26,7 +26,7 @@ export const TEXTS = {
   shownAnyway: 'Die Angaben aus der XML werden trotzdem angezeigt.',
 
   sameSeveral:
-    'Die gleiche Rechnung ist {count}-mal eingebettet ({names}). Der Standard sieht eine Rechnungs-XML vor.',
+    'Dieselbe Rechnung ist {count}-mal eingebettet ({names}). Vorgesehen ist nur eine Rechnungs-XML je PDF.',
   contradicting: 'Mögliche Auffälligkeit: widersprüchliche Rechnungsdaten im PDF',
   contradictingWhy:
     'Das PDF enthält {count} Rechnungs-XML mit unterschiedlichen Daten ({names}). Unklar ist, welche gilt.',
@@ -57,6 +57,7 @@ export const TEXTS = {
   besondereHeading: 'Angaben in besonderen Fällen (§ 14 Abs. 5, § 14a, § 22c UStG)',
   allPresent: 'Alle Pflichtfelder belegt. Bitte prüfen Sie die Werte.',
   missingList: 'Es fehlt: {list}.',
+  missingOnly: 'nur',
   addressCity: 'Ort',
   addressPostcodeOrStreet: 'Postleitzahl oder Straße/Postfach',
   noGroup: 'keine Angabe „{group}“',
@@ -110,7 +111,7 @@ export const TEXTS = {
 /** Replaces {name} placeholders. */
 export function fill(text: string, values: Readonly<Record<string, string | number>>): string {
   return text.replace(/\{(\w+)\}/g, (whole, key: string) =>
-    key in values ? String(values[key]) : whole,
+    Object.hasOwn(values, key) ? String(values[key]) : whole,
   );
 }
 

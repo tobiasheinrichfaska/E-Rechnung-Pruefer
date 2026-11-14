@@ -573,7 +573,7 @@ ${entityTables}
 </ul>
 <table><thead><tr><th>Kennung (BT-24)</th><th>Vergleich</th><th>Bezeichnung</th><th>Einordnung</th><th>Quelle</th><th>geprüft</th></tr></thead><tbody>${PROFILES.map(
     (p) =>
-      `<tr><td><code>${esc(p.id)}</code></td><td>${p.match === 'exact' ? 'genau' : 'Anfang'}</td><td>${esc(p.label)}</td><td>${p.einordnung}</td><td>${esc(p.source)}</td><td>${p.checked ? 'ja' : 'nein'}</td></tr>`,
+      `<tr><td><code>${esc(p.id)}</code></td><td>${p.match === 'exact' ? 'genau' : p.rest ? 'Anfang + Versionsnummer' : 'Anfang'}</td><td>${esc(p.label)}${p.note ? ` (${esc(p.note)})` : ''}</td><td>${p.einordnung}</td><td>${esc(p.source)}</td><td>${p.checked ? 'ja' : 'nein'}</td></tr>`,
   ).join('')}</tbody></table>
 </main></body></html>
 `;

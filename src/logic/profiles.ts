@@ -13,12 +13,20 @@ export interface ProfileEntry {
   /** Short profile name for "Profil MINIMUM" in headlines */
   profile?: string;
   einordnung: Einordnung;
+  /** For a prefix: what may follow it, e.g. only a version number (audit 2026-11-14, L-08) */
+  rest?: RegExp;
+  /** Added to the label in the details, not in the headline */
+  note?: string;
   source: string;
   checked: boolean;
 }
 
+/** A version number such as 3.0 or 3.0.2 — nothing else after the prefix. */
+const VERSION = /^\d+(\.\d+)*$/;
+
 const CEN = 'urn:cen.eu:en16931:2017';
 const FEX = 'urn:factur-x.eu:1p0';
+const ZF2 = 'urn:zugferd.de:2p0';
 const KOSIT = 'urn:xeinkauf.de:kosit';
 
 export const PROFILES: readonly ProfileEntry[] = [
@@ -39,6 +47,27 @@ export const PROFILES: readonly ProfileEntry[] = [
     einordnung: 'keineERechnung',
     source: 'FeRD ZUGFeRD 2.5.2 Musterrechnungen (Infopaket vom 04.08.2026)',
     checked: true,
+  },
+  // ZUGFeRD 2.0/2.0.1 identifiers, still allowed by code list 1 of the FeRD package 2.5.2. MINIMUM
+  // and BASIC WL are no e-invoice in any version (F5); BASIC and EXTENDED with these identifiers
+  // stay "nicht beurteilt" until Tobias decides (offene-fragen.md F17). Audit 2026-11-14, B-01.
+  {
+    id: `${ZF2}:minimum`,
+    match: 'exact',
+    label: 'ZUGFeRD 2.0, Profil MINIMUM',
+    profile: 'MINIMUM',
+    einordnung: 'keineERechnung',
+    source: 'FeRD ZUGFeRD 2.5.2 / Factur-X 1.09.2, Codeliste 1 (BT-24); BMF 15.10.2024 Rn. 25, 30',
+    checked: false,
+  },
+  {
+    id: `${ZF2}:basicwl`,
+    match: 'exact',
+    label: 'ZUGFeRD 2.0, Profil BASIC WL',
+    profile: 'BASIC WL',
+    einordnung: 'keineERechnung',
+    source: 'FeRD ZUGFeRD 2.5.2 / Factur-X 1.09.2, Codeliste 1 (BT-24); BMF 15.10.2024 Rn. 25, 30',
+    checked: false,
   },
   {
     id: `${CEN}#compliant#${FEX}:basic`,
@@ -69,7 +98,8 @@ export const PROFILES: readonly ProfileEntry[] = [
   {
     id: `${CEN}#compliant#${KOSIT}:xrechnung_3.0#compliant#${KOSIT}:xrechnung:cvd_`,
     match: 'prefix',
-    label: 'XRechnung 3.0 (CVD)',
+    rest: VERSION,
+    label: 'XRechnung 3.0, CVD',
     einordnung: 'eRechnung',
     source: 'KoSIT XRechnung-Testsuite v2026-08-31 (technical-cases/cvd)',
     checked: true,
@@ -87,14 +117,16 @@ export const PROFILES: readonly ProfileEntry[] = [
     match: 'prefix',
     label: 'XRechnung',
     einordnung: 'eRechnung',
+    rest: VERSION,
     source: 'Kennungsschema der KoSIT (weitere Fassungen von XRechnung 3)',
-    checked: true,
+    checked: false,
   },
   {
     id: `${CEN}#compliant#urn:xoev-de:kosit:standard:xrechnung_`,
     match: 'prefix',
-    label: 'XRechnung (ältere Fassung 1.x/2.x)',
+    label: 'XRechnung, ältere Fassung 1.x/2.x',
     einordnung: 'eRechnung',
+    rest: VERSION,
     source:
       'FeRD-Musterrechnung mit xrechnung_2.1 (Infopaket 2.5.2); Kennungsschema der KoSIT bis XRechnung 2.3',
     checked: true,
@@ -110,7 +142,9 @@ export const PROFILES: readonly ProfileEntry[] = [
   {
     id: CEN,
     match: 'exact',
-    label: 'EN 16931 (bei ZUGFeRD/Factur-X: Profil EN 16931, früher COMFORT)',
+    label: 'EN 16931',
+    // No nested brackets in the headline "E-Rechnung erkannt (…)" (audit 2026-11-14, U-08)
+    note: 'bei ZUGFeRD/Factur-X: Profil EN 16931, früher COMFORT',
     profile: 'EN 16931',
     einordnung: 'eRechnung',
     source: 'CEN-Beispiele 1.3.17; Übergabe 2026-11-13',
@@ -140,9 +174,12 @@ export function profileOf(id: string | undefined): ProfileMatch {
   const trimmed = id?.trim();
   if (!trimmed) return { einordnung: 'nichtBeurteilt' };
   const exact = PROFILES.find((p) => p.match === 'exact' && p.id === trimmed);
-  const prefix = PROFILES.filter((p) => p.match === 'prefix' && trimmed.startsWith(p.id)).sort(
-    (a, b) => b.id.length - a.id.length,
-  )[0];
+  const prefix = PROFILES.filter(
+    (p) =>
+      p.match === 'prefix' &&
+      trimmed.startsWith(p.id) &&
+      (!p.rest || p.rest.test(trimmed.slice(p.id.length))),
+  ).sort((a, b) => b.id.length - a.id.length)[0];
   const entry = exact ?? prefix;
   return entry
     ? { id: trimmed, entry, einordnung: entry.einordnung }

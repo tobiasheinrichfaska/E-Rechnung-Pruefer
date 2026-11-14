@@ -1,7 +1,9 @@
-// Dates as written in the syntaxes: UBL uses xs:date (YYYY-MM-DD), CII the UNTDID 2379 format 102
-// (YYYYMMDD). Both become ISO YYYY-MM-DD; anything else stays unknown (shown as written).
+// Dates as written in the syntaxes: UBL uses xs:date (YYYY-MM-DD, optionally with a time zone,
+// e.g. 2026-11-14Z or 2026-11-14+01:00 — the day counts, the zone is dropped; audit 2026-11-14,
+// L-05), CII the UNTDID 2379 format 102 (YYYYMMDD). Both become ISO YYYY-MM-DD; anything else stays
+// unknown (shown as written).
 
-const ISO = /^(\d{4})-(\d{2})-(\d{2})$/;
+const ISO = /^(\d{4})-(\d{2})-(\d{2})(?:Z|[+-]\d{2}:\d{2})?$/;
 const FORMAT_102 = /^(\d{4})(\d{2})(\d{2})$/;
 
 function valid(year: number, month: number, day: number): boolean {

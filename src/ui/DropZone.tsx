@@ -33,7 +33,7 @@ export function DropZone({ onFile, disabled = false }: Props) {
       onDrop={onDrop}
     >
       <p className="dropzone-title">Rechnung hierher ziehen</p>
-      <p className="dropzone-sub">PDF oder XML. Die Datei bleibt auf Ihrem Rechner.</p>
+      <p className="dropzone-sub">PDF oder XML. Die Datei bleibt auf Ihrem Gerät.</p>
       <button
         type="button"
         className="primary"

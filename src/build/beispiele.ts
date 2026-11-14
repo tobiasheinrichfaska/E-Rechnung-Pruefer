@@ -213,7 +213,8 @@ export const BEISPIELE: readonly Beispiel[] = [
     erwartet: {
       ton: 'ok',
       ueberschrift: 'E-Rechnung erkannt (XRechnung 3.0)',
-      pflicht: 'Es fehlt: Fiskalvertreter: Name, Anschrift und USt-IdNr.',
+      pflicht:
+        'Es fehlt: Fiskalvertreter: Name, Anschrift und USt-IdNr. (nur Ort; Postleitzahl oder Straße/Postfach).',
     },
   },
   {
@@ -336,8 +337,7 @@ export const BEISPIELE: readonly Beispiel[] = [
     },
     erwartet: {
       ton: 'ok',
-      ueberschrift:
-        'E-Rechnung erkannt (EN 16931 (bei ZUGFeRD/Factur-X: Profil EN 16931, früher COMFORT))',
+      ueberschrift: 'E-Rechnung erkannt (EN 16931)',
       pflicht: 'Alle Pflichtfelder belegt. Bitte prüfen Sie die Werte.',
     },
   },
@@ -458,8 +458,7 @@ export const BEISPIELE: readonly Beispiel[] = [
     },
     erwartet: {
       ton: 'warn',
-      ueberschrift:
-        'E-Rechnung erkannt (EN 16931 (bei ZUGFeRD/Factur-X: Profil EN 16931, früher COMFORT))',
+      ueberschrift: 'E-Rechnung erkannt (EN 16931)',
       pflicht: 'Alle Pflichtfelder belegt. Bitte prüfen Sie die Werte.',
     },
   },

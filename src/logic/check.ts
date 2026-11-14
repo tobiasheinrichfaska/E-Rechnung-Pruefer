@@ -9,7 +9,7 @@ import { firstValue, groupsOf, valuesOf } from './model';
 import type { InvoiceModel, ModelGroup } from './model';
 import { ADDRESS_PARTS, MODES, PFLICHTANGABEN } from './pflichtangaben';
 import type { Condition, Mode, OccurrenceFilter, Pflichtangabe, Presence } from './pflichtangaben';
-import { CATEGORY_LABELS, TEXTS, UNIT_LABELS, fill } from './texts';
+import { CATEGORY_LABELS, TEXTS, TYPE_CODES, UNIT_LABELS, fill } from './texts';
 
 export type Status = 'vorhanden' | 'fehlt' | 'einzelfall';
 
@@ -70,6 +70,10 @@ export function displayValue(bt: string, value: string, currency: string | undef
   if (kind === 'quantity') return value.replace('.', ',');
   if (bt === 'BT-118' || bt === 'BT-151' || bt === 'BT-95' || bt === 'BT-102') {
     const label = CATEGORY_LABELS[value.toUpperCase()];
+    return label ? `${value} – ${label}` : value;
+  }
+  if (bt === 'BT-3') {
+    const label = TYPE_CODES[value];
     return label ? `${value} – ${label}` : value;
   }
   if (bt === 'BT-130' || bt === 'BT-150') {
@@ -257,7 +261,19 @@ export function present(model: InvoiceModel, presence: Presence): PresenceResult
     }
     case 'allOf': {
       const results = presence.of.map((p) => present(model, p));
-      return { ok: results.every((r) => r.ok), missing: results.flatMap((r) => r.missing) };
+      // A part without own details (one term) is named itself, so the list of gaps is complete
+      const missing = results.flatMap((r, i) => {
+        const part = presence.of[i];
+        if (r.ok) return [];
+        if (r.missing.length > 0) return r.missing;
+        if (part?.kind === 'any' && part.paths.length === 1 && part.paths[0]) {
+          return [termLabel(lastSegment(part.paths[0]))];
+        }
+        if (part?.kind === 'address')
+          return [GROUP_LABEL.get(lastSegment(part.group)) ?? part.group];
+        return [];
+      });
+      return { ok: results.every((r) => r.ok), missing };
     }
   }
 }
@@ -298,7 +314,9 @@ function evaluateRow(model: InvoiceModel, row: Pflichtangabe, mode: Mode): RowRe
     status,
     ...(status === 'einzelfall' && need.kind !== 'immer' ? { reason: need.because } : {}),
     missing: status === 'fehlt' ? missing : [],
-    hints: (row.hints ?? []).filter((hint) => holds(model, hint.when)).map((hint) => hint.text),
+    hints: (row.hints ?? [])
+      .filter((hint) => (!hint.modes || hint.modes.includes(mode)) && holds(model, hint.when))
+      .map((hint) => hint.text),
     values,
     groups,
   };
@@ -311,7 +329,14 @@ export function checkPflichtangaben(model: InvoiceModel): PflichtResult {
     // A rule in force only later applies to invoices issued on or after that day (ISO compare)
     .filter((row) => !row.validFrom || (issued !== undefined && issued >= row.validFrom))
     .map((row) => evaluateRow(model, row, mode));
-  const missingLabels = rows.filter((r) => r.status === 'fehlt').map((r) => r.row.label);
+  const missingRows = rows.filter((r) => r.status === 'fehlt');
+  const missingLabels = missingRows.map((r) => r.row.label);
+  // A partly present row names what is missing, not the whole row (audit 2026-11-14, U-02)
+  const listed = missingRows.map((r) =>
+    r.values.length > 0 && r.missing.length > 0 && r.missing.length <= 3
+      ? `${r.row.label} (${TEXTS.missingOnly} ${r.missing.join('; ')})`
+      : r.row.label,
+  );
   return {
     mode,
     ...(text ? { modeText: text } : {}),
@@ -320,7 +345,7 @@ export function checkPflichtangaben(model: InvoiceModel): PflichtResult {
     summary:
       missingLabels.length === 0
         ? TEXTS.allPresent
-        : sentence(fill(TEXTS.missingList, { list: missingLabels.join('; ') })),
+        : sentence(fill(TEXTS.missingList, { list: listed.join('; ') })),
   };
 }
 

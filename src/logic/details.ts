@@ -24,7 +24,12 @@ export function invoiceDetails(invoice: InvoiceVerdict, inPdf: boolean): DetailR
   return [
     { label: inPdf ? 'Anhang' : 'Datei', value: invoice.part.origin },
     { label: 'Syntax', value: invoice.syntaxLabel },
-    { label: 'Spezifikation', value: invoice.specLabel },
+    {
+      label: 'Spezifikation',
+      value: invoice.profile.entry?.note
+        ? `${invoice.specLabel} (${invoice.profile.entry.note})`
+        : invoice.specLabel,
+    },
     { label: 'Kennung (BT-24)', value: invoice.profile.id ?? MISSING },
     {
       label: 'Art der Rechnung (BT-3)',

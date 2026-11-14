@@ -48,6 +48,14 @@ export type Condition =
   | { kind: 'any'; of: Condition[] }
   | { kind: 'not'; of: Condition };
 
+/** A possible irregularity shown with a row when its condition holds (never a status). */
+export interface Hint {
+  when: Condition;
+  text: string;
+  /** Only in these modes, e.g. a hint on a duty that a Kleinbetragsrechnung does not have */
+  modes?: Mode[];
+}
+
 export interface Pflichtangabe {
   id: string;
   /** Where the law asks for it, per mode where it differs */
@@ -65,7 +73,7 @@ export interface Pflichtangabe {
   /** Law in force only from this day (ISO): shown for invoices issued (BT-2) on or after it */
   validFrom?: string;
   /** Possible irregularities shown with the row when their condition holds (never a status) */
-  hints?: { when: Condition; text: string }[];
+  hints?: Hint[];
   /** Where the KoSIT/FeRD recommendation or the law names it */
   source: string;
 }
@@ -89,6 +97,8 @@ const EXEMPT: OccurrenceFilter = { path: 'BT-118', values: ['E', 'K', 'G', 'O'] 
 const REVERSE: OccurrenceFilter = { path: 'BT-118', values: ['AE'] };
 const EXEMPTION_WORDS =
   'steuerfrei|steuerbefrei|befreit|befreiung|§\\s*4\\s*nr|nicht steuerbar|nicht im inland steuerbar|innergemeinschaftlich|ausfuhr|vatex';
+/** § 19 UStG or the word Kleinunternehmer — "§ 195 BGB" is no hint (audit 2026-11-14, L-02). */
+const SECTION_19 = '§\\s*19(?!\\d)|kleinunternehmer';
 /** Words of a hint on an agreed reduction (Abschnitt 14.5 Abs. 19 UStAE: Boni, Skonti, Rabatte). */
 const REDUCTION_WORDS =
   'skonto|rabatt|bonus|boni\\b|entgeltminderung|nachlass|rückvergütung|konditionsvereinbarung';
@@ -125,19 +135,24 @@ function noStreetHint(
   group: string,
   street: string[],
   city: string,
-): { when: Condition; text: string } {
+  postcode: string,
+  who: string,
+): Hint {
   return {
     when: {
       kind: 'all',
       of: [
+        // with city and postcode the address is complete (F10); without a postcode the row says
+        // "fehlt" and the hint would contradict it (audit 2026-11-14, L-06)
         { kind: 'present', path: `${group}/${city}` },
+        { kind: 'present', path: `${group}/${postcode}` },
         ...street.map((bt): Condition => ({
           kind: 'not',
           of: { kind: 'present', path: `${group}/${bt}` },
         })),
       ],
     },
-    text: 'Ohne Straße oder Postfach. Das genügt, wenn der Unternehmer unter dieser Anschrift erreichbar ist (z. B. eine Großkundenadresse; § 31 Abs. 2 UStDV, Abschnitt 14.5 Abs. 2 UStAE).',
+    text: `Ohne Straße oder Postfach. Das genügt, wenn ${who} unter dieser Anschrift erreichbar ist (z. B. eine Großkundenadresse; § 31 Abs. 2 UStDV, Abschnitt 14.5 Abs. 2 UStAE).`,
   };
 }
 
@@ -183,7 +198,9 @@ export const PFLICHTANGABEN: readonly Pflichtangabe[] = [
     ],
     presence: { kind: 'address', group: 'BG-4/BG-5' },
     needs: { regel: IMMER, kleinbetrag: IMMER, kleinunternehmer: IMMER },
-    hints: [noStreetHint('BG-4/BG-5', ['BT-35', 'BT-36', 'BT-162'], 'BT-37')],
+    hints: [
+      noStreetHint('BG-4/BG-5', ['BT-35', 'BT-36', 'BT-162'], 'BT-37', 'BT-38', 'der Unternehmer'),
+    ],
     source:
       'KoSIT/FeRD S. 2: BG-5, BT-35 – BT-40, BT-162; § 31 Abs. 2 UStDV, Abschnitt 14.5 Abs. 2 UStAE (F10)',
   },
@@ -213,7 +230,15 @@ export const PFLICHTANGABEN: readonly Pflichtangabe[] = [
     ],
     presence: { kind: 'address', group: 'BG-7/BG-8' },
     needs: { regel: IMMER, kleinbetrag: NICHT_KB, kleinunternehmer: IMMER },
-    hints: [noStreetHint('BG-7/BG-8', ['BT-50', 'BT-51', 'BT-163'], 'BT-52')],
+    hints: [
+      noStreetHint(
+        'BG-7/BG-8',
+        ['BT-50', 'BT-51', 'BT-163'],
+        'BT-52',
+        'BT-53',
+        'der Leistungsempfänger',
+      ),
+    ],
     source:
       'KoSIT/FeRD S. 2: BG-8, BT-50 – BT-55, BT-163; § 31 Abs. 2 UStDV, Abschnitt 14.5 Abs. 2 UStAE (F10)',
   },
@@ -292,6 +317,8 @@ export const PFLICHTANGABEN: readonly Pflichtangabe[] = [
           ],
         },
         text: 'Die Rechnung nennt den Leistungszeitpunkt nur als Vermerk („Leistungsdatum entspricht Rechnungsdatum“). Das genügt nur bei sonstigen Rechnungen; in einer E-Rechnung muss die Angabe im strukturierten Datenformat stehen (Abschnitt 14.5 Abs. 16 Sätze 3–4 UStAE).',
+        // §§ 33, 34a UStDV do not require the date at all (audit 2026-11-14, L-06)
+        modes: ['regel'],
       },
       {
         when: {
@@ -303,6 +330,7 @@ export const PFLICHTANGABEN: readonly Pflichtangabe[] = [
             { kind: 'partial', group: 'BG-25', paths: ['BG-26/BT-134', 'BG-26/BT-135'] },
           ],
         },
+        modes: ['regel'],
         text: 'Nicht jede Position hat einen eigenen Leistungszeitraum, und die Rechnung nennt keinen gemeinsamen Leistungszeitpunkt. Eine Nebenleistung (z. B. Porto oder Versand) teilt umsatzsteuerlich das Schicksal der Hauptleistung (Abschnitt 3.10 Abs. 5 UStAE). Bitte prüfen Sie, ob die Positionen ohne Zeitraum solche Nebenleistungen sind.',
       },
     ],
@@ -315,7 +343,7 @@ export const PFLICHTANGABEN: readonly Pflichtangabe[] = [
     section: 'paragraph14',
     show: [],
     validFrom: '2028-01-01',
-    presence: { kind: 'text', paths: NOTES, pattern: 'vereinnahmten entgelten' },
+    presence: { kind: 'text', paths: NOTES, pattern: 'vereinnahmten? entgelte' },
     needs: {
       regel: {
         kind: 'einzelfall',
@@ -517,7 +545,7 @@ export const PFLICHTANGABEN: readonly Pflichtangabe[] = [
     section: 'paragraph14',
     show: [],
     each: [{ group: 'BG-23', paths: ['BT-118', 'BT-120', 'BT-121'] }],
-    presence: { kind: 'text', paths: EXEMPTION_TEXT, pattern: '§\\s*19|kleinunternehmer' },
+    presence: { kind: 'text', paths: EXEMPTION_TEXT, pattern: SECTION_19 },
     needs: {
       regel: { kind: 'nicht', because: 'Nur bei Kleinunternehmern.' },
       kleinbetrag: { kind: 'nicht', because: 'Nur bei Kleinunternehmern.' },
@@ -533,7 +561,7 @@ export const PFLICHTANGABEN: readonly Pflichtangabe[] = [
       'Hinweis auf die Aufbewahrungspflicht des Leistungsempfängers (§ 14b Abs. 1 Satz 5 UStG)',
     section: 'paragraph14',
     show: [],
-    presence: { kind: 'text', paths: NOTES, pattern: 'aufbewahr|aufzubewahr' },
+    presence: { kind: 'text', paths: NOTES, pattern: 'aufbewahr|aufzubewahr|§\\s*14b' },
     needs: {
       regel: {
         kind: 'einzelfall',
@@ -713,7 +741,17 @@ export const PFLICHTANGABEN: readonly Pflichtangabe[] = [
     norm: '§ 22c UStG',
     label: 'Fiskalvertreter: Name, Anschrift und USt-IdNr.',
     section: 'besondere',
-    show: ['BG-11/BT-62', 'BG-11/BT-63', 'BG-11/BG-12/BT-66', 'BG-11/BG-12/BT-69'],
+    // The whole address is checked, so all of it is shown (audit 2026-11-14, B-08)
+    show: [
+      'BG-11/BT-62',
+      'BG-11/BT-63',
+      'BG-11/BG-12/BT-64',
+      'BG-11/BG-12/BT-65',
+      'BG-11/BG-12/BT-164',
+      'BG-11/BG-12/BT-67',
+      'BG-11/BG-12/BT-66',
+      'BG-11/BG-12/BT-69',
+    ],
     presence: {
       kind: 'allOf',
       of: [
@@ -739,7 +777,7 @@ export const PFLICHTANGABEN: readonly Pflichtangabe[] = [
 export const MODES: readonly { mode: Exclude<Mode, 'regel'>; when: Condition; text: string }[] = [
   {
     mode: 'kleinunternehmer',
-    when: { kind: 'text', paths: EXEMPTION_TEXT, pattern: '§\\s*19|kleinunternehmer' },
+    when: { kind: 'text', paths: EXEMPTION_TEXT, pattern: SECTION_19 },
     text: 'Hinweis auf die Kleinunternehmerregelung gefunden: Es gelten die verringerten Angaben nach § 34a UStDV.',
   },
   {

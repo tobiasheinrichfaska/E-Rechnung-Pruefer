@@ -30,7 +30,9 @@ export interface Verdict {
   comparison?: { same: boolean; differing: BtId[] };
 }
 
-const COMPARED: readonly BtId[] = ['BT-1', 'BT-2', 'BT-5', 'BT-27', 'BT-112'];
+// BT-24 too: with equal header values but another specification (e.g. XRechnung and MINIMUM) the
+// result would depend on the order of the attachments (audit 2026-11-14, L-03).
+const COMPARED: readonly BtId[] = ['BT-1', 'BT-2', 'BT-5', 'BT-24', 'BT-27', 'BT-112'];
 
 function judgeInvoice(part: InvoicePart): InvoiceVerdict {
   const syntax = syntaxById(part.syntax);
@@ -45,7 +47,7 @@ function comparable(part: InvoicePart, bt: BtId): string {
   const value = first(part.header, bt) ?? '';
   if (bt === 'BT-2') return isoDate(value) ?? value;
   if (bt === 'BT-27') return value.toLocaleLowerCase('de-DE').replace(/\s+/g, ' ');
-  return value;
+  return value.trim();
 }
 
 /** Which compared terms differ between the parts (amounts compared as decimals). */
