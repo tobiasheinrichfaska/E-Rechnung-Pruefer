@@ -105,6 +105,29 @@ export function differingLine(parts: readonly InvoicePart[], differing: readonly
   return fill(TEXTS.differingLine, { items: items.join('; ') });
 }
 
+export interface ComparisonRow {
+  label: string;
+  /** One value per invoice XML, as the client reads it */
+  values: string[];
+  differs: boolean;
+}
+
+/**
+ * F27/G-8: two invoice XML with different data are not shown in full — only the compared values
+ * side by side, the differing ones marked.
+ */
+export function comparisonRows(parts: readonly InvoicePart[]): ComparisonRow[] {
+  const differing = new Set(differingTerms(parts));
+  return [
+    { label: 'Anhang', values: parts.map((p) => p.origin), differs: false },
+    ...COMPARED.map((bt) => ({
+      label: `${termLabel(bt)} (${bt})`,
+      values: parts.map((part) => shownValue(part, bt)),
+      differs: differing.has(bt),
+    })),
+  ];
+}
+
 /** "Technische Meldung (Zeile 4): …" — the parser's or the schema's own (English) message. */
 export function technicalLine(problem: Problem): string {
   return problem.line

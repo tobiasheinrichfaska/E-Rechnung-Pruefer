@@ -53,6 +53,9 @@ test('recognises an XML e-invoice, a hybrid PDF and a plain PDF without storing 
   await expect(page.getByTestId('headline')).toHaveText(/^E-Rechnung erkannt \(EN 16931/);
   // G-6: "Maßgeblich … XML" only for a PDF — an XML file has no picture to compare with
   await expect(page.getByTestId('fixed-notice')).not.toContainText('Maßgeblich');
+  // G-2: the technical rows are closed under "Technische Angaben"
+  await expect(page.getByRole('row', { name: /Syntax/ })).toBeHidden();
+  await page.getByTestId('technical-details').locator('summary').click();
   await expect(page.getByRole('row', { name: /Syntax/ })).toContainText('UN/CEFACT CII');
 
   const hybrid = miniPdf({
@@ -112,10 +115,12 @@ test('names MINIMUM, contradicting invoice data and a protected PDF', async ({ p
   await expect(page.getByTestId('differing')).toHaveText(
     /^Unterschiedlich: Rechnungsnummer \(.+ \/ X-2\)\.$/,
   );
-  await expect(
-    page.getByRole('heading', { name: 'Rechnungsdaten 2 von 2 – Anhang „b.xml“' }),
-  ).toBeVisible();
-  await expect(page.getByText('Rechnungsdaten 2 von 2')).toBeVisible();
+  // F27/G-8: no full parts, the compared values side by side, the differing one marked
+  const comparison = page.getByRole('table', { name: 'Vergleich der Rechnungsdaten' });
+  await expect(comparison.getByRole('columnheader', { name: 'b.xml' })).toBeVisible();
+  await expect(comparison.locator('tr.differs')).toHaveCount(1);
+  await expect(comparison.locator('tr.differs')).toContainText('X-2');
+  await expect(page.getByTestId('pflicht-summary')).toHaveCount(0);
 
   await upload(page, 'geschuetzt.pdf', miniPdf({ passwordProtected: true }), 'application/pdf');
   await expect(page.getByTestId('headline')).toHaveText('Das PDF ist mit einem Kennwort geschützt');

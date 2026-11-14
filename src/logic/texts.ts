@@ -122,8 +122,38 @@ export const TEXTS = {
   checkedFile: 'Geprüfte Datei: „{name}“ – geprüft am {date} um {time} Uhr',
   differingLine: 'Unterschiedlich: {items}.',
   differingItem: '{label} ({values})',
-  // Heading of each part when a PDF holds several invoice XML (audit Bedienung, E-04)
-  partHeading: 'Rechnungsdaten {index} von {count} – Anhang „{name}“',
+  // G-1: rows "nur im Einzelfall nötig" without a value are folded; jump links from the box
+  foldedRows: '{count} Angaben, die nur in besonderen Fällen nötig sind – anzeigen',
+  foldedRow: 'Eine Angabe, die nur in besonderen Fällen nötig ist – anzeigen',
+  jumpTo: 'Springen zu:',
+  jumpPflicht: 'Pflichtangaben',
+  jumpRules: 'Rechnerische Prüfung',
+  jumpSchema: 'Technische Meldungen',
+  // G-2: the technical rows of an invoice, closed
+  technicalDetails: 'Technische Angaben',
+  // G-8/F27: several invoice XML in one PDF
+  sameHeading: 'Rechnungsdaten (gleich in {names})',
+  comparisonHeading: 'Vergleich der Rechnungsdaten',
+  comparisonValue: 'Wert',
+  // G-4: pass the result on to the Kanzlei
+  printResult: 'Ergebnis drucken',
+  copyResult: 'Ergebnis als Text kopieren',
+  copied: 'Das Ergebnis ist in die Zwischenablage kopiert.',
+  copyFailed:
+    'Kopieren hat nicht geklappt. Bitte markieren Sie den Text und kopieren Sie ihn selbst.',
+  copyTitle: 'E-Rechnung prüfen – Ergebnis',
+  copyHeadline: 'Ergebnis: {headline}',
+  copyPflicht: 'Pflichtangaben: {summary}',
+  copyRules: 'Rechnerische Prüfung: {summary}',
+  copyVersion: 'Version {version}',
+  // G-5: the drop zone after a result, and on a phone
+  anotherFile: 'Andere Datei prüfen',
+  dropTitle: 'Rechnung hierher ziehen',
+  dropTitlePhone: 'Rechnung auswählen',
+  chooseFile: 'Datei auswählen',
+  dropSub: 'PDF oder XML. Die Datei bleibt auf Ihrem Gerät.',
+  introLeadText: 'Wählen Sie eine Rechnung aus oder ziehen Sie sie hierher.',
+
   // Only the first file of a drop counts — said, not silent (audit Bedienung, A-04)
   onlyFirstFile: 'Sie haben {count} Dateien abgelegt. Geprüft wurde nur die erste.',
 

@@ -39,24 +39,14 @@ function Rule({ rule }: { rule: RuleResult }) {
 
 /**
  * Step 3a: the calculation rules of one invoice XML; the irregular ones first and open.
- * `contextId`: the heading "Rechnungsdaten n von m" when a PDF holds several invoice XML, so each
- * section has its own name (audit Bedienung, Z-03).
+ * `id`: the target of the jump link from the result box (G-1).
  */
-export function RulesView({
-  result,
-  contextId,
-}: {
-  result: RulesResult;
-  contextId?: string | undefined;
-}) {
+export function RulesView({ result, id }: { result: RulesResult; id?: string }) {
   const headingId = useId();
   const irregular = result.results.filter((r) => r.status === 'auffaellig');
   const others = result.results.filter((r) => r.status !== 'auffaellig');
   return (
-    <section
-      className="rules"
-      aria-labelledby={contextId ? `${contextId} ${headingId}` : headingId}
-    >
+    <section className="rules" aria-labelledby={headingId} id={id}>
       <h3 id={headingId}>{TEXTS.rulesHeading}</h3>
       <p
         className={`summary ${
