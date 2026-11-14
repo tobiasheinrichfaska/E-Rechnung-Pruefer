@@ -89,6 +89,9 @@ const EXEMPT: OccurrenceFilter = { path: 'BT-118', values: ['E', 'K', 'G', 'O'] 
 const REVERSE: OccurrenceFilter = { path: 'BT-118', values: ['AE'] };
 const EXEMPTION_WORDS =
   'steuerfrei|steuerbefrei|befreit|befreiung|§\\s*4\\s*nr|nicht steuerbar|nicht im inland steuerbar|innergemeinschaftlich|ausfuhr|vatex';
+/** Words of a hint on an agreed reduction (Abschnitt 14.5 Abs. 19 UStAE: Boni, Skonti, Rabatte). */
+const REDUCTION_WORDS =
+  'skonto|rabatt|bonus|boni\\b|entgeltminderung|nachlass|rückvergütung|konditionsvereinbarung';
 const IMMER: Need = { kind: 'immer' };
 const NICHT_KB: Need = {
   kind: 'nicht',
@@ -396,9 +399,19 @@ export const PFLICHTANGABEN: readonly Pflichtangabe[] = [
       { group: 'BG-20', paths: ['BT-92', 'BT-97'] },
       { group: 'BG-25', paths: ['BT-126', 'BG-27/BT-136', 'BG-27/BT-139'] },
     ],
+    // F8: the hint sits in the payment terms (BT-20) or a note (BG-1) and names the agreement, or
+    // the reduction is structured (amount BT-92/BT-136, reason BT-97/BT-139); payment terms
+    // without a reduction ("14 Tage netto") are no hint. KoSIT/FeRD p. 6 names BT-139 "amount" —
+    // in EN 16931 it is the reason; both are taken.
     presence: {
-      kind: 'any',
-      paths: ['BT-20', 'BG-20/BT-92', 'BG-20/BT-97', 'BG-25/BG-27/BT-136', 'BG-25/BG-27/BT-139'],
+      kind: 'anyOf',
+      of: [
+        { kind: 'text', paths: ['BT-20', ...NOTES], pattern: REDUCTION_WORDS },
+        {
+          kind: 'any',
+          paths: ['BG-20/BT-92', 'BG-20/BT-97', 'BG-25/BG-27/BT-136', 'BG-25/BG-27/BT-139'],
+        },
+      ],
     },
     needs: {
       regel: {
@@ -520,7 +533,7 @@ export const PFLICHTANGABEN: readonly Pflichtangabe[] = [
       'Hinweis auf die Aufbewahrungspflicht des Leistungsempfängers (§ 14b Abs. 1 Satz 5 UStG)',
     section: 'paragraph14',
     show: [],
-    presence: { kind: 'text', paths: NOTES, pattern: 'aufbewahr' },
+    presence: { kind: 'text', paths: NOTES, pattern: 'aufbewahr|aufzubewahr' },
     needs: {
       regel: {
         kind: 'einzelfall',

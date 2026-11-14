@@ -629,6 +629,67 @@ describe('hint on a "Gutschrift" that is no Gutschrift (F11)', () => {
   });
 });
 
+describe('a note found by its wording is shown as the value', () => {
+  it('shows the note that makes a row "vorhanden" instead of "nicht in der XML"', () => {
+    const note = 'Der Leistungsempfänger hat diese Rechnung zwei Jahre aufzubewahren.';
+    const found = row(checkPflichtangaben(model({ 'BG-1': [{ 'BT-22': note }] })), 'aufbewahrung');
+    expect(found.status).toBe('vorhanden');
+    expect(found.values).toEqual([{ label: 'Bemerkung', value: note }]);
+  });
+
+  it('shows only the matching note, not every note', () => {
+    const result = checkPflichtangaben(
+      model({
+        'BG-1': [
+          { 'BT-22': 'Vielen Dank für Ihren Auftrag.' },
+          { 'BT-22': 'Sonderregelung für Reisebüros' },
+        ],
+      }),
+    );
+    expect(row(result, 'sonderregelung').values.map((v) => v.value)).toEqual([
+      'Sonderregelung für Reisebüros',
+    ]);
+    expect(row(result, 'aufbewahrung').values).toEqual([]);
+  });
+});
+
+describe('agreed reductions of the price (§ 14 Abs. 4 Nr. 7 UStG, F8)', () => {
+  const minderung = (over: Spec) => row(checkPflichtangaben(model(over)), 'minderungen');
+
+  it('takes payment terms as the hint only when they name a reduction (Skonto, Rabatt, Bonus …)', () => {
+    expect(minderung({ 'BT-20': 'Zahlbar innerhalb von 14 Tagen ohne Abzug.' }).status).toBe(
+      'einzelfall',
+    );
+    expect(minderung({ 'BT-20': '2 % Skonto bei Zahlung bis 24.11.2026' }).status).toBe(
+      'vorhanden',
+    );
+    // "Boni" as a word, not inside "Bonität"
+    expect(minderung({ 'BT-20': 'Es gelten die vereinbarten Boni.' }).status).toBe('vorhanden');
+    expect(minderung({ 'BT-20': 'Zahlung nach Prüfung der Bonität.' }).status).toBe('einzelfall');
+  });
+
+  it('takes a note of the invoice (BG-1) as the hint, as the KoSIT/FeRD recommendation does', () => {
+    const found = minderung({
+      'BG-1': [{ 'BT-22': 'Es bestehen Rabatt- oder Bonusvereinbarungen.' }],
+    });
+    expect(found.status).toBe('vorhanden');
+    expect(found.values.map((v) => v.value)).toContain(
+      'Es bestehen Rabatt- oder Bonusvereinbarungen.',
+    );
+  });
+
+  it('takes a structured allowance with amount or reason', () => {
+    const line = (allowance: Spec) => ({
+      'BG-25': [{ 'BT-126': '1', 'BT-129': '1', 'BT-131': '90.00', 'BG-27': [allowance] }],
+    });
+    expect(minderung(line({ 'BT-136': '10.00' })).status).toBe('vorhanden');
+    expect(minderung(line({ 'BT-139': 'Treuerabatt' })).status).toBe('vorhanden');
+    expect(minderung({ 'BG-20': [{ 'BT-92': '5.00', 'BT-97': 'Rabatt' }] }).status).toBe(
+      'vorhanden',
+    );
+  });
+});
+
 describe('wording of the result (screenshot review 2026-11-13)', () => {
   it('ends the summary with one full stop when the last label ends with "USt-IdNr."', () => {
     const result = checkPflichtangaben(model({ 'BG-11': [{ 'BT-62': 'Vertreter GmbH' }] }));

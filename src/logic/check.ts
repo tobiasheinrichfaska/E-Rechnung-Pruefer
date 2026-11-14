@@ -88,6 +88,34 @@ function shown(group: ModelGroup, paths: string[], currency: string | undefined)
   );
 }
 
+/**
+ * The values that a text rule found (e.g. the note with "aufzubewahren"): shown as the row's value,
+ * so a row is never "vorhanden" with "nicht in der XML". Values inside a group the row lists per
+ * occurrence (`each`) are shown there already.
+ */
+function textMatches(
+  model: InvoiceModel,
+  presence: Presence,
+  currency: string | undefined,
+  skip: (path: string) => boolean,
+): ShownValue[] {
+  if (presence.kind === 'anyOf' || presence.kind === 'allOf') {
+    return presence.of.flatMap((p) => textMatches(model, p, currency, skip));
+  }
+  if (presence.kind !== 'text') return [];
+  const regex = new RegExp(presence.pattern, 'i');
+  return presence.paths
+    .filter((path) => !skip(path))
+    .flatMap((path) =>
+      valuesOf(model, path)
+        .filter((v) => regex.test(v.value))
+        .map((v) => ({
+          label: termLabel(lastSegment(path)),
+          value: displayValue(lastSegment(path), v.value, currency),
+        })),
+    );
+}
+
 // --- conditions and presence --------------------------------------------------------------
 
 function categories(model: InvoiceModel): string[] {
@@ -257,13 +285,21 @@ function evaluateRow(model: InvoiceModel, row: Pflichtangabe, mode: Mode): RowRe
       .map((occurrence) => shown(occurrence, paths, currency))
       .filter((items) => items.some((item) => item.label !== POSITION_NUMBER)),
   }));
+  const inEach = (path: string) => (row.each ?? []).some((e) => path.startsWith(`${e.group}/`));
+  const listed = shown(model, row.show, currency);
+  const found = ok
+    ? textMatches(model, row.presence, currency, inEach).filter(
+        (m) => !listed.some((v) => v.label === m.label && v.value === m.value),
+      )
+    : [];
+  const values = [...listed, ...found];
   return {
     row,
     status,
     ...(status === 'einzelfall' && need.kind !== 'immer' ? { reason: need.because } : {}),
     missing: status === 'fehlt' ? missing : [],
     hints: (row.hints ?? []).filter((hint) => holds(model, hint.when)).map((hint) => hint.text),
-    values: shown(model, row.show, currency),
+    values,
     groups,
   };
 }
