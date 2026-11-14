@@ -5,6 +5,7 @@ import type { XmlDocument } from 'libxml2-wasm';
 import type {
   Analysis,
   FileKind,
+  FileProblemKind,
   InvoicePart,
   OtherPart,
   Problem,
@@ -57,13 +58,16 @@ export const MAX_FILE_BYTES = Math.max(MAX_PDF_BYTES, MAX_XML_BYTES);
 
 /** The result for a file above MAX_FILE_BYTES, decided from its size alone (audit S-04). */
 export function tooLargeFile(fileName: string): Analysis {
-  return {
-    fileName,
-    kind: 'unknown',
-    invoices: [],
-    others: [],
-    problem: { kind: 'tooLarge', problems: [] },
-  };
+  return problemFile(fileName, 'tooLarge');
+}
+
+/** The browser could not read the file (a folder, or a file moved meanwhile; audit A-03). */
+export function unreadableFile(fileName: string): Analysis {
+  return problemFile(fileName, 'unreadable');
+}
+
+function problemFile(fileName: string, kind: FileProblemKind): Analysis {
+  return { fileName, kind: 'unknown', invoices: [], others: [], problem: { kind, problems: [] } };
 }
 
 const PDF_MAGIC = '%PDF-';

@@ -32,7 +32,8 @@ export function invoiceDetails(invoice: InvoiceVerdict, inPdf: boolean): DetailR
   const parsed = parseDecimal(amount);
   const currency = first(h, 'BT-5');
   return [
-    { label: inPdf ? 'Anhang' : 'Datei', value: invoice.part.origin },
+    // an XML file's name already stands above the result ("Geprüfte Datei", audit E-08)
+    ...(inPdf ? [{ label: 'Anhang', value: invoice.part.origin }] : []),
     { label: 'Syntax', value: invoice.syntaxLabel },
     {
       label: 'Spezifikation',
@@ -53,7 +54,7 @@ export function invoiceDetails(invoice: InvoiceVerdict, inPdf: boolean): DetailR
     { label: 'Lieferant (BT-27)', value: first(h, 'BT-27') ?? MISSING },
     { label: 'Schema (XSD)', value: schemaDetail(invoice) },
     {
-      label: 'Betrag brutto (BT-112)',
+      label: 'Gesamtbetrag mit Umsatzsteuer (BT-112)',
       value: parsed
         ? `${formatAmount(parsed)}${currency ? ` ${currency}` : ''}`
         : (amount ?? MISSING),

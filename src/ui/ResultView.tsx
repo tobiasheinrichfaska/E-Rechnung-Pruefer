@@ -1,10 +1,15 @@
 import { useId } from 'react';
 import type { Analysis } from '../logic/analysis';
-import { termLabel } from '../logic/binding';
 import { checkPflichtangaben } from '../logic/check';
 import { invoiceDetails } from '../logic/details';
 import { TEXTS, fill } from '../logic/texts';
-import { pflichtModel, rulesOf, technicalLine } from '../logic/verdict';
+import {
+  differingLine,
+  pflichtModel,
+  rulesOf,
+  technicalLine,
+  technicalParts,
+} from '../logic/verdict';
 import type { InvoiceVerdict, Verdict } from '../logic/verdict';
 import { PflichtangabenView } from './PflichtangabenView';
 import { RulesView } from './RulesView';
@@ -35,7 +40,7 @@ function Pflichtangaben({
     return (
       <>
         <PflichtangabenView result={checkPflichtangaben(model)} contextId={contextId} />
-        {rules && <RulesView result={rules} />}
+        {rules && <RulesView result={rules} contextId={contextId} />}
       </>
     );
   }
@@ -43,6 +48,18 @@ function Pflichtangaben({
     <p className="muted" data-testid="no-pflicht">
       {invoice.einordnung === 'keineERechnung' ? TEXTS.noPflichtNoEInvoice : TEXTS.noModel}
     </p>
+  );
+}
+
+/** A result line; the engine's English message inside it is marked as English (audit Z-04). */
+function Line({ text }: { text: string }) {
+  const parts = technicalParts(text);
+  if (!parts) return <>{text}</>;
+  return (
+    <>
+      {parts.prefix}
+      <span lang="en">{parts.message}</span>
+    </>
   );
 }
 
@@ -55,7 +72,9 @@ function SchemaProblems({ invoice }: { invoice: InvoiceVerdict }) {
       <summary>{fill(TEXTS.schemaProblemsTitle, { count: schema.count })}</summary>
       <ol>
         {schema.problems.map((problem, index) => (
-          <li key={index}>{technicalLine(problem)}</li>
+          <li key={index}>
+            <Line text={technicalLine(problem)} />
+          </li>
         ))}
       </ol>
       {schema.count > schema.problems.length && (
@@ -64,6 +83,17 @@ function SchemaProblems({ invoice }: { invoice: InvoiceVerdict }) {
         </p>
       )}
     </details>
+  );
+}
+
+/** The PDF's only attachment is the one the result already names (e.g. a broken XML, audit E-08) */
+function onlyNamedAbove(analysis: Analysis, verdict: Verdict): boolean {
+  const [only, ...more] = analysis.others;
+  return (
+    analysis.invoices.length === 0 &&
+    only !== undefined &&
+    more.length === 0 &&
+    verdict.explanation.some((line) => line.includes(`„${only.origin}“`))
   );
 }
 
@@ -79,11 +109,13 @@ export function ResultView({ analysis, verdict }: Props) {
           {verdict.headline}
         </h2>
         {verdict.explanation.map((line) => (
-          <p key={line}>{line}</p>
+          <p key={line}>
+            <Line text={line} />
+          </p>
         ))}
         {verdict.comparison && !verdict.comparison.same && (
           <p data-testid="differing">
-            Unterschiedlich: {verdict.comparison.differing.map(termLabel).join(', ')}.
+            {differingLine(analysis.invoices, verdict.comparison.differing)}
           </p>
         )}
       </div>
@@ -95,7 +127,11 @@ export function ResultView({ analysis, verdict }: Props) {
           <div className="card" key={`${invoice.part.origin}-${index}`}>
             {several && (
               <h3 id={contextId}>
-                Rechnungsdaten {index + 1} von {verdict.invoices.length}
+                {fill(TEXTS.partHeading, {
+                  index: index + 1,
+                  count: verdict.invoices.length,
+                  name: invoice.part.origin,
+                })}
               </h3>
             )}
             <table className="details">
@@ -114,9 +150,9 @@ export function ResultView({ analysis, verdict }: Props) {
         );
       })}
 
-      {inPdf && analysis.others.length > 0 && (
+      {inPdf && analysis.others.length > 0 && !onlyNamedAbove(analysis, verdict) && (
         <div className="card">
-          <h3>Weitere Anhänge im PDF</h3>
+          <h3>{analysis.invoices.length > 0 ? 'Weitere Anhänge im PDF' : 'Anhänge im PDF'}</h3>
           <ul>
             {analysis.others.map((other) => (
               <li key={other.origin}>

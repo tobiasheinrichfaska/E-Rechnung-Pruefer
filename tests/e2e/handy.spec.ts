@@ -58,6 +58,13 @@ test('fits a small phone with a long file name', async ({ page }) => {
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
   expect(sideways).toBeLessThanOrEqual(0);
+
+  // The badge "nur im Einzelfall nötig" wraps instead of taking ~150 px: the label kept only 98 px
+  // and broke inside words ("Vereinnahm/ung", audit Bedienung Z-01/A-05)
+  const narrowest = await page
+    .locator('.pflicht-table tbody th')
+    .evaluateAll((cells) => Math.min(...cells.map((cell) => cell.getBoundingClientRect().width)));
+  expect(narrowest).toBeGreaterThan(150);
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);
 });

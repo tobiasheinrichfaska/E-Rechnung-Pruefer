@@ -37,16 +37,31 @@ function Rule({ rule }: { rule: RuleResult }) {
   );
 }
 
-/** Step 3a: the calculation rules of one invoice XML; the irregular ones first and open. */
-export function RulesView({ result }: { result: RulesResult }) {
+/**
+ * Step 3a: the calculation rules of one invoice XML; the irregular ones first and open.
+ * `contextId`: the heading "Rechnungsdaten n von m" when a PDF holds several invoice XML, so each
+ * section has its own name (audit Bedienung, Z-03).
+ */
+export function RulesView({
+  result,
+  contextId,
+}: {
+  result: RulesResult;
+  contextId?: string | undefined;
+}) {
   const headingId = useId();
   const irregular = result.results.filter((r) => r.status === 'auffaellig');
   const others = result.results.filter((r) => r.status !== 'auffaellig');
   return (
-    <section className="rules" aria-labelledby={headingId}>
+    <section
+      className="rules"
+      aria-labelledby={contextId ? `${contextId} ${headingId}` : headingId}
+    >
       <h3 id={headingId}>{TEXTS.rulesHeading}</h3>
       <p
-        className={`summary ${irregular.length > 0 ? 'summary-missing' : 'summary-ok'}`}
+        className={`summary ${
+          irregular.length > 0 ? 'summary-missing' : result.notChecked > 0 ? '' : 'summary-ok'
+        }`}
         data-testid="rules-summary"
       >
         {result.summary}

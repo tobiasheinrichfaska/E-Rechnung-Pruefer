@@ -22,6 +22,15 @@ export function isoDate(text: string | undefined): string | undefined {
   return `${y}-${m}-${d}`;
 }
 
+/** Day and time of a moment in local time, German style: { date: "14.11.2026", time: "18:52" }. */
+export function germanMoment(moment: Date): { date: string; time: string } {
+  const two = (n: number) => String(n).padStart(2, '0');
+  return {
+    date: `${two(moment.getDate())}.${two(moment.getMonth() + 1)}.${moment.getFullYear()}`,
+    time: `${two(moment.getHours())}:${two(moment.getMinutes())}`,
+  };
+}
+
 /** German display "31.12.2026" of an ISO date. */
 export function germanDate(iso: string): string {
   const [y, m, d] = iso.split('-');

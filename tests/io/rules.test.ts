@@ -50,11 +50,17 @@ describe('calculation rules on the official files', () => {
       'Mögliche Auffälligkeit: BR-CO-15, BR-CO-16. Bitte prüfen Sie die Beträge.',
     );
     const co15 = rules.results.find((r) => r.id === 'BR-CO-15');
+    // names first, and what the rule expects (audit Bedienung, V-04)
     expect(co15?.values).toEqual([
-      { label: 'BT-109', value: '314,86 EUR' },
-      { label: 'BT-110', value: '22,04 EUR' },
-      { label: 'BT-112', value: '346,90 EUR' },
+      { label: 'Gesamtbetrag ohne Umsatzsteuer (BT-109)', value: '314,86 EUR' },
+      { label: 'Summe der Umsatzsteuer (BT-110)', value: '22,04 EUR' },
+      { label: 'Gesamtbetrag mit Umsatzsteuer (BT-112)', value: '346,90 EUR' },
+      { label: 'Nach der Regel erwartet', value: '336,90 EUR' },
     ]);
+    expect(rules.results.find((r) => r.id === 'BR-CO-16')?.values.at(-1)).toEqual({
+      label: 'Nach der Regel erwartet',
+      value: '346,90 EUR',
+    });
     const verdict = verdictOf(analysis);
     expect(verdict.tone).toBe('warn');
     expect(verdict.headline).toBe('E-Rechnung erkannt (XRechnung 3.0)');

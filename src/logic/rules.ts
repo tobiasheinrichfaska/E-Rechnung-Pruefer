@@ -20,6 +20,7 @@ import {
   within,
 } from './decimal';
 import type { Decimal } from './decimal';
+import { termLabel } from './binding';
 import { groupsOf, valuesOf } from './model';
 import type { InvoiceModel, ModelGroup } from './model';
 import { TEXTS, fill } from './texts';
@@ -47,6 +48,8 @@ export interface RulesResult {
   results: RuleResult[];
   /** Ids of the rules with a possible irregularity */
   auffaellig: string[];
+  /** How many rules could not be checked (a value missing or no number) */
+  notChecked: number;
   summary: string;
   /** Why only some rules are checked (FeRD EXTENDED) */
   note?: string;
@@ -62,7 +65,7 @@ export const RULE_LABELS: Readonly<Record<string, string>> = {
   'BR-CO-15': 'Gesamtbetrag mit Umsatzsteuer (BT-112) = BT-109 + BT-110',
   'BR-CO-16': 'Fälliger Betrag (BT-115) = BT-112 − Vorauszahlung (BT-113) + Rundung (BT-114)',
   'BR-CO-17':
-    'Steuerbetrag (BT-117) = Bemessungsgrundlage (BT-116) × Steuersatz (BT-119), Toleranz 1',
+    'Steuerbetrag (BT-117) = Bemessungsgrundlage (BT-116) × Steuersatz (BT-119), Abweichung bis 1 erlaubt',
   BREAKDOWN:
     'Bemessungsgrundlage (BT-116) = Positionen + Zuschläge − Nachlässe dieser Kategorie und dieses Satzes',
 };
@@ -99,6 +102,8 @@ function one(source: Source, path: string): Decimal | null | undefined {
 }
 
 const round2 = (value: Decimal) => roundTo(value, 2);
+/** "Gesamtbetrag ohne Umsatzsteuer (BT-109)": the name first, the number for experts */
+const named = (bt: string) => `${termLabel(bt)} (${bt})`;
 const percent = (rate: Decimal) => `${decimalText(normalize(rate)).replace('.', ',')} %`;
 const code = (source: Source, path: string) =>
   valuesOf(source, path)[0]?.value.trim().toUpperCase();
@@ -149,6 +154,8 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
   const bt114 = total('BT-114');
   const bt115 = total('BT-115');
   const known = (...values: (Decimal | null | undefined)[]) => values.every((v) => v !== undefined);
+  const expectedValue = (value: Decimal | undefined): RuleValue[] =>
+    value ? [{ label: TEXTS.ruleExpected, value: money(value) }] : [];
 
   // BR-CO-10: BT-106 = round(Σ BT-131)
   const lines = groupsOf(model, 'BG-25');
@@ -161,14 +168,14 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
     lines.length > 0 && lineSum && bt106 ? decimalEquals(bt106, round2(lineSum)) : undefined,
     [
       { label: TEXTS.ruleLineSum, value: lineSum ? money(lineSum) : TEXTS.ruleNoNumber },
-      { label: 'BT-106', value: money(bt106) },
+      { label: named('BT-106'), value: money(bt106) },
     ],
   );
 
   // BR-CO-11 / BR-CO-12: document level allowances and charges (only where any is given)
-  for (const [id, group, path, bt, value] of [
-    ['BR-CO-11', 'BG-20', 'BT-92', 'BT-107', bt107],
-    ['BR-CO-12', 'BG-21', 'BT-99', 'BT-108', bt108],
+  for (const [id, group, path, bt, value, sumLabel] of [
+    ['BR-CO-11', 'BG-20', 'BT-92', 'BT-107', bt107, TEXTS.ruleSumAllowances],
+    ['BR-CO-12', 'BG-21', 'BT-99', 'BT-108', bt108, TEXTS.ruleSumCharges],
   ] as const) {
     const parts = groupsOf(model, group);
     if (parts.length === 0 && value === null) continue;
@@ -182,7 +189,7 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
         ? undefined
         : value !== null && decimalEquals(value, round2(partSum)),
       [
-        { label: `Σ ${path}`, value: partSum ? money(partSum) : TEXTS.ruleNoNumber },
+        { label: sumLabel, value: partSum ? money(partSum) : TEXTS.ruleNoNumber },
         { label: bt, value: money(value) },
       ],
     );
@@ -190,43 +197,45 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
 
   // BR-CO-13: BT-109 = round(BT-106 + BT-108 − BT-107); without both: BT-109 = BT-106
   {
-    const ok =
-      bt109 && bt106 && known(bt107, bt108)
+    const expected =
+      bt106 && known(bt107, bt108)
         ? bt107 === null && bt108 === null
-          ? decimalEquals(bt109, bt106)
-          : decimalEquals(bt109, round2(subtract(add(bt106, bt108 ?? ZERO), bt107 ?? ZERO)))
+          ? bt106
+          : round2(subtract(add(bt106, bt108 ?? ZERO), bt107 ?? ZERO))
         : undefined;
+    const ok = bt109 && expected ? decimalEquals(bt109, expected) : undefined;
     add_('BR-CO-13', ok, [
-      { label: 'BT-106', value: money(bt106) },
-      { label: 'BT-107', value: money(bt107) },
-      { label: 'BT-108', value: money(bt108) },
-      { label: 'BT-109', value: money(bt109) },
+      { label: named('BT-106'), value: money(bt106) },
+      { label: named('BT-107'), value: money(bt107) },
+      { label: named('BT-108'), value: money(bt108) },
+      { label: named('BT-109'), value: money(bt109) },
+      ...expectedValue(expected),
     ]);
   }
 
-  // BR-CO-14: BT-110 = round(Σ BT-117) — where a VAT breakdown is given
+  // BR-CO-14: BT-110 = round(Σ BT-117) — where a VAT breakdown and BT-110 are given: the CEN
+  // Schematron checks it in the context of BT-110, so without one it does not apply (three official
+  // examples without VAT, e.g. CEN CII_example7, showed it as "nicht prüfbar")
   const breakdowns = groupsOf(model, 'BG-23');
-  if (breakdowns.length > 0) {
+  if (breakdowns.length > 0 && bt110 !== null) {
     const taxes = decimals(model, 'BG-23/BT-117');
     const taxSum = taxes ? sum(taxes) : undefined;
     add_('BR-CO-14', taxSum && bt110 ? decimalEquals(bt110, round2(taxSum)) : undefined, [
-      { label: 'Σ BT-117', value: taxSum ? money(taxSum) : TEXTS.ruleNoNumber },
-      { label: 'BT-110', value: money(bt110) },
+      { label: TEXTS.ruleSumTaxes, value: taxSum ? money(taxSum) : TEXTS.ruleNoNumber },
+      { label: named('BT-110'), value: money(bt110) },
     ]);
   }
 
   // BR-CO-15: BT-112 = round(BT-109 + BT-110)
-  add_(
-    'BR-CO-15',
-    bt112 && bt109 && bt110 !== undefined
-      ? decimalEquals(bt112, round2(add(bt109, bt110 ?? ZERO)))
-      : undefined,
-    [
-      { label: 'BT-109', value: money(bt109) },
-      { label: 'BT-110', value: money(bt110) },
-      { label: 'BT-112', value: money(bt112) },
-    ],
-  );
+  {
+    const expected = bt109 && bt110 !== undefined ? round2(add(bt109, bt110 ?? ZERO)) : undefined;
+    add_('BR-CO-15', bt112 && expected ? decimalEquals(bt112, expected) : undefined, [
+      { label: named('BT-109'), value: money(bt109) },
+      { label: named('BT-110'), value: money(bt110) },
+      { label: named('BT-112'), value: money(bt112) },
+      ...expectedValue(expected),
+    ]);
+  }
 
   // BR-CO-16: BT-115 (minus rounding BT-114) = BT-112 minus prepaid BT-113
   {
@@ -236,11 +245,17 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
       const expected = bt113 ? round2(subtract(bt112, bt113)) : bt112;
       ok = decimalEquals(due, expected);
     }
+    // shown as the amount due the rule expects: BT-112 − BT-113 + BT-114
+    const expectedDue =
+      bt112 && known(bt113, bt114)
+        ? add(bt113 ? round2(subtract(bt112, bt113)) : bt112, bt114 ?? ZERO)
+        : undefined;
     add_('BR-CO-16', ok, [
-      { label: 'BT-112', value: money(bt112) },
-      { label: 'BT-113', value: money(bt113) },
-      { label: 'BT-114', value: money(bt114) },
-      { label: 'BT-115', value: money(bt115) },
+      { label: named('BT-112'), value: money(bt112) },
+      { label: named('BT-113'), value: money(bt113) },
+      { label: named('BT-114'), value: money(bt114) },
+      { label: named('BT-115'), value: money(bt115) },
+      ...expectedValue(expectedDue),
     ]);
   }
 
@@ -257,20 +272,27 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
 
     // BR-CO-17: no rate or rate 0 → tax 0; else |BT-117| within 1 of round(|BT-116| × rate / 100)
     let co17: boolean | undefined;
+    const noRate = rate === null || (rate !== undefined && roundTo(rate, 0).units === 0n);
+    const expectedTax = noRate
+      ? ZERO
+      : rate && base
+        ? round2(multiply(abs(base), multiply(rate, PERCENT)))
+        : undefined;
     if (tax && rate !== undefined && base !== undefined) {
-      if (rate === null || roundTo(rate, 0).units === 0n) {
+      if (noRate) {
         co17 = roundTo(tax, 0).units === 0n;
-      } else if (base) {
-        co17 = within(abs(tax), round2(multiply(abs(base), multiply(rate, PERCENT))), ONE);
+      } else if (base && expectedTax) {
+        co17 = within(abs(tax), expectedTax, ONE);
       }
     }
     add_(
       'BR-CO-17',
       co17,
       [
-        { label: 'BT-116', value: money(base) },
-        { label: 'BT-119', value: rate ? percent(rate) : money(rate) },
-        { label: 'BT-117', value: money(tax) },
+        { label: named('BT-116'), value: money(base) },
+        { label: named('BT-119'), value: rate ? percent(rate) : money(rate) },
+        { label: named('BT-117'), value: money(tax) },
+        ...expectedValue(expectedTax),
       ],
       occurrence,
     );
@@ -313,9 +335,13 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
       ok,
       [
         { label: TEXTS.ruleLineSum, value: lineSum ? money(lineSum) : TEXTS.ruleNoNumber },
-        { label: 'Σ BT-99', value: chargeSum ? money(chargeSum) : TEXTS.ruleNoNumber },
-        { label: 'Σ BT-92', value: allowanceSum ? money(allowanceSum) : TEXTS.ruleNoNumber },
-        { label: 'BT-116', value: money(base) },
+        { label: TEXTS.ruleSumCharges, value: chargeSum ? money(chargeSum) : TEXTS.ruleNoNumber },
+        {
+          label: TEXTS.ruleSumAllowances,
+          value: allowanceSum ? money(allowanceSum) : TEXTS.ruleNoNumber,
+        },
+        { label: named('BT-116'), value: money(base) },
+        ...expectedValue(expected),
       ],
       occurrence,
       RULE_LABELS.BREAKDOWN,
@@ -328,13 +354,22 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
   const auffaellig = [
     ...new Set(checked.filter((r) => r.status === 'auffaellig').map((r) => r.id)),
   ];
+  // "passen zusammen" must not hide what could not be checked (audit Bedienung, V-05)
+  const notChecked = checked.filter((r) => r.status === 'nichtPruefbar').length;
+  const unchecked =
+    notChecked === 0
+      ? ''
+      : ` ${notChecked === 1 ? TEXTS.rulesOneNotChecked : fill(TEXTS.rulesSomeNotChecked, { count: notChecked })}`;
   return {
     results: checked,
     auffaellig,
     ...(options.ownRules ? { note: TEXTS.rulesOwnRules } : {}),
+    notChecked,
     summary:
-      auffaellig.length === 0
-        ? TEXTS.rulesOk
-        : fill(TEXTS.rulesAuffaellig, { ids: auffaellig.join(', ') }),
+      checked.length === 0
+        ? TEXTS.rulesNone
+        : auffaellig.length === 0
+          ? `${TEXTS.rulesOk}${unchecked}`
+          : fill(TEXTS.rulesAuffaellig, { ids: auffaellig.join(', ') }),
   };
 }

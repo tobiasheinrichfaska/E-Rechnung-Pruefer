@@ -100,7 +100,13 @@ test('names MINIMUM, contradicting invoice data and a protected PDF', async ({ p
   await expect(page.getByTestId('headline')).toHaveText(
     'Mögliche Auffälligkeit: widersprüchliche Rechnungsdaten im PDF',
   );
-  await expect(page.getByTestId('differing')).toContainText('Rechnungsnummer');
+  // the values of both parts, without scrolling to them (audit Bedienung, E-04)
+  await expect(page.getByTestId('differing')).toHaveText(
+    /^Unterschiedlich: Rechnungsnummer \(.+ \/ X-2\)\.$/,
+  );
+  await expect(
+    page.getByRole('heading', { name: 'Rechnungsdaten 2 von 2 – Anhang „b.xml“' }),
+  ).toBeVisible();
   await expect(page.getByText('Rechnungsdaten 2 von 2')).toBeVisible();
 
   await upload(page, 'geschuetzt.pdf', miniPdf({ passwordProtected: true }), 'application/pdf');
@@ -245,7 +251,8 @@ test('names a calculation irregularity with its rule and values', async ({ page 
   );
   const rule = page.getByTestId('rule-BR-CO-15');
   await expect(rule).toContainText('mögliche Auffälligkeit');
-  await expect(rule).toContainText('BT-112: 346,90 EUR');
+  await expect(rule).toContainText('Gesamtbetrag mit Umsatzsteuer (BT-112): 346,90 EUR');
+  await expect(rule).toContainText('Nach der Regel erwartet: 336,90 EUR');
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);
 });

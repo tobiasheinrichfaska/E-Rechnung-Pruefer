@@ -107,11 +107,10 @@ export function PflichtangabenView({
   const special = result.rows.filter((r) => r.row.section === 'besondere');
   const headingId = useId();
   const specialId = useId();
+  // With several invoice XML the section and its tables are named after "Rechnungsdaten n von m"
+  const withContext = (id: string) => (contextId ? `${contextId} ${id}` : id);
   return (
-    <section
-      className="pflicht"
-      aria-labelledby={contextId ? `${contextId} ${headingId}` : headingId}
-    >
+    <section className="pflicht" aria-labelledby={withContext(headingId)}>
       <h3 id={headingId}>{TEXTS.pflichtHeading}</h3>
       {result.modeText && <p className="mode">{result.modeText}</p>}
       <p
@@ -120,11 +119,11 @@ export function PflichtangabenView({
       >
         {result.summary}
       </p>
-      <RowsTable rows={main} labelledBy={headingId} />
+      <RowsTable rows={main} labelledBy={withContext(headingId)} />
       {special.length > 0 && (
         <>
           <h4 id={specialId}>{TEXTS.besondereHeading}</h4>
-          <RowsTable rows={special} labelledBy={specialId} />
+          <RowsTable rows={special} labelledBy={withContext(specialId)} />
         </>
       )}
     </section>

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { APP_NAME, APP_VERSION } from '../appInfo';
-import { MAX_FILE_BYTES, analyzeFile, tooLargeFile } from '../io/analyze';
+import { MAX_FILE_BYTES, analyzeFile, tooLargeFile, unreadableFile } from '../io/analyze';
 import { loadPdfJs } from '../io/pdfjs';
 import type { Analysis } from '../logic/analysis';
+import { germanMoment } from '../logic/dates';
 import { TEXTS, fill } from '../logic/texts';
 import { verdictOf, xmlCounts } from '../logic/verdict';
 import type { Verdict } from '../logic/verdict';
@@ -26,24 +27,40 @@ function announcement(state: State): string {
 type State =
   | { step: 'idle' }
   | { step: 'checking'; fileName: string }
-  | { step: 'done'; analysis: Analysis; verdict: Verdict }
+  | { step: 'done'; analysis: Analysis; verdict: Verdict; checkedAt: Date; count: number }
   | { step: 'failed'; fileName: string; message: string };
 
 export function App() {
   const [state, setState] = useState<State>({ step: 'idle' });
 
-  const check = async (file: File) => {
+  const [pageDrag, setPageDrag] = useState(false);
+  const dragEnd = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  const check = async (file: File, count = 1) => {
+    const done = (analysis: Analysis) =>
+      setState({
+        step: 'done',
+        analysis,
+        verdict: verdictOf(analysis),
+        checkedAt: new Date(),
+        count,
+      });
     if (file.size > MAX_FILE_BYTES) {
       // Decided by the size alone, without reading the file into memory (audit 2026-11-14, S-04)
-      const analysis = tooLargeFile(file.name);
-      setState({ step: 'done', analysis, verdict: verdictOf(analysis) });
+      done(tooLargeFile(file.name));
       return;
     }
     setState({ step: 'checking', fileName: file.name });
+    let bytes: Uint8Array;
     try {
-      const bytes = new Uint8Array(await file.arrayBuffer());
-      const analysis = await analyzeFile(file.name, bytes, loadPdfJs);
-      setState({ step: 'done', analysis, verdict: verdictOf(analysis) });
+      bytes = new Uint8Array(await file.arrayBuffer());
+    } catch {
+      // A dropped folder or a file moved meanwhile: the browser cannot read it (audit A-03)
+      done(unreadableFile(file.name));
+      return;
+    }
+    try {
+      done(await analyzeFile(file.name, bytes, loadPdfJs));
     } catch (error) {
       // Never swallow: an unexpected error is shown with its message.
       setState({
@@ -65,17 +82,45 @@ export function App() {
     }
   }, [state]);
 
+  // On paper everything counts: closed sections (positions, further rules, technical messages) are
+  // opened for printing and closed again afterwards (audit Bedienung, E-02)
+  useEffect(() => {
+    let opened: HTMLDetailsElement[] = [];
+    const beforePrint = () => {
+      opened = [...document.querySelectorAll<HTMLDetailsElement>('details:not([open])')];
+      for (const details of opened) details.open = true;
+    };
+    const afterPrint = () => {
+      for (const details of opened) details.open = false;
+      opened = [];
+    };
+    window.addEventListener('beforeprint', beforePrint);
+    window.addEventListener('afterprint', afterPrint);
+    return () => {
+      window.removeEventListener('beforeprint', beforePrint);
+      window.removeEventListener('afterprint', afterPrint);
+    };
+  }, []);
+
   // A file dropped next to the drop zone would make the browser leave the app and open the file:
   // the whole page takes it (audit 2026-11-14, U-05). The drop zone handles its own drops.
   useEffect(() => {
+    // dragover repeats while a file is over the page; when it stops, the drag has left or ended,
+    // and the drop zone stops inviting (audit Bedienung, A-10)
     const onDragOver = (event: DragEvent) => {
-      if (event.dataTransfer?.types.includes('Files')) event.preventDefault();
+      if (!event.dataTransfer?.types.includes('Files')) return;
+      event.preventDefault();
+      setPageDrag(true);
+      clearTimeout(dragEnd.current);
+      dragEnd.current = setTimeout(() => setPageDrag(false), 200);
     };
     const onDrop = (event: DragEvent) => {
+      setPageDrag(false);
       if (event.defaultPrevented || !event.dataTransfer?.types.includes('Files')) return;
       event.preventDefault();
-      const file = event.dataTransfer.files[0];
-      if (file && !busy) void check(file);
+      const files = event.dataTransfer.files;
+      const file = files[0];
+      if (file && !busy) void check(file, files.length);
     };
     window.addEventListener('dragover', onDragOver);
     window.addEventListener('drop', onDrop);
@@ -93,7 +138,11 @@ export function App() {
         Angaben sie enthält.
       </p>
 
-      <DropZone onFile={(file) => void check(file)} disabled={busy} />
+      <DropZone
+        onFile={(file, count) => void check(file, count)}
+        disabled={busy}
+        pageDrag={pageDrag}
+      />
 
       {/* Always present, so screen readers announce changes; only a short sentence goes in
           (audit 2026-11-14, U-04) */}
@@ -104,7 +153,17 @@ export function App() {
       <div ref={result}>
         {state.step === 'done' && (
           <>
-            <p className="status">Geprüfte Datei: „{state.analysis.fileName}“</p>
+            <p className="status">
+              {fill(TEXTS.checkedFile, {
+                name: state.analysis.fileName,
+                ...germanMoment(state.checkedAt),
+              })}
+            </p>
+            {state.count > 1 && (
+              <p className="hint" data-testid="only-first">
+                {fill(TEXTS.onlyFirstFile, { count: state.count })}
+              </p>
+            )}
             <ResultView analysis={state.analysis} verdict={state.verdict} />
           </>
         )}

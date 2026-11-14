@@ -1,8 +1,9 @@
 // The result of step 1 "Erkennen": is it an e-invoice, in which syntax and profile. Always hints,
 // never an approval. Texts are data (texts.ts); this file only decides which apply.
 import type { Analysis, InvoicePart, Problem } from './analysis';
-import { isoDate } from './dates';
-import { decimalEquals, parseDecimal } from './decimal';
+import { termLabel } from './binding';
+import { germanDate, isoDate } from './dates';
+import { decimalEquals, formatAmount, parseDecimal } from './decimal';
 import { first } from './model';
 import type { BtId, InvoiceModel } from './model';
 import { profileOf } from './profiles';
@@ -72,11 +73,59 @@ export function differingTerms(parts: readonly InvoicePart[]): BtId[] {
   });
 }
 
+/** A compared value as the client reads it: German date and amount, "–" when missing. */
+function shownValue(part: InvoicePart, bt: BtId): string {
+  const value = first(part.header, bt)?.trim() ?? '';
+  if (value === '') return '–';
+  if (bt === 'BT-2') {
+    const iso = isoDate(value);
+    return iso ? germanDate(iso) : value;
+  }
+  if (bt === 'BT-112') {
+    const amount = parseDecimal(value);
+    return amount ? formatAmount(amount) : value;
+  }
+  return value;
+}
+
+/**
+ * "Unterschiedlich: Rechnungsnummer (PRG1502112 / PRG1502113)." — with the values of every part,
+ * so the client sees what differs without scrolling to each part (audit Bedienung, E-04).
+ */
+export function differingLine(parts: readonly InvoicePart[], differing: readonly BtId[]): string {
+  const items = differing.map((bt) =>
+    fill(TEXTS.differingItem, {
+      label: termLabel(bt),
+      values: parts.map((part) => shownValue(part, bt)).join(' / '),
+    }),
+  );
+  return fill(TEXTS.differingLine, { items: items.join('; ') });
+}
+
 /** "Technische Meldung (Zeile 4): …" — the parser's or the schema's own (English) message. */
 export function technicalLine(problem: Problem): string {
   return problem.line
     ? fill(TEXTS.problemAtLine, { line: problem.line, message: problem.message })
     : fill(TEXTS.problemMessage, { message: problem.message });
+}
+
+/** The German prefix of a technical line, as a pattern ("Technische Meldung (Zeile 4): "). */
+const TECHNICAL = [TEXTS.problemAtLine, TEXTS.problemMessage].map((template) => {
+  const [prefix = ''] = template.split('{message}');
+  const pattern = prefix.replace(/[.*+?^$()|[\]\\{}]/g, '\\$&').replace('\\{line\\}', '\\d+');
+  return new RegExp(`^(${pattern})([\\s\\S]+)$`);
+});
+
+/**
+ * A line of `technicalLine` split into its German prefix and the engine's English message, so the
+ * message can be marked as English for screen readers (WCAG 3.1.2, audit Bedienung Z-04).
+ */
+export function technicalParts(line: string): { prefix: string; message: string } | undefined {
+  for (const pattern of TECHNICAL) {
+    const match = pattern.exec(line);
+    if (match?.[1] && match[2]) return { prefix: match[1], message: match[2] };
+  }
+  return undefined;
 }
 
 function problemLine(problem: Problem | undefined): string[] {

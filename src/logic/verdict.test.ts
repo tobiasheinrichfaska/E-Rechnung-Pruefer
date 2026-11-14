@@ -1,7 +1,15 @@
 import type { Analysis, InvoicePart } from './analysis';
 import { invoiceDetails } from './details';
 import { TEXTS, fill } from './texts';
-import { differingTerms, pflichtModel, verdictOf, xmlCounts } from './verdict';
+import {
+  differingLine,
+  differingTerms,
+  pflichtModel,
+  technicalLine,
+  technicalParts,
+  verdictOf,
+  xmlCounts,
+} from './verdict';
 
 /** Stands for a read EN 16931 model (only its presence matters here). */
 const MODEL = { bg: 'INVOICE', terms: {}, groups: {} } as unknown as NonNullable<
@@ -92,6 +100,18 @@ describe('differingTerms', () => {
     const other = part({ 'BT-1': ['R-2'], 'BT-5': ['CHF'], 'BT-112': ['119.01'] });
     expect(differingTerms([part(), other])).toEqual(['BT-1', 'BT-5', 'BT-112']);
   });
+
+  it('shows the values of every part, dates and amounts in German (audit Bedienung, E-04)', () => {
+    const other = part({ 'BT-1': ['R-2'], 'BT-2': ['2026-11-14'], 'BT-112': ['119.01'] });
+    const parts = [part(), other];
+    expect(differingLine(parts, differingTerms(parts))).toBe(
+      'Unterschiedlich: Rechnungsnummer (R-1 / R-2); Rechnungsdatum (13.11.2026 / 14.11.2026); ' +
+        'Gesamtbetrag mit Umsatzsteuer (119,00 / 119,01).',
+    );
+    expect(differingLine([part(), part({ 'BT-1': [] })], ['BT-1'])).toBe(
+      'Unterschiedlich: Rechnungsnummer (R-1 / –).',
+    );
+  });
 });
 
 describe('invoiceDetails', () => {
@@ -102,7 +122,7 @@ describe('invoiceDetails', () => {
     const rows = Object.fromEntries(invoiceDetails(invoice, true).map((r) => [r.label, r.value]));
     expect(rows['Anhang']).toBe('a.xml');
     expect(rows['Rechnungsdatum (BT-2)']).toBe('13.11.2026');
-    expect(rows['Betrag brutto (BT-112)']).toBe('119,00 EUR');
+    expect(rows['Gesamtbetrag mit Umsatzsteuer (BT-112)']).toBe('119,00 EUR');
     expect(rows['Art der Rechnung (BT-3)']).toBe(
       '389 – Gutschrift (vom Leistungsempfänger ausgestellt)',
     );
@@ -119,7 +139,7 @@ describe('invoiceDetails', () => {
     const rows = Object.fromEntries(invoiceDetails(invoice, false).map((r) => [r.label, r.value]));
     expect(rows['Rechnungsnummer (BT-1)']).toBe('– (fehlt)');
     expect(rows['Rechnungsdatum (BT-2)']).toBe('13.11.2026');
-    expect(rows['Betrag brutto (BT-112)']).toBe('1.000,00');
+    expect(rows['Gesamtbetrag mit Umsatzsteuer (BT-112)']).toBe('1.000,00');
   });
 });
 
@@ -180,5 +200,24 @@ describe('a ZUGFeRD 1.0 part next to an EN 16931 part (audit 2026-11-14, L-04)',
     const en = part({}, 'factur-x.xml');
     expect(differingTerms([zf1, en])).toEqual(['BT-24']);
     expect(differingTerms([en, zf1])).toEqual(['BT-24']);
+  });
+});
+
+describe('technicalParts (audit Bedienung, Z-04)', () => {
+  it('splits the German prefix from the English message', () => {
+    const atLine = technicalLine({ line: 93, message: "'336,90' is not a valid value." });
+    expect(technicalParts(atLine)).toEqual({
+      prefix: 'Technische Meldung (Zeile 93): ',
+      message: "'336,90' is not a valid value.",
+    });
+    expect(technicalParts(technicalLine({ message: 'Invalid PDF structure.' }))).toEqual({
+      prefix: 'Technische Meldung: ',
+      message: 'Invalid PDF structure.',
+    });
+  });
+
+  it('leaves German lines alone', () => {
+    expect(technicalParts(TEXTS.formatError)).toBeUndefined();
+    expect(technicalParts('Technische Meldung (Zeile x): y')).toBeUndefined();
   });
 });

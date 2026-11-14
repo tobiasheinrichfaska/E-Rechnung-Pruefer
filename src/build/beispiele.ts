@@ -593,6 +593,7 @@ export const NICHT_ALS_BEISPIEL: Readonly<Record<string, string>> = {
   'Die Datei ist leer': 'eine leere Datei braucht kein Beispiel',
   'Diese Dateiart prüft das Tool nicht': 'jede andere Datei (z. B. ein Foto) zeigt es',
   'Die Datei ist zu groß': 'eine Datei über 20 MB wäre als Beispiel zu groß',
+  'Die Datei lässt sich nicht öffnen': 'entsteht nur beim Ablegen eines Ordners',
 };
 
 // --- building ---------------------------------------------------------------------------------

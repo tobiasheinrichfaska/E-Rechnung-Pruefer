@@ -12,7 +12,14 @@ export interface Problem {
 export type FileKind = 'pdf' | 'xml' | 'unknown';
 
 export type FileProblemKind =
-  'empty' | 'unsupportedType' | 'tooLarge' | 'password' | 'damaged' | 'xmlDoctype' | 'xmlBroken';
+  | 'empty'
+  | 'unreadable'
+  | 'unsupportedType'
+  | 'tooLarge'
+  | 'password'
+  | 'damaged'
+  | 'xmlDoctype'
+  | 'xmlBroken';
 
 /** The check of an invoice XML against the official schema of its syntax (step 2b). */
 export interface SchemaResult {
