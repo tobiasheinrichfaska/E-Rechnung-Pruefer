@@ -374,6 +374,21 @@ describe('schema check (step 2b)', () => {
     }
   });
 
+  // F28: the other Factur-X profiles against their own FeRD schema; a UBL invoice keeps UBL 2.1
+  it.each([
+    ['urn:factur-x.eu:1p0:minimum', 'Factur-X 1.09.2 MINIMUM (FeRD)'],
+    ['urn:cen.eu:en16931:2017#compliant#urn:factur-x.eu:1p0:basic', 'Factur-X 1.09.2 BASIC (FeRD)'],
+    ['urn:cen.eu:en16931:2017', 'Factur-X 1.09.2 EN16931 (FeRD)'],
+  ])('checks CII with %s against its profile schema', async (id, schema) => {
+    const { analysis } = await check('r.xml', encode(withSpecId(CII, id)));
+    expect(analysis.invoices[0]?.schema).toMatchObject({ schema, checked: true });
+  });
+
+  it('keeps UBL 2.1 for a UBL invoice with the EN 16931 identifier', async () => {
+    const { analysis } = await check('u.xml', official('cen/UBL_ubl-tc434-example1.xml'));
+    expect(analysis.invoices[0]?.schema).toMatchObject({ schema: 'UBL 2.1 (Invoice)', count: 0 });
+  });
+
   // Step 2a: Factur-X EXTENDED against its own FeRD schema; ZUGFeRD 2.0 EXTENDED has none here
   it('checks Factur-X EXTENDED against the FeRD EXTENDED schema', async () => {
     const id = 'urn:cen.eu:en16931:2017#conformant#urn:factur-x.eu:1p0:extended';

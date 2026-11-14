@@ -26,7 +26,11 @@ export interface ProfileEntry {
    * `entry` is a key of SCHEMA_ENTRIES (src/io/schemas.ts); without one the profile needs a schema
    * the tool does not have, and the check is left out instead of risking a false "Formatfehler".
    */
-  ownSchema?: { entry?: 'facturxExtended'; label: string };
+  ownSchema?: {
+    entry?:
+      'facturxExtended' | 'facturxMinimum' | 'facturxBasicWl' | 'facturxBasic' | 'facturxEn16931';
+    label: string;
+  };
   /**
    * FeRD EXTENDED: its Schematron replaces the EN 16931 totals and breakdown rules by its own forms
    * (BR-FXEXT-CO-10 … -16 and BR-FXEXT-…-08: logistics charges, amounts of third parties, small
@@ -54,6 +58,7 @@ export const PROFILES: readonly ProfileEntry[] = [
     profile: 'MINIMUM',
     einordnung: 'keineERechnung',
     source: 'FeRD ZUGFeRD 2.5.2 Musterrechnungen (Infopaket vom 04.08.2026)',
+    ownSchema: { entry: 'facturxMinimum', label: 'Factur-X 1.09.2 MINIMUM (FeRD)' },
     checked: true,
   },
   {
@@ -63,6 +68,7 @@ export const PROFILES: readonly ProfileEntry[] = [
     profile: 'BASIC WL',
     einordnung: 'keineERechnung',
     source: 'FeRD ZUGFeRD 2.5.2 Musterrechnungen (Infopaket vom 04.08.2026)',
+    ownSchema: { entry: 'facturxBasicWl', label: 'Factur-X 1.09.2 BASIC WL (FeRD)' },
     checked: true,
   },
   // ZUGFeRD 2.0/2.0.1 identifiers, still allowed by code list 1 of the FeRD package 2.5.2. MINIMUM
@@ -119,6 +125,7 @@ export const PROFILES: readonly ProfileEntry[] = [
     profile: 'BASIC',
     einordnung: 'eRechnung',
     source: 'FeRD ZUGFeRD 2.5.2 Musterrechnungen (Infopaket vom 04.08.2026)',
+    ownSchema: { entry: 'facturxBasic', label: 'Factur-X 1.09.2 BASIC (FeRD)' },
     checked: true,
   },
   {
@@ -194,6 +201,9 @@ export const PROFILES: readonly ProfileEntry[] = [
     profile: 'EN 16931',
     einordnung: 'eRechnung',
     source: 'CEN-Beispiele 1.3.17; Übergabe 2026-11-13',
+    // F28: CII with this identifier against the Factur-X EN16931 schema (UBL keeps UBL 2.1);
+    // all 12 official CEN/KoSIT CII files and the 25 FeRD samples with it pass (2026-11-14)
+    ownSchema: { entry: 'facturxEn16931', label: 'Factur-X 1.09.2 EN16931 (FeRD)' },
     checked: true,
   },
   {

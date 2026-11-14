@@ -37,6 +37,16 @@ describe.skipIf(!present)('FeRD ZUGFeRD 2.5.2 sample invoices (local only)', () 
     // Steps 2a/2b: valid against CII D16B (as KoSIT checks it), EXTENDED against its FeRD schema
     const schema = analysis.invoices[0]?.schema;
     expect(schema?.checked).toBe(true);
+    // F28: each profile against its own FeRD schema (XRECHNUNG: CII D16B, as KoSIT)
+    const own: Record<string, string> = {
+      '0': 'Factur-X 1.09.2 MINIMUM (FeRD)',
+      '1': 'Factur-X 1.09.2 BASIC WL (FeRD)',
+      '2': 'Factur-X 1.09.2 BASIC (FeRD)',
+      '3': 'Factur-X 1.09.2 EN16931 (FeRD)',
+      '4': 'Factur-X 1.09.2 EXTENDED (FeRD)',
+      '5': 'UN/CEFACT CII D16B',
+    };
+    expect({ file, schema: schema?.schema }).toEqual({ file, schema: own[file[0] ?? ''] });
     expect({ file, problems: schema?.problems.slice(0, 3) ?? [] }).toEqual({ file, problems: [] });
     if (/^[01]\. /.test(file)) {
       // MINIMUM and BASIC WL: no e-invoice (BMF 15.10.2024 Rn. 25, 30)

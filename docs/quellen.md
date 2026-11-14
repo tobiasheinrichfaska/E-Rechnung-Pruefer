@@ -37,6 +37,34 @@ D16B.
 | `…_ReusableAggregateBusinessInformationEntity_100.xsd` | `83cef3c48a6c83149733ffdced362e230e9ae482f62acdfb8c0fb3a919452fdb` |
 | `…_UnqualifiedDataType_100.xsd`                        | `c6c9f7b3f36c821999f20d7b7fff30db64112bc7b2a8f132e3d048d859855d00` |
 
+### Profil-Schemata MINIMUM bis EN16931 (F28, 14.11.2026)
+
+Auf Tobias' Entscheidung F28 aus demselben FeRD-Paket (privates Repo `E-Rechnung-Pruefer-privat`,
+`ferd-paket/ZUGFeRD_2.5.2_DE.zip`, SHA-256 wie oben) übernommen: die je vier XSD der Ordner
+`0_Factur-X_1.09.2_MINIMUM/` bis `3_Factur-X_1.09.2_EN16931/`, unverändert, nach
+`schemas/factur-x-1.09.2-<profil>/` (Apache-2.0). Vorher geprüft: alle 32 FeRD-Musterrechnungen dieser
+Profile und alle 12 amtlichen CEN-/KoSIT-CII-Dateien mit der Kennung `urn:cen.eu:en16931:2017` ohne
+Abweichung vom Profil-Schema.
+
+| Profil    | Datei                                                  | SHA-256                                                            |
+| --------- | ------------------------------------------------------ | ------------------------------------------------------------------ |
+| `minimum` | `Factur-X_1.09.2_MINIMUM.xsd`                          | `313e86212eaf9921f8cfe040d2acb72f718a580db3c19b8c8b3ca0a6a02b4216` |
+| `minimum` | `…_QualifiedDataType_100.xsd`                          | `c65c4929cb6f51d59aec498851a9026f0a915555555b1c3e5eafd99f191be5f5` |
+| `minimum` | `…_ReusableAggregateBusinessInformationEntity_100.xsd` | `8a9c1826ac156d8d2faf47de8dcd8a41fff54e6cf3ba1d44503876c086c7d9db` |
+| `minimum` | `…_UnqualifiedDataType_100.xsd`                        | `7110f93a32e20af6fbc3b8c308ec77f75be18bafca9a933584eb457a187bd539` |
+| `basicwl` | `Factur-X_1.09.2_BASICWL.xsd`                          | `6cd8f22081b659ebeb0a86a741ed454d1771460b822579a55b43f5f0cdd81356` |
+| `basicwl` | `…_QualifiedDataType_100.xsd`                          | `5d72dd3f0df511b2994ea41b199685f9cc538e9ce57d50c84d21988fe1455c6e` |
+| `basicwl` | `…_ReusableAggregateBusinessInformationEntity_100.xsd` | `17d5300dcb6d7c1d7ac70c4d28c89fd3b778abb820129ac320b9010d4dc6bed3` |
+| `basicwl` | `…_UnqualifiedDataType_100.xsd`                        | `2f4686c41172611f7fc2347a7103a12c01746da17a5f7eded53254ceeff2469f` |
+| `basic`   | `Factur-X_1.09.2_BASIC.xsd`                            | `808f07370fbbeaaceabbd674ee4d7d2cb358894112366989ff7d600d0432d444` |
+| `basic`   | `…_QualifiedDataType_100.xsd`                          | `5d72dd3f0df511b2994ea41b199685f9cc538e9ce57d50c84d21988fe1455c6e` |
+| `basic`   | `…_ReusableAggregateBusinessInformationEntity_100.xsd` | `2ca9ab167afd99ae0455db1d7119007ab1de27941752dcc55e9e24bec0511c61` |
+| `basic`   | `…_UnqualifiedDataType_100.xsd`                        | `ad32b1828200bdb0afd24fbe92fe90880bf357c6a51a9da95cddbdf593e3e35b` |
+| `en16931` | `Factur-X_1.09.2_EN16931.xsd`                          | `cb98b34e59398fcd8d48f29963a3fd6f4c49af9a8307569f4a1ced634f1aa885` |
+| `en16931` | `…_QualifiedDataType_100.xsd`                          | `4bd1753b1f078ecc50468ec90e505a63a72c6c1f2449a893f37c72a2e933fe04` |
+| `en16931` | `…_ReusableAggregateBusinessInformationEntity_100.xsd` | `d6bf8e38c3d5595c670655ccb7ee89655ae244943aaf09a31758160caabc7894` |
+| `en16931` | `…_UnqualifiedDataType_100.xsd`                        | `60ee4d11da40c7ec42a4da1fb77b5d7bbffcdce42afd863fcd9da9334765315c` |
+
 ## Recht und Verwaltung (Recherche 13.11.2026)
 
 | Quelle                                                                                           | Fundstelle                                                                                                              | Verwendet für     |

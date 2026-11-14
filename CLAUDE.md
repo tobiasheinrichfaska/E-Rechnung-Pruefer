@@ -207,8 +207,10 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
   value that is no number (e.g. "336,90") makes a rule "nicht prüfbar"; the schema check names it.
 - **Schema check (2a/2b)** against UBL 2.1 and CII D16B, the XSD the KoSIT validator uses;
   Factur-X **EXTENDED** against its own FeRD schema (Factur-X 1.09.2 / ZUGFeRD 2.5.2, Apache-2.0,
-  uploaded by Tobias 2026-11-14). The other Factur-X profiles are checked against CII D16B, not
-  their stricter profile XSD. ZUGFeRD **2.0** EXTENDED (`urn:zugferd.de:2p0`) is "nicht geprüft"
+  uploaded by Tobias 2026-11-14). **F28:** MINIMUM, BASIC WL, BASIC and EN16931 against their own
+  stricter FeRD profile XSD (CII only — a CII invoice with the plain identifier
+  `urn:cen.eu:en16931:2017` counts as profile EN16931; UBL keeps UBL 2.1); XRechnung CII against D16B
+  as KoSIT. ZUGFeRD **2.0** EXTENDED (`urn:zugferd.de:2p0`) is "nicht geprüft"
   (its schema is not bundled); older Factur-X EXTENDED files are checked against the 1.09.2 schema.
   ZUGFeRD 1.0 has no schema check.
 - **Pflichtangaben are hints from the data, not a tax review.** Decided or researched with official

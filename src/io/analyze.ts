@@ -38,7 +38,8 @@ function schemaCheck(
   specId: string | undefined,
 ): SchemaResult | undefined {
   if (!syntax.schema) return undefined;
-  const own = profileOf(specId).entry?.ownSchema;
+  // the FeRD profile schemas are CII schemas: a UBL invoice with the EN 16931 identifier keeps UBL
+  const own = syntax.id === 'cii' ? profileOf(specId).entry?.ownSchema : undefined;
   const schema = own?.label ?? syntax.schema.label;
   if (own && !own.entry) {
     return { schema, checked: false, reason: TEXTS.schemaOwnProfile, problems: [], count: 0 };
