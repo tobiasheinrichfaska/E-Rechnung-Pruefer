@@ -162,6 +162,18 @@ describe('coverage: every text of the tool appears in a sample', () => {
     expect(MODES.map((m) => m.text).filter((t) => !seen.has(t))).toEqual([]);
   });
 
+  // F26/F23: each sentence by the date of supply and invoice, and the general one, in a sample
+  it('every sentence of the transition rules (§ 27 Abs. 38 UStG)', () => {
+    const seen = new Set(checked.flatMap((c) => c.verdict.explanation));
+    const sentences = [
+      TEXTS.regimeAllowed,
+      TEXTS.regimeTurnover,
+      TEXTS.regimeRequired,
+      TEXTS.regimeGeneral,
+    ];
+    expect(sentences.filter((t) => !seen.has(t))).toEqual([]);
+  });
+
   it('every hint of the Pflichtangaben', () => {
     const seen = new Set(checked.flatMap((c) => c.pflicht?.rows.flatMap((r) => r.hints) ?? []));
     const all = new Set(PFLICHTANGABEN.flatMap((p) => (p.hints ?? []).map((h) => h.text)));

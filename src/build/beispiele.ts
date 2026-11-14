@@ -540,7 +540,7 @@ export const BEISPIELE: readonly Beispiel[] = [
   {
     datei: '29_XRechnung_mit_Formatfehler.xml',
     zeigt:
-      'Eine XRechnung, die nicht zum offiziellen Schema passt: ein Betrag mit Komma statt Punkt („336,90“). Formatfehler, gem. Rn. 6a ggf. keine E-Rechnung.',
+      'Eine XRechnung, die nicht zum offiziellen Schema passt: ein Betrag mit Komma statt Punkt („336,90“). Formatfehler – möglicherweise keine E-Rechnung (F24).',
     quelle: {
       art: 'kosit',
       xml: {
@@ -624,6 +624,99 @@ export const BEISPIELE: readonly Beispiel[] = [
     erwartet: {
       ton: 'bad',
       ueberschrift: 'PDF mit Rechnungsdaten nach ZUGFeRD 1.0: keine E-Rechnung im Sinne des UStG',
+    },
+  },
+  {
+    datei: '33_MINIMUM_Leistung_2026.xml',
+    zeigt:
+      'Rechnungsdaten im Profil MINIMUM, Leistung im November 2026, Rechnung vom 30.11.2026: keine E-Rechnung, aber eine sonstige Rechnung ist noch zulässig (F26, § 27 Abs. 38 Nr. 1 UStG).',
+    quelle: {
+      art: 'kosit',
+      xml: {
+        basis: CII_CLEAN,
+        aenderungen: [
+          ciiSpec('urn:factur-x.eu:1p0:minimum'),
+          {
+            ersetze: '<udt:DateTimeString format="102">20150424</udt:DateTimeString>',
+            durch: '<udt:DateTimeString format="102">20261130</udt:DateTimeString>',
+            alle: true,
+          },
+          {
+            ersetze: '<udt:DateTimeString format="102">20150420</udt:DateTimeString>',
+            durch: '<udt:DateTimeString format="102">20261101</udt:DateTimeString>',
+          },
+        ],
+        geaendert:
+          'Kennung auf das Profil MINIMUM; Rechnungsdatum 30.11.2026, Leistungszeitraum 01.–30.11.2026',
+      },
+    },
+    erwartet: {
+      ton: 'bad',
+      ueberschrift: 'Rechnungsdaten im Profil MINIMUM: keine E-Rechnung im Sinne des UStG',
+    },
+  },
+  {
+    datei: '34_BASIC_WL_Leistung_2027.xml',
+    zeigt:
+      'Rechnungsdaten im Profil BASIC WL, Leistung im März 2027: zulässig nur bei einem Vorjahresumsatz des Lieferanten bis 800.000 Euro – mit der Frage, ob das geklärt ist (F26, § 27 Abs. 38 Nr. 2 UStG).',
+    quelle: {
+      art: 'kosit',
+      xml: {
+        basis: CII_CLEAN,
+        aenderungen: [
+          ciiSpec('urn:factur-x.eu:1p0:basicwl'),
+          {
+            ersetze: '<udt:DateTimeString format="102">20150424</udt:DateTimeString>',
+            durch: '<udt:DateTimeString format="102">20270331</udt:DateTimeString>',
+            alle: true,
+          },
+          {
+            ersetze: '<udt:DateTimeString format="102">20150420</udt:DateTimeString>',
+            durch: '<udt:DateTimeString format="102">20270301</udt:DateTimeString>',
+          },
+        ],
+        geaendert:
+          'Kennung auf das Profil BASIC WL; Rechnungsdatum 31.03.2027, Leistungszeitraum 01.–31.03.2027',
+      },
+    },
+    erwartet: {
+      ton: 'bad',
+      ueberschrift: 'Rechnungsdaten im Profil BASIC WL: keine E-Rechnung im Sinne des UStG',
+    },
+  },
+  {
+    datei: '35_Formatfehler_Leistung_2028.xml',
+    zeigt:
+      'Eine XRechnung mit Formatfehler (Betrag mit Komma), Leistung im Januar 2028: hier ist eine E-Rechnung nötig (F24, F26).',
+    quelle: {
+      art: 'kosit',
+      xml: {
+        basis: CII_CLEAN,
+        schemafehler: true,
+        aenderungen: [
+          {
+            ersetze: '<ram:DuePayableAmount>10555.3</ram:DuePayableAmount>',
+            durch: '<ram:DuePayableAmount>10555,30</ram:DuePayableAmount>',
+          },
+          {
+            ersetze: '<udt:DateTimeString format="102">20150424</udt:DateTimeString>',
+            durch: '<udt:DateTimeString format="102">20280131</udt:DateTimeString>',
+            alle: true,
+          },
+          {
+            ersetze: '<udt:DateTimeString format="102">20150420</udt:DateTimeString>',
+            durch: '<udt:DateTimeString format="102">20280101</udt:DateTimeString>',
+          },
+        ],
+        geaendert:
+          'Zahlbetrag mit Komma statt Punkt (Schemafehler); Rechnungsdatum 31.01.2028, Leistungszeitraum 01.–31.01.2028',
+      },
+    },
+    erwartet: {
+      ton: 'bad',
+      ueberschrift: 'Rechnungsdaten mit Formatfehler (XRechnung 3.0)',
+      pflicht:
+        'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
     },
   },
 ];
