@@ -4,9 +4,10 @@ import { termLabel } from '../logic/binding';
 import { checkPflichtangaben } from '../logic/check';
 import { invoiceDetails } from '../logic/details';
 import { TEXTS, fill } from '../logic/texts';
-import { pflichtModel, technicalLine } from '../logic/verdict';
+import { pflichtModel, rulesOf, technicalLine } from '../logic/verdict';
 import type { InvoiceVerdict, Verdict } from '../logic/verdict';
 import { PflichtangabenView } from './PflichtangabenView';
+import { RulesView } from './RulesView';
 
 interface Props {
   analysis: Analysis;
@@ -29,8 +30,14 @@ function Pflichtangaben({
   contextId: string | undefined;
 }) {
   const model = pflichtModel(invoice);
+  const rules = rulesOf(invoice);
   if (model) {
-    return <PflichtangabenView result={checkPflichtangaben(model)} contextId={contextId} />;
+    return (
+      <>
+        <PflichtangabenView result={checkPflichtangaben(model)} contextId={contextId} />
+        {rules && <RulesView result={rules} />}
+      </>
+    );
   }
   return (
     <p className="muted" data-testid="no-pflicht">

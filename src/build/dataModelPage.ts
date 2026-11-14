@@ -406,6 +406,12 @@ export const FUNCTIONS: { layer: string; signature: string; purpose: string }[] 
   },
   {
     layer: 'logic',
+    signature: 'checkRules(model): RulesResult',
+    purpose:
+      'Rechenregeln der EN 16931 (BR-CO-10 bis -17, Aufschlüsselung je Kategorie und Satz) wie im CEN-Schematron',
+  },
+  {
+    layer: 'logic',
     signature: 'modeOf(model): { mode; text? }',
     purpose: 'Kleinunternehmer (§ 34a UStDV) vor Kleinbetrag (§ 33 UStDV) vor Regelfall',
   },

@@ -6,6 +6,8 @@ import { decimalEquals, parseDecimal } from './decimal';
 import { first } from './model';
 import type { BtId, InvoiceModel } from './model';
 import { profileOf } from './profiles';
+import { checkRules } from './rules';
+import type { RulesResult } from './rules';
 import type { Einordnung, ProfileMatch } from './profiles';
 import { syntaxById } from './syntax';
 import { TEXTS, fill } from './texts';
@@ -86,6 +88,27 @@ function schemaFailed(invoice: InvoiceVerdict): boolean {
   return invoice.einordnung !== 'keineERechnung' && (invoice.part.schema?.count ?? 0) > 0;
 }
 
+/** Step 3a: the rule ids with a possible irregularity — only where the XML counts (F19). */
+/** The rules of one invoice XML; for EXTENDED without the sums over the lines (B-02b). */
+export function rulesOf(invoice: InvoiceVerdict): RulesResult | undefined {
+  const model = pflichtModel(invoice);
+  return model ? checkRules(model, { lineSums: !invoice.profile.entry?.ownSchema }) : undefined;
+}
+
+function rulesFailed(invoice: InvoiceVerdict): string[] {
+  return rulesOf(invoice)?.auffaellig ?? [];
+}
+
+function rulesLines(invoice: InvoiceVerdict, several: boolean): string[] {
+  const ids = rulesFailed(invoice);
+  if (ids.length === 0) return [];
+  return [
+    several
+      ? fill(TEXTS.rulesHintIn, { name: invoice.part.origin, ids: ids.join(', ') })
+      : fill(TEXTS.rulesHint, { ids: ids.join(', ') }),
+  ];
+}
+
 /** How many technical schema messages the result itself shows (all are listed below it). */
 const SCHEMA_LINES = 3;
 
@@ -110,6 +133,7 @@ function singleVerdict(analysis: Analysis, invoice: InvoiceVerdict, withSchema =
   const inPdf = analysis.kind === 'pdf';
   const profileName = invoice.profile.entry?.profile ?? invoice.specLabel;
   const schema = withSchema ? schemaLines(invoice, inPdf) : [];
+  const rules = withSchema ? rulesLines(invoice, false) : [];
   switch (invoice.einordnung) {
     case 'eRechnung': {
       const source = inPdf
@@ -122,14 +146,15 @@ function singleVerdict(analysis: Analysis, invoice: InvoiceVerdict, withSchema =
         return {
           tone: 'bad',
           headline: fill(TEXTS.schemaErrorHeadline, { spec: invoice.specLabel }),
-          explanation: [...source, ...hint, ...schema, TEXTS.formatError],
+          explanation: [...source, ...hint, ...schema, TEXTS.formatError, ...rules],
           invoices: [invoice],
         };
       }
+      // Step 3a: a possible irregularity in the amounts is a hint (warn), not a format error
       return {
-        tone: 'ok',
+        tone: rules.length > 0 ? 'warn' : 'ok',
         headline: fill(TEXTS.eRechnung, { spec: invoice.specLabel }),
-        explanation: [...source, ...hint],
+        explanation: [...source, ...hint, ...rules],
         invoices: [invoice],
       };
     }
@@ -156,6 +181,7 @@ function singleVerdict(analysis: Analysis, invoice: InvoiceVerdict, withSchema =
             : TEXTS.missingSpec,
           TEXTS.shownAnyway,
           ...(schema.length > 0 ? [...schema, TEXTS.formatError] : []),
+          ...rules,
         ],
         invoices: [invoice],
       };
@@ -207,6 +233,7 @@ export function verdictOf(analysis: Analysis): Verdict {
     const failed = invoices.filter(schemaFailed);
     const schema =
       failed.length > 0 ? [...failed.flatMap((i) => schemaLines(i, true)), TEXTS.formatError] : [];
+    const rules = invoices.flatMap((i) => rulesLines(i, true));
     if (differing.length === 0 && only) {
       const base = singleVerdict(analysis, only, false);
       const [firstFailed] = failed;
@@ -220,6 +247,7 @@ export function verdictOf(analysis: Analysis): Verdict {
           ...base.explanation,
           fill(TEXTS.sameSeveral, { count: invoices.length, names }),
           ...schema,
+          ...rules,
         ],
         invoices,
         comparison: { same: true, differing },
@@ -232,6 +260,7 @@ export function verdictOf(analysis: Analysis): Verdict {
         fill(TEXTS.contradictingWhy, { count: invoices.length, names }),
         TEXTS.askSupplier,
         ...schema,
+        ...rules,
       ],
       invoices,
       comparison: { same: false, differing },

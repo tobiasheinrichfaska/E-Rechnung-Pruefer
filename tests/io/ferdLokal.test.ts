@@ -4,7 +4,7 @@ import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { analyzeFile } from '../../src/io/analyze';
 import type { PdfJsLike } from '../../src/io/pdf';
 import { checkPflichtangaben } from '../../src/logic/check';
-import { verdictOf } from '../../src/logic/verdict';
+import { rulesOf, verdictOf } from '../../src/logic/verdict';
 
 // The official FeRD ZUGFeRD 2.5.2 sample invoices may not be redistributed (AWV copyright), so they
 // live only in the gitignored tests/fixtures/lokal/ferd/. Where the folder is missing these tests
@@ -56,6 +56,12 @@ describe.skipIf(!present)('FeRD ZUGFeRD 2.5.2 sample invoices (local only)', () 
       const model = analysis.invoices[0]?.model;
       expect(model).toBeDefined();
       if (model) checkPflichtangaben(model);
+      // Step 3a: no possible irregularity in the official samples (EXTENDED without line sums)
+      const first = verdict.invoices[0];
+      expect({ file, auffaellig: first ? (rulesOf(first)?.auffaellig ?? []) : [] }).toEqual({
+        file,
+        auffaellig: [],
+      });
     }
   });
 });

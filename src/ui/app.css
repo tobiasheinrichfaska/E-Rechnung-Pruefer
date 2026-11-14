@@ -390,3 +390,39 @@ button.primary:disabled {
 .verdict h2:focus:not(:focus-visible) {
   outline: none;
 }
+
+/* Step 3a: calculation rules */
+.rules {
+  margin-top: 16px;
+}
+
+.rule-list {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+}
+
+.rule {
+  border-bottom: 1px solid var(--line);
+  padding: 6px 0;
+}
+
+.rule-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.rule-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 16px;
+  overflow-wrap: anywhere;
+}
+
+.rules-all summary {
+  cursor: pointer;
+  color: var(--accent);
+}

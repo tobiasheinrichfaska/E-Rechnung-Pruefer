@@ -562,6 +562,30 @@ export const BEISPIELE: readonly Beispiel[] = [
         'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
     },
   },
+  {
+    datei: '30_XRechnung_mit_Rechenfehler.xml',
+    zeigt:
+      'Eine XRechnung, deren Gesamtbetrag mit Umsatzsteuer nicht zur Summe aus Nettobetrag und Steuer passt: mögliche Auffälligkeit BR-CO-15 und BR-CO-16 mit den belegenden Werten.',
+    quelle: {
+      art: 'kosit',
+      xml: {
+        basis: 'paare/01.01a-INVOICE_ubl.xml',
+        geaendert: 'Gesamtbetrag mit Umsatzsteuer um 10,00 EUR zu hoch (Rechenfehler)',
+        aenderungen: [
+          {
+            ersetze: '<cbc:TaxInclusiveAmount currencyID="EUR">336.9</cbc:TaxInclusiveAmount>',
+            durch: '<cbc:TaxInclusiveAmount currencyID="EUR">346.9</cbc:TaxInclusiveAmount>',
+          },
+        ],
+      },
+    },
+    erwartet: {
+      ton: 'warn',
+      ueberschrift: 'E-Rechnung erkannt (XRechnung 3.0)',
+      pflicht:
+        'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
+    },
+  },
 ];
 
 /** Result headlines no sample shows, with the reason (checked by the coverage test). */

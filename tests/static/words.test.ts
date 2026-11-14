@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { PFLICHTANGABEN, MODES } from '../../src/logic/pflichtangaben';
 import { PROFILES } from '../../src/logic/profiles';
+import { RULE_LABELS } from '../../src/logic/rules';
 import { CATEGORY_LABELS, TEXTS, TYPE_CODES, UNIT_LABELS } from '../../src/logic/texts';
 
 // Results are hints, never an approval: no text the tool shows may say "ordnungsgemäß" or
@@ -19,6 +20,7 @@ describe('texts shown to clients', () => {
       TYPE_CODES,
       CATEGORY_LABELS,
       UNIT_LABELS,
+      RULE_LABELS,
     });
     expect(tables).not.toMatch(APPROVAL);
 

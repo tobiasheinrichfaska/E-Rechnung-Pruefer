@@ -222,3 +222,23 @@ test('reports a schema problem with its line and lists the technical messages', 
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);
 });
+
+// Step 3a: a total that does not add up — a hint with the rule ids and the values that show it
+test('names a calculation irregularity with its rule and values', async ({ page }) => {
+  const problems = await openApp(page);
+  const text = officialText('kosit/01.01a-INVOICE_ubl.xml').replace(
+    '<cbc:TaxInclusiveAmount currencyID="EUR">336.9</cbc:TaxInclusiveAmount>',
+    '<cbc:TaxInclusiveAmount currencyID="EUR">346.9</cbc:TaxInclusiveAmount>',
+  );
+  await upload(page, 'summe.xml', encode(text), 'application/xml');
+  await expect(page.getByTestId('headline')).toHaveText('E-Rechnung erkannt (XRechnung 3.0)');
+  await expect(page.getByTestId('verdict')).toHaveClass(/tone-warn/);
+  await expect(page.getByTestId('rules-summary')).toHaveText(
+    'Mögliche Auffälligkeit: BR-CO-15, BR-CO-16. Bitte prüfen Sie die Beträge.',
+  );
+  const rule = page.getByTestId('rule-BR-CO-15');
+  await expect(rule).toContainText('mögliche Auffälligkeit');
+  await expect(rule).toContainText('BT-112: 346,90 EUR');
+  expect(problems).toEqual([]);
+  expect(await sideEffects(page)).toEqual([]);
+});

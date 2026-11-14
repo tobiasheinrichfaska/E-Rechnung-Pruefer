@@ -78,6 +78,23 @@ export const TEXTS = {
   announceResult: 'Ergebnis: {headline}.',
   announceFailed: 'Die Prüfung ist abgebrochen.',
 
+  // Step 3a: calculation rules of EN 16931 (a selection)
+  rulesHeading: 'Rechnerische Prüfung (Auswahl von Regeln der EN 16931)',
+  rulesOk: 'Die geprüften Beträge passen zusammen.',
+  rulesAuffaellig: 'Mögliche Auffälligkeit: {ids}. Bitte prüfen Sie die Beträge.',
+  rulesHint: 'Mögliche Auffälligkeit bei den Beträgen: {ids} (siehe „Rechnerische Prüfung“).',
+  rulesHintIn:
+    'Mögliche Auffälligkeit bei den Beträgen im Anhang „{name}“: {ids} (siehe „Rechnerische Prüfung“).',
+  rulesShowAll: 'Alle geprüften Regeln anzeigen',
+  rulesShowOthers: 'Weitere geprüfte Regeln anzeigen',
+  ruleStatusPasst: 'passt',
+  ruleStatusAuffaellig: 'mögliche Auffälligkeit',
+  ruleStatusNichtPruefbar: 'nicht prüfbar',
+  ruleOccurrence: 'Kategorie {category}, {rate}',
+  ruleLineSum: 'Summe der Positionen (BT-131)',
+  ruleMissing: '– nicht angegeben',
+  ruleNoNumber: '– keine Zahl',
+
   pflichtHeading: 'Pflichtangaben nach § 14 Abs. 4 UStG',
   besondereHeading: 'Angaben in besonderen Fällen (§ 14 Abs. 5, § 14a, § 22c UStG)',
   // F21 (Tobias 2026-11-14)
