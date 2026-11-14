@@ -70,6 +70,7 @@ lokal bleibt und wie du dich mit der Cloud abstimmst.
   Quelle, einfachere Hinweise) und G-1 bis G-10 (Seitenlänge, technische Angaben, Druck-/Kopierknopf,
   Ablagefläche, Startansicht, Begriffe, zwei XML). Bis das in `main` ist, nichts davon lokal
   anfangen.
-- **Bestehende Regeln gelten weiter:** Commits ohne Rückfrage melden; Push und Upload nur nach
-  Tobias' OK; Steuerfragen entscheidet nur Tobias; keine Speicher- und keine Netzwerkzugriffe in der
+- **Regeln:** Commits ohne Rückfrage melden; umkehrbare GitHub-Aktionen (Push auf einen Zweig,
+  Pull Requests, Merge nach `main`) ohne Rückfrage, aber melden (Tobias 14.11.2026); der Upload
+  auf den Server nur nach Tobias' OK; Steuerfragen entscheidet nur Tobias; keine Speicher- und keine Netzwerkzugriffe in der
   App; FeRD-Muster nie ins öffentliche Repo.

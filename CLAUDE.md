@@ -31,10 +31,14 @@ selected set of amounts adds up. Results are **hints, never an approval**.
 BR-DE rules as errors (B2B needs no XRechnung), no PDF/A check, no tax judgement of content, no
 online VAT-ID lookup.
 
-**Workflow (Tobias 2026-11-13):** commit without asking and report the commits; **push and upload
-only after his explicit OK**. GitHub: https://github.com/tobiasheinrichfaska/E-Rechnung-Pruefer
+**Workflow (Tobias 2026-11-13, changed 2026-11-14):** commit without asking and report the
+commits. **Reversible GitHub actions without asking** (Tobias 2026-11-14: "reversibel GitHub
+Aktionen kannst du ohne mich ausführen"): push to the working branch, open and update pull
+requests, merge into `main` (a merge can be reverted) — report what was done. Not reversible, so
+still only after his explicit OK: the **upload** to the server, force-pushes or deleting branches
+and anything outside GitHub. GitHub: https://github.com/tobiasheinrichfaska/E-Rechnung-Pruefer
 (public, created 2026-11-14 on his request; Claude Code on the web works from his GitHub account —
-keep `main` pushed after his OK so web sessions see the current state).
+keep `main` current so web sessions see it).
 
 **Cloud / local split (Tobias 2026-11-14):** development, all tests and audits run in Claude Code on
 the web; locally only the upload (`npm run hochladen`), server headers, downloads behind forms and
