@@ -1,25 +1,34 @@
 # Handtests – E-Rechnung prüfen
 
-Hier stehen nur Tests, die ein Mensch am Bildschirm braucht: echte Rechnungen von Lieferanten, echte
-Geräte, Ziehen und Ablegen aus dem Mailprogramm. Alles andere prüfen die automatischen Tests
-(`npm test`, `npm run test:e2e`).
+Hier steht nur, was unsere automatischen Tests nicht sauber abdecken können: echte Rechnungen
+echter Lieferanten, echte Mailprogramme, echte Handys. Was eine Maschine prüfen kann, prüfen
+`npm test` und `npm run test:e2e` – das wird hier nicht wiederholt.
 
 ## Vorbereitung
 
 - Gehostet: die Adresse des Ordners `NebenprojektERechnung/` öffnen (aus der Kanzlei ohne Anmeldung,
   sonst mit Tester-Anmeldung „E-Rechnung - Test“).
 - Lokal: `npm run build`, dann `dist/index.html` mit einem Doppelklick öffnen.
-- Echte Rechnungen bleiben auf dem Rechner. Nie in das Repo legen, nie an Dritte senden.
+- Echte Rechnungen bleiben auf dem Rechner. Nie in das Repo legen, nie an Dritte senden. Notieren Sie
+  nur Lieferant, Programm, Ergebnis und Abweichung – keine Beträge oder Namen von Mandanten.
 
 ## Übersicht
 
-| Datei                                          | Tests         | Bereich                                                            |
-| ---------------------------------------------- | ------------- | ------------------------------------------------------------------ |
-| [`01_erkennen.md`](01_erkennen.md)             | MT-01 – MT-04 | Echte Rechnungen erkennen, Ziehen aus dem Mailprogramm             |
-| [`02_pflichtangaben.md`](02_pflichtangaben.md) | MT-05 – MT-07 | Pflichtangaben einer echten Rechnung, fehlende Angabe, Kleinbetrag |
+| Datei                                              | Tests         | Bereich                                                                |
+| -------------------------------------------------- | ------------- | ---------------------------------------------------------------------- |
+| [`01_echte_rechnungen.md`](01_echte_rechnungen.md) | MT-01         | Echte Rechnungen: Ergebnis, Werte und jedes „fehlt“ gegen das PDF-Bild |
+| [`02_geraete.md`](02_geraete.md)                   | MT-02 – MT-03 | Ziehen aus Mailprogramm und Explorer; echtes Handy oder Tablet         |
 
-**Automatisiert statt von Hand** (Playwright, `tests/e2e/*.spec.ts`, Chromium, Firefox, WebKit):
-XML-E-Rechnung, Hybrid-PDF, einfaches PDF, Profil MINIMUM, widersprüchliche Rechnungsdaten,
-geschütztes PDF, Ablegen per Ziehen, feste Hinweiszeile, CSP, Pflichtangaben vollständig / mit
-Lücken / Kleinbetrag, Positionen aufklappen – und bei jedem Test: keine Netzwerkanfrage, kein
-Speicher- oder Cookie-Zugriff, kein Konsolenfehler.
+## Automatisiert statt von Hand
+
+- **Playwright** (`tests/e2e/*.spec.ts`; Chromium, Firefox, WebKit auf `dist/index.html`):
+  - XML-E-Rechnung, Hybrid-PDF, einfaches PDF, Profil MINIMUM, widersprüchliche Rechnungsdaten,
+    geschütztes PDF, Ablegen einer Datei, feste Hinweiszeile, CSP.
+  - Pflichtangaben vollständig, mit Lücken und Hinweisen, Kleinbetrag; Positionen aufklappen.
+  - Handybreite (375 px): nichts verschiebt sich seitlich, die Werte stehen unter Bezeichnung und
+    Marke.
+  - Bei jedem Test: keine Netzwerkanfrage, kein Speicher- oder Cookie-Zugriff, kein Konsolenfehler.
+- **Vitest** (`npm test`): alle Regeln der Pflichtangaben einschließlich Kleinunternehmer,
+  Gutschrift, Leistungszeitpunkt und Anschrift (`src/logic/check.test.ts`); Erkennung und Lesen der
+  Musterdateien von KoSIT und CEN; 21 Rechnungen jeweils als UBL und CII im Gegencheck; die 61
+  FeRD-Musterrechnungen (nur lokal, nicht im Repo).

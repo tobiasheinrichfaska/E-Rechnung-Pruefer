@@ -1,0 +1,42 @@
+import { expect, test } from '@playwright/test';
+import { official } from '../support/fixtures';
+import { openApp, sideEffects, upload } from './helpers';
+
+// Phone width (small iPhone). app.css stacks each Pflichtangabe below 640px: label and status on
+// the first line, the values below across the full width – and nothing may scroll sideways.
+test.use({ viewport: { width: 375, height: 800 } });
+
+test('fits a phone screen: no sideways scrolling, values below label and status', async ({
+  page,
+}) => {
+  const problems = await openApp(page);
+  await upload(
+    page,
+    'luecken.xml',
+    official('kosit/paare/01.14a-INVOICE_ubl.xml'),
+    'application/xml',
+  );
+  await expect(page.getByTestId('pflicht-summary')).toBeVisible();
+
+  const sideways = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(sideways).toBeLessThanOrEqual(0);
+
+  const cells = page.getByTestId('pflicht-name-leistender').locator('td');
+  const box = async (i: number) => {
+    const found = await cells.nth(i).boundingBox();
+    if (!found) throw new Error(`cell ${i} has no box`);
+    return found;
+  };
+  const label = await box(0);
+  const values = await box(1);
+  const status = await box(2);
+  expect(Math.abs(status.y - label.y)).toBeLessThan(2);
+  expect(status.x).toBeGreaterThan(label.x + label.width - 1);
+  expect(values.y).toBeGreaterThanOrEqual(label.y + label.height - 1);
+  expect(values.width).toBeGreaterThan(label.width);
+
+  expect(problems).toEqual([]);
+  expect(await sideEffects(page)).toEqual([]);
+});
