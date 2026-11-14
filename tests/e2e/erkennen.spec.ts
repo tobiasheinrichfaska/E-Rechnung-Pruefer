@@ -280,8 +280,8 @@ test('names a calculation irregularity with its rule and values', async ({ page 
   expect(await sideEffects(page)).toEqual([]);
 });
 
-// FeRD EXTENDED has its own forms of the calculation rules (BR-FXEXT-…): only BR-CO-14, with a note
-test('says that only BR-CO-14 is checked for EXTENDED', async ({ page }) => {
+// F29: Factur-X EXTENDED is checked by the FeRD rules (BR-FXEXT-…) and BR-CO-14, with a note
+test('checks Factur-X EXTENDED by the calculation rules of FeRD', async ({ page }) => {
   const problems = await openApp(page);
   const extended = withSpecId(
     CII,
@@ -290,11 +290,14 @@ test('says that only BR-CO-14 is checked for EXTENDED', async ({ page }) => {
   await upload(page, 'extended.xml', encode(extended), 'application/xml');
   await expect(page.getByTestId('headline')).toHaveText(/Profil EXTENDED/);
   await expect(page.getByTestId('rules-note')).toHaveText(
-    'Für das Profil EXTENDED gelten eigene Rechenregeln von FeRD. Diese werden hier nicht geprüft, nur die Regel BR-CO-14.',
+    'Für das Profil EXTENDED gelten die Rechenregeln von FeRD (Factur-X 1.09.2): Logistikkosten zählen als Zuschläge, Gruppen- und Infozeilen zählen nicht mit, kleine Abweichungen je Betrag sind erlaubt.',
   );
   await page.locator('.rules-all summary').click();
-  await expect(page.locator('.rules-all .rule')).toHaveCount(1);
+  await expect(page.getByTestId('rule-BR-FXEXT-CO-10')).toBeVisible();
   await expect(page.getByTestId('rule-BR-CO-14')).toBeVisible();
+  await expect(
+    page.locator('[data-testid^="rule-BR-CO-1"]:not([data-testid="rule-BR-CO-14"])'),
+  ).toHaveCount(0);
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);
 });
