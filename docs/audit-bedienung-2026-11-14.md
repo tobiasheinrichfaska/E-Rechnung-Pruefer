@@ -122,6 +122,17 @@ blockiertem Hauptthread „eingereiht“). Das Ergebnis bleibt richtig; kein Han
 
 ## 4. Gestaltungsfragen für Tobias (keine Steuerfragen)
 
+**Entschieden im Dialog vom 14.11.2026 (Umsetzung in 0.3.0):** G-1 zuklappen + Sprungverweise aus der
+Ergebnisbox; G-2 technische Angaben zuklappen, Rechnungsdaten zuerst (Schema-Zeile sichtbar bei
+Formatfehler); G-3 „– mit Hinweisen“ in Überschrift und Ansage bei Gelb; G-4 Knöpfe „Ergebnis
+drucken“ und „Ergebnis als Text kopieren“; G-5 Ablagefläche nach einem Ergebnis einzeilig („Andere
+Datei prüfen“), am Handy Titel „Rechnung auswählen“; G-6 alle vier Punkte (drei Stichpunkte, Hinweis
+unter die Ergebnisbox, „Maßgeblich … XML“ nur bei PDF, „Technische Erstprüfung“ erklären); G-7
+„Lieferant“/„Rechnungsempfänger“ in den Werten, Überschrift „Rechnungsdaten nach ZUGFeRD 1.0: keine
+E-Rechnung im Sinne des UStG“; G-8 siehe F27 in `offene-fragen.md`; G-9 erledigt durch G-2 und G-8;
+G-10 deutscher Satz zuerst, technische Meldung zuletzt. Die Steuerfragen F22–F25 und die Folgefragen
+F26–F29 stehen in `offene-fragen.md`.
+
 | Nr.  | Frage                                                                                                                                                                                                                                                                    | Aus              |
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- |
 | G-1  | Einzelfall-Zeilen ohne Wert („– nicht in der XML“, 7 von 11 in Beispiel 01) zuklappen? Das kürzt die Seite um etwa ein Fünftel (Handy: ein Viertel), berührt aber den F21-Satz „… ob ein Fall „nur im Einzelfall nötig“ zutrifft“. Dazu Sprunglinks aus der Ergebnisbox. | E-03, V-08, A-06 |
