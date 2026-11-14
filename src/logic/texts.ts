@@ -80,6 +80,9 @@ export const TEXTS = {
   formatError: FORMAT_ERROR,
 
   // F26: § 27 Abs. 38 UStG by the date of supply and invoice (src/logic/uebergang.ts)
+  // F30: supply before 2025, whatever the invoice date (§ 27 Abs. 1 Satz 1 UStG)
+  regimeBefore2025:
+    'Für Leistungen vor 2025 ist keine E-Rechnung nötig, auch wenn die Rechnung später ausgestellt wird (BMF-Schreiben vom 15.10.2024, Rn. 50).',
   regimeAllowed:
     'Für diese Rechnung ist eine sonstige Rechnung noch zulässig (§ 27 Abs. 38 Nr. 1 UStG).',
   regimeTurnover:

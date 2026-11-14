@@ -226,6 +226,8 @@ function transitionFor(invoices: readonly InvoiceVerdict[]): Transition {
  */
 function transitionLines(transition: Transition, mendFile: boolean): string[] {
   switch (transition.regime) {
+    case 'vor2025':
+      return [TEXTS.regimeBefore2025];
     case 'zulaessig':
       return [TEXTS.regimeAllowed];
     case 'nur800k':

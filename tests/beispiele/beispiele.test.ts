@@ -166,6 +166,7 @@ describe('coverage: every text of the tool appears in a sample', () => {
   it('every sentence of the transition rules (§ 27 Abs. 38 UStG)', () => {
     const seen = new Set(checked.flatMap((c) => c.verdict.explanation));
     const sentences = [
+      TEXTS.regimeBefore2025,
       TEXTS.regimeAllowed,
       TEXTS.regimeTurnover,
       TEXTS.regimeRequired,

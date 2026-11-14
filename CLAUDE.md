@@ -231,7 +231,8 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
   the amount |BT-112|), F17 (ZUGFeRD 2.0 BASIC/EXTENDED = e-invoice with a hint: 2.0 and 2.0.1
   cannot be told apart), F18 (VAT shown excludes the Kleinunternehmer list, hint § 14c), F19 (no
   Pflichtangaben and no "Maßgeblich ist die XML" for "keine E-Rechnung"), F20 (negated reductions
-  do not count), F21 (summary sentence).
+  do not count), F21 (summary sentence), F22–F29 (0.3.0), F30 (supply before 2025: no E-Rechnung
+  needed, also when invoiced later).
 - **Text detection** (notes, exemption reasons, payment terms) uses German keywords as data
   (`pflichtangaben.ts`, e.g. `REDUCTION_WORDS` for § 14 Abs. 4 Nr. 7, F8); other
   languages or unusual wording are not recognised. A row found by its wording shows the matching
@@ -287,9 +288,11 @@ date of supply and invoice, `uebergang.ts`), F27 (different invoice XML = format
 comparison table), F28 (Factur-X profile schemas), F29 (FeRD rules for EXTENDED,
 `rulesExtended.ts`), G-1 … G-10 (folded rows, jump links, technical details closed, print and
 copy buttons, compact drop zone, start view, wording). Samples 31–35. ZUGFeRD 1.0 backed by the
-FeRD specification and its 12 samples (private repo `zugferd-1.0/`, `zugferd1Lokal.test.ts`). Open:
-F30 (supply before 2025). PR #3 merged (`c78be21`), private repo PR #1 (`zugferd-1.0/`) merged.
-Next: Tobias uploads app and samples (local, `npm run hochladen`).
+FeRD specification and its 12 samples (private repo `zugferd-1.0/`, `zugferd1Lokal.test.ts`). PR #3
+merged (`c78be21`), private repo PR #1 (`zugferd-1.0/`) merged. **0.3.1:** F30 decided by Tobias
+(supply before 2025: no E-Rechnung needed, whatever the invoice date — § 27 Abs. 1 Satz 1 UStG,
+BMF 15.10.2024 Rn. 50; regime `vor2025`, `TEXTS.regimeBefore2025`). No open question left. Next:
+Tobias uploads app and samples (local, `npm run hochladen`).
 
 **2026-11-14 — quality audit of the handling (Tobias: "Qualitätsaudit, insbesondere für die
 Handhabung des Nutzers"):** PR #1 merged into `main` (`06e96a0`, 0.2.0); the tag `v0.2.0` could not
