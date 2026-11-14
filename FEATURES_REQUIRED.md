@@ -20,7 +20,7 @@
 
 ## Schema und Plausibilität (Phasen 2, 3)
 
-- [x] **Schemafehler** — „Formatfehler, gem. Rn. 6a ggf. keine E-Rechnung“ mit Fundstelle (Zeile und technische Meldung; EXTENDED noch nicht geprüft)
+- [x] **Schemafehler** — „Formatfehler, gem. Rn. 6a ggf. keine E-Rechnung“ mit Fundstelle (Zeile und technische Meldung; EXTENDED gegen das FeRD-Schema)
 - [x] **Rechenfehler** — „mögliche Auffälligkeit: …“ mit Regel-ID und belegenden Werten
 
 ## Rahmen

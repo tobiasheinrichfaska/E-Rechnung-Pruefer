@@ -14,4 +14,6 @@ export const SCHEMA_ENTRIES = {
   ublInvoice: 'ubl-2.1/maindoc/UBL-Invoice-2.1.xsd',
   ublCreditNote: 'ubl-2.1/maindoc/UBL-CreditNote-2.1.xsd',
   ciiD16B: 'cii-d16b/CrossIndustryInvoice_100pD16B.xsd',
+  // Step 2a: FeRD ZUGFeRD 2.5.2 / Factur-X 1.09.2, profile EXTENDED (Apache-2.0)
+  facturxExtended: 'factur-x-1.09.2-extended/Factur-X_1.09.2_EXTENDED.xsd',
 } as const;

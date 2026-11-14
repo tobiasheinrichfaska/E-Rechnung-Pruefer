@@ -65,7 +65,7 @@ export const TEXTS = {
     'Der Anhang „{name}“ weicht vom offiziellen Schema {schema} ab (technische Meldungen: {count}).',
   schemaMore: 'Weitere technische Meldungen: {count} (siehe unten).',
   schemaOwnProfile:
-    'Für das Profil EXTENDED gilt ein eigenes Schema von FeRD, das das Tool noch nicht enthält.',
+    'Für ZUGFeRD 2.0 im Profil EXTENDED gilt ein eigenes Schema von FeRD, das das Tool nicht enthält.',
   schemaNone: 'keine Abweichung vom Schema {schema}',
   schemaDetail: 'Abweichungen vom Schema {schema}: {count}',
   schemaNotChecked: 'nicht geprüft – {reason}',

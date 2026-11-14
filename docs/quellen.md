@@ -21,6 +21,22 @@ darf – mit seinem Lizenzhinweis. Keine inoffiziellen Kopien.
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
 | FeRD ZUGFeRD 2.5.2 / Factur-X 1.09.2 Infopaket `ZUGFeRD_2.5.2_DE.zip` (348 Dateien: Spezifikation, technischer Anhang je Profil, XSD und XSLT je Profil, CII D22B, 61 Musterrechnungen als Factur-X-PDF mit XML, Codelisten) | https://www.ferd-net.de/publikationen-produkte/publikationen/detailseite/zugferd-252-deutsch (Formular mit Name, E-Mail, Zustimmung) | 04.08.2026, gültig ab 01.09.2026; geladen von Tobias, verarbeitet 13.11.2026 | XSD und Schematron: Apache-2.0 („Für die Nutzung der Technischen Artefakte (Schemata und Schematron) des ZUGFeRD-Standards gelten die Apache 2.0 Lizenzbedingungen“, https://www.ferd-net.de/ueber-uns/ressourcen-1/veroeffentlichungen/haftungsausschluss-und-nutzungsrechte). Musterrechnungen: allgemeiner Urheberrechtsvorbehalt der AWV → **nur lokal** | ZIP: `import-archiv/2026-11-13_23-20-12/`; entpackt: `.tmp/quellen/ferd/x/`; Musterrechnungen: `tests/fixtures/lokal/ferd/` (alle gitignoriert) | `4d35c28b486de495b9db58581b1e5b5e38eeaf83b409e813bd8fe1ace7f7d72e` |
 
+### Schema EXTENDED aus dem FeRD-Paket (Schritt 2a, 14.11.2026)
+
+Von Tobias in die Sitzung hochgeladen: `Factur-X_1.09.2_MINIMUM.zip` (Teil des FeRD-Pakets oben; enthält die
+Schema-Ordner aller Profile 0–4 und `5. CII D22B XSD`), SHA-256
+`8ff977d9d6a1ff273956c9ee548122ae848789a6ff32d5543a03f852b7929a1f`. Übernommen sind nur die vier XSD
+des Ordners `4_Factur-X_1.09.2_EXTENDED/`, unverändert, nach `schemas/factur-x-1.09.2-extended/`
+(Apache-2.0, Lizenztext daneben). Die übrigen Profile prüft das Tool wie der KoSIT-Validator gegen CII
+D16B.
+
+| Datei                                                  | SHA-256                                                            |
+| ------------------------------------------------------ | ------------------------------------------------------------------ |
+| `Factur-X_1.09.2_EXTENDED.xsd`                         | `2accff44dbdc405f38fd35d789ff5e6262396940356ed362009509cd024556c6` |
+| `…_QualifiedDataType_100.xsd`                          | `ece13000d4f99c97ef09b909e9f8646d45415c46fd24d19d3c9b771c72ae2b34` |
+| `…_ReusableAggregateBusinessInformationEntity_100.xsd` | `83cef3c48a6c83149733ffdced362e230e9ae482f62acdfb8c0fb3a919452fdb` |
+| `…_UnqualifiedDataType_100.xsd`                        | `c6c9f7b3f36c821999f20d7b7fff30db64112bc7b2a8f132e3d048d859855d00` |
+
 ## Recht und Verwaltung (Recherche 13.11.2026)
 
 | Quelle                                                                                           | Fundstelle                                                                                                              | Verwendet für     |

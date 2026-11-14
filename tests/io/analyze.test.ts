@@ -363,14 +363,32 @@ describe('schema check (step 2b)', () => {
     }
   });
 
-  it('leaves out EXTENDED (FeRD schema of its own) instead of risking a false error', async () => {
-    const extended = withSpecId(
-      CII,
-      'urn:cen.eu:en16931:2017#conformant#urn:factur-x.eu:1p0:extended',
-    );
-    const { analysis, verdict } = await check('r.xml', encode(extended));
-    expect(analysis.invoices[0]?.schema).toMatchObject({ checked: false, count: 0 });
+  // Step 2a: Factur-X EXTENDED against its own FeRD schema; ZUGFeRD 2.0 EXTENDED has none here
+  it('checks Factur-X EXTENDED against the FeRD EXTENDED schema', async () => {
+    const id = 'urn:cen.eu:en16931:2017#conformant#urn:factur-x.eu:1p0:extended';
+    const { analysis, verdict } = await check('r.xml', encode(withSpecId(CII, id)));
+    expect(analysis.invoices[0]?.schema).toMatchObject({
+      schema: 'Factur-X 1.09.2 EXTENDED (FeRD)',
+      checked: true,
+      count: 0,
+    });
     expect(verdict.headline).toBe('E-Rechnung erkannt (ZUGFeRD/Factur-X, Profil EXTENDED)');
+
+    const broken = withSpecId(CII, id).replace(
+      '<rsm:ExchangedDocument>',
+      '<rsm:ExchangedDocument>\n<ram:Unbekannt>x</ram:Unbekannt>',
+    );
+    const bad = await check('r.xml', encode(broken));
+    expect(bad.analysis.invoices[0]?.schema?.count).toBeGreaterThan(0);
+    expect(bad.verdict.headline).toBe(
+      'Rechnungsdaten mit Formatfehler (ZUGFeRD/Factur-X, Profil EXTENDED)',
+    );
+  });
+
+  it('leaves out ZUGFeRD 2.0 EXTENDED, whose schema the tool does not have', async () => {
+    const id = 'urn:cen.eu:en16931:2017#conformant#urn:zugferd.de:2p0:extended';
+    const { analysis } = await check('r.xml', encode(withSpecId(CII, id)));
+    expect(analysis.invoices[0]?.schema).toMatchObject({ checked: false, count: 0 });
   });
 
   it('does not judge the schema of "keine E-Rechnung" (F19)', async () => {

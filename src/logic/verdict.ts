@@ -92,7 +92,9 @@ function schemaFailed(invoice: InvoiceVerdict): boolean {
 /** The rules of one invoice XML; for EXTENDED without the sums over the lines (B-02b). */
 export function rulesOf(invoice: InvoiceVerdict): RulesResult | undefined {
   const model = pflichtModel(invoice);
-  return model ? checkRules(model, { lineSums: !invoice.profile.entry?.ownSchema }) : undefined;
+  return model
+    ? checkRules(model, { lineSums: !invoice.profile.entry?.hierarchicalLines })
+    : undefined;
 }
 
 function rulesFailed(invoice: InvoiceVerdict): string[] {

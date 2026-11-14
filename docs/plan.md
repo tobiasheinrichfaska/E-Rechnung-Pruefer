@@ -52,7 +52,7 @@ Ergebnis sind **Hinweise, keine Freigabe**.
 | 1a      | Einlesen + Erkennen (PDF/XML, Anhänge am Inhalt, Syntax, Profil, Ergebnisarten, mehrere XML)       | erledigt                                                                                                 |
 | 1b      | Normalisieren (Zuordnung als Daten, BT-Modell, Positionen)                                         | erledigt                                                                                                 |
 | 1c      | Pflichtangaben-Ansicht (§ 14 Abs. 4 in Reihenfolge, Status, Gesamtsatz, fester Hinweis)            | erledigt (F7, F10–F21 entschieden, F16–F21 am 14.11.2026)                                                |
-| 2a      | XSDs übernehmen (nur weitergebbare), Profil → XSD                                                  | UBL 2.1 + CII D16B übernommen; FeRD-EXTENDED-Schema offen (EXTENDED bis dahin nicht geprüft)             |
+| 2a      | XSDs übernehmen (nur weitergebbare), Profil → XSD                                                  | erledigt 14.11.2026: UBL 2.1 + CII D16B (KoSIT), Factur-X 1.09.2 EXTENDED (FeRD, Apache-2.0)             |
 | 2b      | Schema-Prüfung + Anzeige                                                                           | erledigt 14.11.2026 (Beispiel 29)                                                                        |
 | 3a      | Plausibilitätsregeln (BR-CO-10, -13, -14, -15, -16, -17, Aufschlüsselung je Satz, Befreiungsgrund) | erledigt 14.11.2026 (BR-CO-10–17, je Kategorie/Satz; Befreiungsgrund in den Pflichtangaben; Beispiel 30) |
 

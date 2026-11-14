@@ -22,10 +22,13 @@ export interface ProfileEntry {
   /** A sentence added to the explanation of the result */
   hint?: string;
   /**
-   * The profile has a schema of its own that the tool does not bundle yet (FeRD EXTENDED may go
-   * beyond CII D16B): the schema check is left out instead of risking a false "Formatfehler".
+   * The profile's own schema instead of the one of its syntax (FeRD EXTENDED goes beyond CII D16B).
+   * `entry` is a key of SCHEMA_ENTRIES (src/io/schemas.ts); without one the profile needs a schema
+   * the tool does not have, and the check is left out instead of risking a false "Formatfehler".
    */
-  ownSchema?: boolean;
+  ownSchema?: { entry?: 'facturxExtended'; label: string };
+  /** Lines may form a hierarchy with group subtotals (EXTENDED, audit B-02b): no sums over lines */
+  hierarchicalLines?: boolean;
   source: string;
   checked: boolean;
 }
@@ -90,7 +93,9 @@ export const PROFILES: readonly ProfileEntry[] = [
     hint: TEXTS.zugferd20Hint,
     source:
       'FeRD ZUGFeRD 2.0 und 2.0.1 Musterrechnungen; ZUGFeRD 2.5.2 / Factur-X 1.09.2, Codeliste 1 (F17)',
-    ownSchema: true,
+    // the EXTENDED schema of ZUGFeRD 2.0 is not bundled; 2.5.2 is not checked against older files
+    ownSchema: { label: 'ZUGFeRD 2.0 EXTENDED (FeRD)' },
+    hierarchicalLines: true,
     checked: false,
   },
   {
@@ -118,7 +123,9 @@ export const PROFILES: readonly ProfileEntry[] = [
     profile: 'EXTENDED',
     einordnung: 'eRechnung',
     source: 'FeRD ZUGFeRD 2.5.2 Musterrechnungen (Infopaket vom 04.08.2026)',
-    ownSchema: true,
+    // Step 2a: the EXTENDED schema of Factur-X 1.09.2 / ZUGFeRD 2.5.2 (FeRD, Apache-2.0)
+    ownSchema: { entry: 'facturxExtended', label: 'Factur-X 1.09.2 EXTENDED (FeRD)' },
+    hierarchicalLines: true,
     checked: true,
   },
   {

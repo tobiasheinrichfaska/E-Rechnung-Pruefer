@@ -27,8 +27,9 @@ export const MAX_SCHEMA_PROBLEMS = 20;
 
 /**
  * Step 2b: the invoice XML against the official schema of its syntax — the same XSD the KoSIT
- * validator uses. A profile with a schema of its own (FeRD EXTENDED) is left out until that schema
- * is bundled, so a valid file never gets a false "Formatfehler".
+ * validator uses — or against the profile's own schema (step 2a: Factur-X EXTENDED). A profile
+ * whose own schema the tool lacks (ZUGFeRD 2.0 EXTENDED) is left out, so a valid file never gets a
+ * false "Formatfehler".
  */
 function schemaCheck(
   doc: XmlDocument,
@@ -36,11 +37,12 @@ function schemaCheck(
   specId: string | undefined,
 ): SchemaResult | undefined {
   if (!syntax.schema) return undefined;
-  const schema = syntax.schema.label;
-  if (profileOf(specId).entry?.ownSchema) {
+  const own = profileOf(specId).entry?.ownSchema;
+  const schema = own?.label ?? syntax.schema.label;
+  if (own && !own.entry) {
     return { schema, checked: false, reason: TEXTS.schemaOwnProfile, problems: [], count: 0 };
   }
-  const validator = xsdValidator(SCHEMA_ENTRIES[syntax.schema.entry], SCHEMA_FILES);
+  const validator = xsdValidator(SCHEMA_ENTRIES[own?.entry ?? syntax.schema.entry], SCHEMA_FILES);
   const problems = schemaProblems(doc, validator);
   return {
     schema,
