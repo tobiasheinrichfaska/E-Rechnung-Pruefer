@@ -4,4 +4,4 @@
 declare const __APP_VERSION__: string;
 
 /** pdf.js worker code, run in the main thread ("fake worker") — file:// forbids blob: workers. */
-declare module 'pdfjs-dist/build/pdf.worker.min.mjs';
+declare module 'pdfjs-dist/legacy/build/pdf.worker.mjs';

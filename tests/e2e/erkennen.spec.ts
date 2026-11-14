@@ -93,6 +93,49 @@ test('names MINIMUM, contradicting invoice data and a protected PDF', async ({ p
   expect(await sideEffects(page)).toEqual([]);
 });
 
+// Older browsers (e.g. Chrome/Edge 109 on Windows 7/8.1, Safari 16.4–18.3 on older Macs and
+// iPhones) lack these JS features; the modern pdf.js build failed on every PDF there (audit
+// 2026-11-14, S-01). The app ships the legacy build plus Promise.withResolvers.
+const NEWER_JS = [
+  'globalThis.Iterator',
+  'Promise.try',
+  'Promise.withResolvers',
+  'Uint8Array.prototype.toHex',
+  'Uint8Array.prototype.toBase64',
+  'Uint8Array.fromBase64',
+  'Uint8Array.fromHex',
+  'Math.sumPrecise',
+  'Map.prototype.getOrInsert',
+  'Map.prototype.getOrInsertComputed',
+  'globalThis.Float16Array',
+  'Set.prototype.union',
+  'Set.prototype.intersection',
+  'Set.prototype.difference',
+  'Object.groupBy',
+  'Map.groupBy',
+  'URL.parse',
+  'URL.canParse',
+  'ArrayBuffer.prototype.transfer',
+  'Array.fromAsync',
+];
+
+test('reads a hybrid PDF in a browser without the newest JS features', async ({ page }) => {
+  await page.addInitScript({
+    content: NEWER_JS.map((path) => `try { delete ${path}; } catch {}`).join('\n'),
+  });
+  const problems = await openApp(page);
+  expect(
+    await page.evaluate(() => typeof (Promise as unknown as Record<string, unknown>)['try']),
+  ).toBe('undefined');
+  const hybrid = miniPdf({
+    attachments: [{ name: 'factur-x.xml', bytes: encode(CII), mime: 'text/xml' }],
+  });
+  await upload(page, 'alt.pdf', hybrid, 'application/pdf');
+  await expect(page.getByTestId('headline')).toHaveText(/^E-Rechnung erkannt \(EN 16931/);
+  expect(problems).toEqual([]);
+  expect(await sideEffects(page)).toEqual([]);
+});
+
 test('takes a dropped file', async ({ page }) => {
   const problems = await openApp(page);
   const bytes = [...official('kosit/01.01a-INVOICE_ubl.xml')];
