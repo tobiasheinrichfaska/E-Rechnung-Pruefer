@@ -61,6 +61,11 @@ test('fits a small phone with a long file name', async ({ page }) => {
 
   // The badge "nur im Einzelfall nötig" wraps instead of taking ~150 px: the label kept only 98 px
   // and broke inside words ("Vereinnahm/ung", audit Bedienung Z-01/A-05)
+  // the folded rows "nur im Einzelfall nötig" (G-1) are the ones that broke inside words: open them
+  await page.evaluate(() => {
+    for (const details of document.querySelectorAll('details')) details.open = true;
+  });
+  expect(await page.locator('.pflicht-table tbody th').count()).toBeGreaterThan(20);
   const narrowest = await page
     .locator('.pflicht-table tbody th')
     .evaluateAll((cells) => Math.min(...cells.map((cell) => cell.getBoundingClientRect().width)));

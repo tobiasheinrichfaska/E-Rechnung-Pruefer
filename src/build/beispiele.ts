@@ -182,10 +182,10 @@ export const BEISPIELE: readonly Beispiel[] = [
       'Abonnement mit Leistungszeitraum, die Position „Porto + Versandkosten“ ohne eigenen Zeitraum: Hinweis zur Nebenleistung.',
     quelle: { art: 'kosit', xml: { basis: 'paare/01.01a-INVOICE_ubl.xml' } },
     erwartet: {
-      ton: 'ok',
-      ueberschrift: 'E-Rechnung erkannt (XRechnung 3.0)',
+      ton: 'warn',
+      ueberschrift: 'E-Rechnung erkannt (XRechnung 3.0) – mit Hinweisen',
       pflicht:
-        'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
+        'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft. Bitte beachten Sie den Hinweis unten.',
     },
   },
   {
@@ -207,8 +207,8 @@ export const BEISPIELE: readonly Beispiel[] = [
       },
     },
     erwartet: {
-      ton: 'ok',
-      ueberschrift: 'E-Rechnung erkannt (XRechnung 3.0)',
+      ton: 'warn',
+      ueberschrift: 'E-Rechnung erkannt (XRechnung 3.0) – mit Hinweisen',
       pflicht: 'Es fehlt: Zeitpunkt der Lieferung oder Leistung (Kalendermonat genügt).',
     },
   },
@@ -218,8 +218,8 @@ export const BEISPIELE: readonly Beispiel[] = [
       'Anschriften ohne Straße (Hinweis) und ein Fiskalvertreter ohne vollständige Angaben (fehlt).',
     quelle: { art: 'kosit', xml: { basis: 'paare/01.14a-INVOICE_ubl.xml' } },
     erwartet: {
-      ton: 'ok',
-      ueberschrift: 'E-Rechnung erkannt (XRechnung 3.0)',
+      ton: 'warn',
+      ueberschrift: 'E-Rechnung erkannt (XRechnung 3.0) – mit Hinweisen',
       pflicht:
         'Es fehlt: Fiskalvertreter: Name, Anschrift und USt-IdNr. (nur Ort; Postleitzahl oder Straße/Postfach).',
     },
@@ -258,10 +258,10 @@ export const BEISPIELE: readonly Beispiel[] = [
       },
     },
     erwartet: {
-      ton: 'ok',
-      ueberschrift: 'E-Rechnung erkannt (XRechnung 3.0)',
+      ton: 'warn',
+      ueberschrift: 'E-Rechnung erkannt (XRechnung 3.0) – mit Hinweisen',
       pflicht:
-        'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
+        'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft. Bitte beachten Sie den Hinweis unten.',
     },
   },
   {
@@ -313,7 +313,7 @@ export const BEISPIELE: readonly Beispiel[] = [
     },
     erwartet: {
       ton: 'bad',
-      ueberschrift: 'Rechnungsdaten im Profil ZUGFeRD 1.0: keine E-Rechnung im Sinne des UStG',
+      ueberschrift: 'Rechnungsdaten nach ZUGFeRD 1.0: keine E-Rechnung im Sinne des UStG',
     },
   },
   {
@@ -450,8 +450,8 @@ export const BEISPIELE: readonly Beispiel[] = [
       ],
     },
     erwartet: {
-      ton: 'warn',
-      ueberschrift: 'Mögliche Auffälligkeit: widersprüchliche Rechnungsdaten im PDF',
+      ton: 'bad',
+      ueberschrift: 'Rechnungsdaten mit Formatfehler: mehrere Rechnungs-XML im PDF',
       pflicht:
         'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
     },
@@ -469,7 +469,7 @@ export const BEISPIELE: readonly Beispiel[] = [
     },
     erwartet: {
       ton: 'warn',
-      ueberschrift: 'E-Rechnung erkannt (EN 16931)',
+      ueberschrift: 'E-Rechnung erkannt (EN 16931) – mit Hinweisen',
       pflicht:
         'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
     },
@@ -531,16 +531,16 @@ export const BEISPIELE: readonly Beispiel[] = [
       },
     },
     erwartet: {
-      ton: 'ok',
-      ueberschrift: 'E-Rechnung erkannt (XRechnung 3.0)',
+      ton: 'warn',
+      ueberschrift: 'E-Rechnung erkannt (XRechnung 3.0) – mit Hinweisen',
       pflicht:
-        'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
+        'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft. Bitte beachten Sie die 2 Hinweise unten.',
     },
   },
   {
     datei: '29_XRechnung_mit_Formatfehler.xml',
     zeigt:
-      'Eine XRechnung, die nicht zum offiziellen Schema passt: ein Betrag mit Komma statt Punkt („336,90“). Formatfehler, gem. Rn. 6a ggf. keine E-Rechnung.',
+      'Eine XRechnung, die nicht zum offiziellen Schema passt: ein Betrag mit Komma statt Punkt („336,90“). Formatfehler – möglicherweise keine E-Rechnung (F24).',
     quelle: {
       art: 'kosit',
       xml: {
@@ -559,7 +559,7 @@ export const BEISPIELE: readonly Beispiel[] = [
       ton: 'bad',
       ueberschrift: 'Rechnungsdaten mit Formatfehler (XRechnung 3.0)',
       pflicht:
-        'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
+        'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft. Bitte beachten Sie den Hinweis unten.',
     },
   },
   {
@@ -581,7 +581,140 @@ export const BEISPIELE: readonly Beispiel[] = [
     },
     erwartet: {
       ton: 'warn',
-      ueberschrift: 'E-Rechnung erkannt (XRechnung 3.0)',
+      ueberschrift: 'E-Rechnung erkannt (XRechnung 3.0) – mit Hinweisen',
+      pflicht:
+        'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft. Bitte beachten Sie den Hinweis unten.',
+    },
+  },
+  {
+    datei: '31_MINIMUM_als_XML.xml',
+    zeigt:
+      'Rechnungsdaten im Profil MINIMUM als eigene XML-Datei: keine E-Rechnung; dazu der Satz zum Leistungsdatum oder der allgemeine Satz (F26).',
+    quelle: {
+      art: 'kosit',
+      xml: {
+        basis: CII_CLEAN,
+        aenderungen: [ciiSpec('urn:factur-x.eu:1p0:minimum')],
+        geaendert: 'Kennung der Spezifikation (BT-24) auf das Profil MINIMUM',
+      },
+    },
+    erwartet: {
+      ton: 'bad',
+      ueberschrift: 'Rechnungsdaten im Profil MINIMUM: keine E-Rechnung im Sinne des UStG',
+    },
+  },
+  {
+    datei: '32_ZUGFeRD_1.0.pdf',
+    zeigt:
+      'PDF mit Rechnungsdaten nach ZUGFeRD 1.0: keine E-Rechnung (G-7: eine Version, kein Profil).',
+    quelle: {
+      art: 'pdf',
+      seite: { basis: CII_CLEAN },
+      xml: [
+        {
+          name: 'ZUGFeRD-invoice.xml',
+          xml: {
+            basis: CII_CLEAN,
+            aenderungen: [ciiSpec('urn:ferd:CrossIndustryDocument:invoice:1p0:comfort')],
+            geaendert: 'Kennung der Spezifikation (BT-24) auf ZUGFeRD 1.0 COMFORT',
+          },
+        },
+      ],
+    },
+    erwartet: {
+      ton: 'bad',
+      ueberschrift: 'PDF mit Rechnungsdaten nach ZUGFeRD 1.0: keine E-Rechnung im Sinne des UStG',
+    },
+  },
+  {
+    datei: '33_MINIMUM_Leistung_2026.xml',
+    zeigt:
+      'Rechnungsdaten im Profil MINIMUM, Leistung im November 2026, Rechnung vom 30.11.2026: keine E-Rechnung, aber eine sonstige Rechnung ist noch zulässig (F26, § 27 Abs. 38 Nr. 1 UStG).',
+    quelle: {
+      art: 'kosit',
+      xml: {
+        basis: CII_CLEAN,
+        aenderungen: [
+          ciiSpec('urn:factur-x.eu:1p0:minimum'),
+          {
+            ersetze: '<udt:DateTimeString format="102">20150424</udt:DateTimeString>',
+            durch: '<udt:DateTimeString format="102">20261130</udt:DateTimeString>',
+            alle: true,
+          },
+          {
+            ersetze: '<udt:DateTimeString format="102">20150420</udt:DateTimeString>',
+            durch: '<udt:DateTimeString format="102">20261101</udt:DateTimeString>',
+          },
+        ],
+        geaendert:
+          'Kennung auf das Profil MINIMUM; Rechnungsdatum 30.11.2026, Leistungszeitraum 01.–30.11.2026',
+      },
+    },
+    erwartet: {
+      ton: 'bad',
+      ueberschrift: 'Rechnungsdaten im Profil MINIMUM: keine E-Rechnung im Sinne des UStG',
+    },
+  },
+  {
+    datei: '34_BASIC_WL_Leistung_2027.xml',
+    zeigt:
+      'Rechnungsdaten im Profil BASIC WL, Leistung im März 2027: zulässig nur bei einem Vorjahresumsatz des Lieferanten bis 800.000 Euro – mit der Frage, ob das geklärt ist (F26, § 27 Abs. 38 Nr. 2 UStG).',
+    quelle: {
+      art: 'kosit',
+      xml: {
+        basis: CII_CLEAN,
+        aenderungen: [
+          ciiSpec('urn:factur-x.eu:1p0:basicwl'),
+          {
+            ersetze: '<udt:DateTimeString format="102">20150424</udt:DateTimeString>',
+            durch: '<udt:DateTimeString format="102">20270331</udt:DateTimeString>',
+            alle: true,
+          },
+          {
+            ersetze: '<udt:DateTimeString format="102">20150420</udt:DateTimeString>',
+            durch: '<udt:DateTimeString format="102">20270301</udt:DateTimeString>',
+          },
+        ],
+        geaendert:
+          'Kennung auf das Profil BASIC WL; Rechnungsdatum 31.03.2027, Leistungszeitraum 01.–31.03.2027',
+      },
+    },
+    erwartet: {
+      ton: 'bad',
+      ueberschrift: 'Rechnungsdaten im Profil BASIC WL: keine E-Rechnung im Sinne des UStG',
+    },
+  },
+  {
+    datei: '35_Formatfehler_Leistung_2028.xml',
+    zeigt:
+      'Eine XRechnung mit Formatfehler (Betrag mit Komma), Leistung im Januar 2028: hier ist eine E-Rechnung nötig (F24, F26).',
+    quelle: {
+      art: 'kosit',
+      xml: {
+        basis: CII_CLEAN,
+        schemafehler: true,
+        aenderungen: [
+          {
+            ersetze: '<ram:DuePayableAmount>10555.3</ram:DuePayableAmount>',
+            durch: '<ram:DuePayableAmount>10555,30</ram:DuePayableAmount>',
+          },
+          {
+            ersetze: '<udt:DateTimeString format="102">20150424</udt:DateTimeString>',
+            durch: '<udt:DateTimeString format="102">20280131</udt:DateTimeString>',
+            alle: true,
+          },
+          {
+            ersetze: '<udt:DateTimeString format="102">20150420</udt:DateTimeString>',
+            durch: '<udt:DateTimeString format="102">20280101</udt:DateTimeString>',
+          },
+        ],
+        geaendert:
+          'Zahlbetrag mit Komma statt Punkt (Schemafehler); Rechnungsdatum 31.01.2028, Leistungszeitraum 01.–31.01.2028',
+      },
+    },
+    erwartet: {
+      ton: 'bad',
+      ueberschrift: 'Rechnungsdaten mit Formatfehler (XRechnung 3.0)',
       pflicht:
         'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
     },

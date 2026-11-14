@@ -4,6 +4,7 @@
 import type { XmlDocument } from 'libxml2-wasm';
 import type {
   Analysis,
+  ExtendedAmounts,
   FileKind,
   FileProblemKind,
   InvoicePart,
@@ -38,7 +39,8 @@ function schemaCheck(
   specId: string | undefined,
 ): SchemaResult | undefined {
   if (!syntax.schema) return undefined;
-  const own = profileOf(specId).entry?.ownSchema;
+  // the FeRD profile schemas are CII schemas: a UBL invoice with the EN 16931 identifier keeps UBL
+  const own = syntax.id === 'cii' ? profileOf(specId).entry?.ownSchema : undefined;
   const schema = own?.label ?? syntax.schema.label;
   if (own && !own.entry) {
     return { schema, checked: false, reason: TEXTS.schemaOwnProfile, problems: [], count: 0 };
@@ -87,6 +89,36 @@ type XmlOutcome =
   | { kind: 'tooLarge' }
   | { kind: 'broken'; problems: Problem[] };
 
+const CII_TX = '/rsm:CrossIndustryInvoice/rsm:SupplyChainTradeTransaction';
+const CII_SETTLEMENT = `${CII_TX}/ram:ApplicableHeaderTradeSettlement`;
+
+/**
+ * F29: for Factur-X EXTENDED the line status, the logistics charges and the financial adjustments
+ * its calculation rules use (FeRD Schematron 1.09.2, BR-FXEXT-CO-10 … -16 and -08b).
+ */
+function extendedAmounts(doc: XmlDocument, ns: Readonly<Record<string, string>>): ExtendedAmounts {
+  const text = (xpath: string) => (valuesAt(doc, `string(${xpath})`, ns)[0] ?? '').trim();
+  const count = (xpath: string) => Number(valuesAt(doc, `count(${xpath})`, ns)[0] ?? 0);
+  const range = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
+  const lines = `${CII_TX}/ram:IncludedSupplyChainTradeLineItem`;
+  const logistics = `${CII_SETTLEMENT}/ram:SpecifiedLogisticsServiceCharge`;
+  return {
+    lineStatus: range(count(lines)).map((i) =>
+      text(`${lines}[${i}]/ram:AssociatedDocumentLineDocument/ram:LineStatusReasonCode`),
+    ),
+    logistics: range(count(logistics)).map((i) => ({
+      amount: text(`${logistics}[${i}]/ram:AppliedAmount`),
+      category: text(`${logistics}[${i}]/ram:AppliedTradeTax/ram:CategoryCode`),
+      rate: text(`${logistics}[${i}]/ram:AppliedTradeTax/ram:RateApplicablePercent`),
+    })),
+    adjustments: valuesAt(
+      doc,
+      `${CII_SETTLEMENT}/ram:SpecifiedFinancialAdjustment/ram:ActualAmount`,
+      ns,
+    ).map((v) => v.trim()),
+  };
+}
+
 function readInvoiceXml(origin: string, bytes: Uint8Array): XmlOutcome {
   const read = readXml(bytes);
   if (!read.ok) {
@@ -108,9 +140,22 @@ function readInvoiceXml(origin: string, bytes: Uint8Array): XmlOutcome {
     const model = normalize(raw, { ubl: syntax.id !== 'cii' });
     const header = coreValues(model);
     const schema = schemaCheck(doc, syntax, first(header, 'BT-24'));
+    // F29: the FeRD rules of Factur-X 1.09.2 EXTENDED (ZUGFeRD 2.0 EXTENDED keeps BR-CO-14 only)
+    const extended =
+      syntax.id === 'cii' &&
+      profileOf(first(header, 'BT-24')).entry?.ownSchema?.entry === 'facturxExtended'
+        ? extendedAmounts(doc, syntax.namespaces)
+        : undefined;
     return {
       kind: 'invoice',
-      part: { origin, syntax: syntax.id, header, model, ...(schema ? { schema } : {}) },
+      part: {
+        origin,
+        syntax: syntax.id,
+        header,
+        model,
+        ...(schema ? { schema } : {}),
+        ...(extended ? { extended } : {}),
+      },
     };
   } finally {
     doc.dispose();

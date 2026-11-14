@@ -74,7 +74,7 @@ describe('verdictOf', () => {
     const pdf = verdictOf(analysis({ invoices: [part({}, 'factur-x.xml')] }));
     expect(pdf.explanation[0]).toContain('factur-x.xml');
     const file = verdictOf(analysis({ kind: 'xml', invoices: [part()] }));
-    expect(file.explanation).toEqual([TEXTS.xmlFile]);
+    expect(file.explanation[0]).toBe(TEXTS.xmlFile);
   });
 
   it('lists the unreadable attachments of a PDF without invoice data', () => {
@@ -168,7 +168,7 @@ describe('decisions of 2026-11-14 (F17, F19)', () => {
   it('F17: ZUGFeRD 2.0 BASIC is an e-invoice with the hint on 2.0/2.0.1', () => {
     const zf2 = part({ 'BT-24': ['urn:cen.eu:en16931:2017#compliant#urn:zugferd.de:2p0:basic'] });
     const verdict = verdictOf(analysis({ invoices: [zf2] }));
-    expect(verdict.tone).toBe('ok');
+    expect(verdict.headline).toMatch(/^E-Rechnung erkannt/);
     expect(verdict.explanation).toContain(TEXTS.zugferd20Hint);
   });
 
@@ -219,5 +219,95 @@ describe('technicalParts (audit Bedienung, Z-04)', () => {
   it('leaves German lines alone', () => {
     expect(technicalParts(TEXTS.formatError)).toBeUndefined();
     expect(technicalParts('Technische Meldung (Zeile x): y')).toBeUndefined();
+  });
+});
+
+/** A model with the given dates: invoice date, delivery date, end of the invoicing period. */
+function dated(
+  invoice: string,
+  delivery?: string,
+  periodEnd?: string,
+): NonNullable<InvoicePart['model']> {
+  const term = (value: string) => [{ value, raw: value }];
+  const groups: Record<string, unknown[]> = {};
+  if (delivery) groups['BG-13'] = [{ bg: 'BG-13', terms: { 'BT-72': term(delivery) }, groups: {} }];
+  if (periodEnd)
+    groups['BG-14'] = [{ bg: 'BG-14', terms: { 'BT-74': term(periodEnd) }, groups: {} }];
+  return {
+    bg: 'INVOICE',
+    terms: { 'BT-2': term(invoice) },
+    groups,
+  } as unknown as NonNullable<InvoicePart['model']>;
+}
+
+const MINIMUM = { 'BT-24': ['urn:factur-x.eu:1p0:minimum'] };
+
+describe('decisions of 2026-11-14, dialogue (F22–F27, G-3, G-7, G-10)', () => {
+  it('F22/G-3: missing Pflichtangaben make an e-invoice yellow, with a line and the hint (F23)', () => {
+    // the stub model holds nothing, so every Pflichtangabe is missing
+    const verdict = verdictOf(analysis({ kind: 'xml', invoices: [part()] }));
+    expect(verdict.tone).toBe('warn');
+    expect(verdict.headline).toBe('E-Rechnung erkannt (EN 16931) – mit Hinweisen');
+    expect(verdict.explanation.some((l) => l.startsWith('Es fehlen Pflichtangaben: '))).toBe(true);
+    expect(verdict.explanation).toContain(TEXTS.supplierComplete);
+  });
+
+  it('F26: "keine E-Rechnung" with readable dates gets the sentence by date', () => {
+    const at = (model: NonNullable<InvoicePart['model']>) =>
+      verdictOf(analysis({ kind: 'xml', invoices: [{ ...part(MINIMUM), model }] })).explanation;
+    expect(at(dated('2026-03-01', '2026-02-27'))).toContain(TEXTS.regimeAllowed);
+    expect(at(dated('2027-03-01', '2027-02-27'))).toContain(TEXTS.regimeTurnover);
+    expect(at(dated('2027-01-04', undefined, '2026-12-31'))).toContain(TEXTS.regimeRequired);
+    expect(at(dated('2028-01-10', '2028-01-05'))).toContain(TEXTS.regimeRequired);
+    // no supply date: the general sentence (F23), never the invoice date (F15)
+    expect(at(dated('2026-03-01'))).toContain(TEXTS.regimeGeneral);
+    // delivery and period lead to different sentences: a hint and the general sentence
+    const apart = at(dated('2027-01-05', '2027-01-02', '2026-12-31'));
+    expect(apart).toEqual(expect.arrayContaining([TEXTS.datesApart, TEXTS.regimeGeneral]));
+  });
+
+  it('F23: a plain PDF and an unknown XML say whom to ask', () => {
+    expect(verdictOf(analysis({})).explanation).toContain(TEXTS.regimeGeneral);
+    const other = verdictOf(analysis({ kind: 'xml', root: { name: 'Order', namespace: 'urn:x' } }));
+    expect(other.explanation).toContain(TEXTS.kanzleiJudges);
+  });
+
+  it('G-10/F24: a broken XML says the German sentences first, the engine message last', () => {
+    const verdict = verdictOf(
+      analysis({
+        kind: 'xml',
+        problem: { kind: 'xmlBroken', problems: [{ message: 'Ende fehlt', line: 7 }] },
+      }),
+    );
+    expect(verdict.explanation).toEqual([
+      TEXTS.formatError,
+      TEXTS.supplierMendFile,
+      TEXTS.regimeGeneral,
+      'Technische Meldung (Zeile 7): Ende fehlt',
+    ]);
+  });
+
+  it('F27: the same data twice is an e-invoice with the hint on the standard', () => {
+    const verdict = verdictOf(analysis({ invoices: [part({}, 'a.xml'), part({}, 'b.xml')] }));
+    expect(verdict.comparison?.same).toBe(true);
+    expect(verdict.headline).toBe('E-Rechnung erkannt (EN 16931) – mit Hinweisen');
+    expect(verdict.explanation.join(' ')).toContain(
+      'Nach dem Standard ist nur eine Rechnungs-XML je PDF zulässig.',
+    );
+  });
+
+  it('F27: different data is a format error; the XML is then not what counts', () => {
+    const verdict = verdictOf(
+      analysis({ invoices: [part({}, 'a.xml'), part({ 'BT-1': ['R-2'] }, 'b.xml')] }),
+    );
+    expect(verdict.tone).toBe('bad');
+    expect(verdict.headline).toBe(TEXTS.contradicting);
+    expect(xmlCounts(verdict)).toBe(false);
+  });
+
+  it('G-7: ZUGFeRD 1.0 is named as a version, in a PDF and as XML', () => {
+    const zf1 = part({ 'BT-24': ['urn:ferd:CrossIndustryDocument:invoice:1p0:comfort'] });
+    expect(verdictOf(analysis({ invoices: [zf1] })).headline).toBe(TEXTS.zugferd1Pdf);
+    expect(verdictOf(analysis({ kind: 'xml', invoices: [zf1] })).headline).toBe(TEXTS.zugferd1Xml);
   });
 });

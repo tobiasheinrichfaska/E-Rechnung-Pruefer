@@ -43,6 +43,8 @@ export interface PflichtResult {
   modeText?: string;
   rows: RowResult[];
   missingLabels: string[];
+  /** How many hints the rows carry (F22: they make the result yellow) */
+  hintCount: number;
   summary: string;
 }
 
@@ -345,6 +347,7 @@ export function checkPflichtangaben(model: InvoiceModel): PflichtResult {
     .filter((row) => !row.validFrom || (issued !== undefined && issued >= row.validFrom))
     .map((row) => evaluateRow(model, row, mode));
   const missingRows = rows.filter((r) => r.status === 'fehlt');
+  const hintCount = rows.reduce((count, r) => count + r.hints.length, 0);
   const missingLabels = missingRows.map((r) => r.row.label);
   // A partly present row names what is missing, not the whole row (audit 2026-11-14, U-02)
   const listed = missingRows.map((r) =>
@@ -357,10 +360,14 @@ export function checkPflichtangaben(model: InvoiceModel): PflichtResult {
     ...(text ? { modeText: text } : {}),
     rows,
     missingLabels,
+    hintCount,
     summary:
-      missingLabels.length === 0
-        ? TEXTS.allPresent
-        : sentence(fill(TEXTS.missingList, { list: listed.join('; ') })),
+      missingLabels.length > 0
+        ? sentence(fill(TEXTS.missingList, { list: listed.join('; ') }))
+        : hintCount === 0
+          ? TEXTS.allPresent
+          : // F22: the F21 sentence names the hints below (Tobias 2026-11-14)
+            `${TEXTS.allPresent} ${hintCount === 1 ? TEXTS.hintBelow : fill(TEXTS.hintsBelow, { count: hintCount })}`,
   };
 }
 

@@ -37,6 +37,70 @@ D16B.
 | `…_ReusableAggregateBusinessInformationEntity_100.xsd` | `83cef3c48a6c83149733ffdced362e230e9ae482f62acdfb8c0fb3a919452fdb` |
 | `…_UnqualifiedDataType_100.xsd`                        | `c6c9f7b3f36c821999f20d7b7fff30db64112bc7b2a8f132e3d048d859855d00` |
 
+### Profil-Schemata MINIMUM bis EN16931 (F28, 14.11.2026)
+
+Auf Tobias' Entscheidung F28 aus demselben FeRD-Paket (privates Repo `E-Rechnung-Pruefer-privat`,
+`ferd-paket/ZUGFeRD_2.5.2_DE.zip`, SHA-256 wie oben) übernommen: die je vier XSD der Ordner
+`0_Factur-X_1.09.2_MINIMUM/` bis `3_Factur-X_1.09.2_EN16931/`, unverändert, nach
+`schemas/factur-x-1.09.2-<profil>/` (Apache-2.0). Vorher geprüft: alle 32 FeRD-Musterrechnungen dieser
+Profile und alle 12 amtlichen CEN-/KoSIT-CII-Dateien mit der Kennung `urn:cen.eu:en16931:2017` ohne
+Abweichung vom Profil-Schema.
+
+| Profil    | Datei                                                  | SHA-256                                                            |
+| --------- | ------------------------------------------------------ | ------------------------------------------------------------------ |
+| `minimum` | `Factur-X_1.09.2_MINIMUM.xsd`                          | `313e86212eaf9921f8cfe040d2acb72f718a580db3c19b8c8b3ca0a6a02b4216` |
+| `minimum` | `…_QualifiedDataType_100.xsd`                          | `c65c4929cb6f51d59aec498851a9026f0a915555555b1c3e5eafd99f191be5f5` |
+| `minimum` | `…_ReusableAggregateBusinessInformationEntity_100.xsd` | `8a9c1826ac156d8d2faf47de8dcd8a41fff54e6cf3ba1d44503876c086c7d9db` |
+| `minimum` | `…_UnqualifiedDataType_100.xsd`                        | `7110f93a32e20af6fbc3b8c308ec77f75be18bafca9a933584eb457a187bd539` |
+| `basicwl` | `Factur-X_1.09.2_BASICWL.xsd`                          | `6cd8f22081b659ebeb0a86a741ed454d1771460b822579a55b43f5f0cdd81356` |
+| `basicwl` | `…_QualifiedDataType_100.xsd`                          | `5d72dd3f0df511b2994ea41b199685f9cc538e9ce57d50c84d21988fe1455c6e` |
+| `basicwl` | `…_ReusableAggregateBusinessInformationEntity_100.xsd` | `17d5300dcb6d7c1d7ac70c4d28c89fd3b778abb820129ac320b9010d4dc6bed3` |
+| `basicwl` | `…_UnqualifiedDataType_100.xsd`                        | `2f4686c41172611f7fc2347a7103a12c01746da17a5f7eded53254ceeff2469f` |
+| `basic`   | `Factur-X_1.09.2_BASIC.xsd`                            | `808f07370fbbeaaceabbd674ee4d7d2cb358894112366989ff7d600d0432d444` |
+| `basic`   | `…_QualifiedDataType_100.xsd`                          | `5d72dd3f0df511b2994ea41b199685f9cc538e9ce57d50c84d21988fe1455c6e` |
+| `basic`   | `…_ReusableAggregateBusinessInformationEntity_100.xsd` | `2ca9ab167afd99ae0455db1d7119007ab1de27941752dcc55e9e24bec0511c61` |
+| `basic`   | `…_UnqualifiedDataType_100.xsd`                        | `ad32b1828200bdb0afd24fbe92fe90880bf357c6a51a9da95cddbdf593e3e35b` |
+| `en16931` | `Factur-X_1.09.2_EN16931.xsd`                          | `cb98b34e59398fcd8d48f29963a3fd6f4c49af9a8307569f4a1ced634f1aa885` |
+| `en16931` | `…_QualifiedDataType_100.xsd`                          | `4bd1753b1f078ecc50468ec90e505a63a72c6c1f2449a893f37c72a2e933fe04` |
+| `en16931` | `…_ReusableAggregateBusinessInformationEntity_100.xsd` | `d6bf8e38c3d5595c670655ccb7ee89655ae244943aaf09a31758160caabc7894` |
+| `en16931` | `…_UnqualifiedDataType_100.xsd`                        | `60ee4d11da40c7ec42a4da1fb77b5d7bbffcdce42afd863fcd9da9334765315c` |
+
+### ZUGFeRD 1.0 (Recherche 14.11.2026)
+
+Die FeRD bietet ZUGFeRD 1.0 nicht mehr an (Seite „zugferd-10“: „steht nicht mehr zum Download
+bereit“; nur das Corrigendum ist noch abrufbar). Das Paket liegt unverändert in zwei Spiegeln mit
+festem Commit: `stephanstapel/ZUGFeRD-csharp` `a9975a82a4d026792c5749fffa4226f3d619cde6`
+(`documentation/zugferd10/`: Spezifikation, technische Dokumentation, XSD, Musterrechnungen) und
+`ZUGFeRD/mustangproject` `42127fa34e26d7420836e90d0dac7f06fedc92de` (gleiche XSD bytegleich, Schematron).
+11 der 12 Muster-PDF sind außerdem bytegleich mit `konik-io/konik`. Urheberrecht der AWV
+(Spezifikation Abschn. 1.2: Vervielfältigung nur mit Zustimmung) → nur im privaten Repo
+`E-Rechnung-Pruefer-privat/zugferd-1.0/` (URL, Lizenz und SHA-256 je Datei in `QUELLEN.tsv`).
+
+| Wert in `syntax.ts` / `profiles.ts`                                                                                                   | Beleg                                                                 |
+| ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Wurzel `CrossIndustryDocument`                                                                                                        | `ZUGFeRD1p0.xsd` Z. 12; Spezifikation § 6.2                           |
+| Namensraum `urn:ferd:CrossIndustryDocument:invoice:1p0`                                                                               | `ZUGFeRD1p0.xsd` Z. 2, 7 (targetNamespace); Änderungshistorie § 2.4.1 |
+| `ram` `…:ReusableAggregateBusinessInformationEntity:12`                                                                               | `ZUGFeRD1p0.xsd` Z. 5, 10                                             |
+| `udt` `…:UnqualifiedDataType:15`                                                                                                      | `ZUGFeRD1p0.xsd` Z. 6, 11                                             |
+| Pfad der Kennung (`GuidelineSpecifiedDocumentContextParameter/ram:ID`)                                                                | technische Dokumentation § 4.1 (S. 48), 1..1                          |
+| Kennungen `…:1p0:basic`, `…:1p0:comfort`, `…:1p0:extended`; längere für Branchenprofile (z. B. `:extended:gs1`) → Vergleich am Anfang | Spezifikation § 6.3 (S. 98)                                           |
+| Anhang `ZUGFeRD-invoice.xml`                                                                                                          | Spezifikation § 7.2 (S. 106)                                          |
+
+| Muster-PDF (FeRD)                                                     | SHA-256                                                            |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `ZUGFeRD_1p0_BASIC_Einfach.pdf`                                       | `2cea9bb8ffea4031a693baee4cca59203063af9592c7b1b9a0492967d4dfc643` |
+| `ZUGFeRD_1p0_BASIC_Rechnungskorrektur.pdf`                            | `e07e1d2806389657126ec81bcaeecf3f897b4c9478382962b64147a5ec548054` |
+| `ZUGFeRD_1p0_COMFORT_Einfach.pdf`                                     | `d4ef7c821871d1a500f14d62bdf18d28773b2805f7bf11231c0c49afa5464972` |
+| `ZUGFeRD_1p0_COMFORT_Haftpflichtversicherung_Versicherungssteuer.pdf` | `e47f76fd2bd93cf87ed9bfd1e4b121d53b22c9cebeecef641aa0c7755f805824` |
+| `ZUGFeRD_1p0_COMFORT_Kraftfahrversicherung_Bruttopreise.pdf`          | `71361ce95adeb2e4c742e10b5c19deb69c0e5ddeb5a5f1ee774b05d39516a9f9` |
+| `ZUGFeRD_1p0_COMFORT_Rabatte.pdf`                                     | `d332343aac0b1cab462f078cd1be3333499b02467e1b34d1f3f2155646fcba1b` |
+| `ZUGFeRD_1p0_COMFORT_Rechnungskorrektur.pdf`                          | `7cdd04b96a958315e91ed3fe2bfad2bd51b2b2036ce72a18a392755f3d87ed7b` |
+| `ZUGFeRD_1p0_COMFORT_SEPA_Prenotification.pdf`                        | `7b652b0bb3b2166b30d4b8ca60a4a690f7bfa6399af3317fcdba3eb01a249b3e` |
+| `ZUGFeRD_1p0_COMFORT_Sachversicherung_berechneter_Steuersatz.pdf`     | `39a17b781e2dcb8e3f76e25e846931717e72feb1bd114dc2e4d0ee85b47d2c2c` |
+| `ZUGFeRD_1p0_EXTENDED_Kostenrechnung.pdf`                             | `47460b85aebba41905e634413dae59936e9c2fd6a6b5842f0c2cf464bb0d8cc2` |
+| `ZUGFeRD_1p0_EXTENDED_Rechnungskorrektur.pdf`                         | `487e330e99c7b05d9ef08ea1dbe05ea0d90dcbc174f253fd22ff9681a772a285` |
+| `ZUGFeRD_1p0_EXTENDED_Warenrechnung.pdf`                              | `12aa68d6ce97466f7caf24e31c00ce7620942194e62e7a8d89571f92a7ad3ddb` |
+
 ## Recht und Verwaltung (Recherche 13.11.2026)
 
 | Quelle                                                                                           | Fundstelle                                                                                                              | Verwendet für     |

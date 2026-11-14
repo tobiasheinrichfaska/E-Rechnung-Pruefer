@@ -132,8 +132,11 @@ describe('coverage: every text of the tool appears in a sample', () => {
     new RegExp(`^${template.replace(/[.*+?^$()|[\]\\]/g, '\\$&').replace(/\{\w+\}/g, '.+')}$`);
   const HEADLINES = [
     TEXTS.eRechnung,
+    TEXTS.eRechnungHints,
     TEXTS.keineERechnungPdf,
     TEXTS.keineERechnungXml,
+    TEXTS.zugferd1Pdf,
+    TEXTS.zugferd1Xml,
     TEXTS.nichtBeurteilt,
     TEXTS.contradicting,
     TEXTS.otherXml,
@@ -157,6 +160,18 @@ describe('coverage: every text of the tool appears in a sample', () => {
   it('every case text (Kleinbetrag, Kleinunternehmer)', () => {
     const seen = new Set(checked.map((c) => c.pflicht?.modeText));
     expect(MODES.map((m) => m.text).filter((t) => !seen.has(t))).toEqual([]);
+  });
+
+  // F26/F23: each sentence by the date of supply and invoice, and the general one, in a sample
+  it('every sentence of the transition rules (§ 27 Abs. 38 UStG)', () => {
+    const seen = new Set(checked.flatMap((c) => c.verdict.explanation));
+    const sentences = [
+      TEXTS.regimeAllowed,
+      TEXTS.regimeTurnover,
+      TEXTS.regimeRequired,
+      TEXTS.regimeGeneral,
+    ];
+    expect(sentences.filter((t) => !seen.has(t))).toEqual([]);
   });
 
   it('every hint of the Pflichtangaben', () => {

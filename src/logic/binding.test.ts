@@ -20,7 +20,7 @@ describe('binding as data', () => {
     expect(terms.every((t) => t.label.length > 1)).toBe(true);
     expect(groups.every((g) => g.label.length > 1)).toBe(true);
     expect(termLabel('BT-1')).toBe('Rechnungsnummer');
-    expect(termLabel('BT-27')).toBe('Name des Verkäufers');
+    expect(termLabel('BT-27')).toBe('Name des Lieferanten');
     expect(termLabel('BT-9999')).toBe('BT-9999');
   });
 

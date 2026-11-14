@@ -35,6 +35,16 @@ export interface SchemaResult {
 }
 
 /** One invoice XML: the file itself or a PDF attachment. */
+/** FeRD EXTENDED (CII): amounts outside EN 16931 that its calculation rules use (F29). */
+export interface ExtendedAmounts {
+  /** LineStatusReasonCode per line, in the order of the lines (BG-25); '' where none */
+  lineStatus: string[];
+  /** Logistics service charges (BT-X-272) with their VAT category and rate, as written */
+  logistics: { amount: string; category: string; rate: string }[];
+  /** Financial adjustments (SpecifiedFinancialAdjustment/ActualAmount), as written */
+  adjustments: string[];
+}
+
 export interface InvoicePart {
   /** File name or attachment name */
   origin: string;
@@ -45,6 +55,8 @@ export interface InvoicePart {
   model?: InvoiceModel;
   /** The schema check; missing for syntaxes without a bundled schema (ZUGFeRD 1.0) */
   schema?: SchemaResult;
+  /** Factur-X EXTENDED only: what its own calculation rules need beyond EN 16931 (F29) */
+  extended?: ExtendedAmounts;
 }
 
 export type OtherPartKind = 'otherXml' | 'brokenXml' | 'doctypeXml' | 'tooLargeXml' | 'notXml';

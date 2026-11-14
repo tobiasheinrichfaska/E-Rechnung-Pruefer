@@ -9,6 +9,8 @@ import type { InvoiceVerdict } from './verdict';
 export interface DetailRow {
   label: string;
   value: string;
+  /** G-2: shown under "Technische Angaben", closed — except a schema row with a problem */
+  technical?: boolean;
 }
 
 const MISSING = '– (fehlt)';
@@ -31,17 +33,11 @@ export function invoiceDetails(invoice: InvoiceVerdict, inPdf: boolean): DetailR
   const amount = first(h, 'BT-112');
   const parsed = parseDecimal(amount);
   const currency = first(h, 'BT-5');
+  const schemaFailed = (invoice.part.schema?.count ?? 0) > 0;
+  // G-2: what the client knows from the invoice first, the technical rows after it
   return [
     // an XML file's name already stands above the result ("Geprüfte Datei", audit E-08)
     ...(inPdf ? [{ label: 'Anhang', value: invoice.part.origin }] : []),
-    { label: 'Syntax', value: invoice.syntaxLabel },
-    {
-      label: 'Spezifikation',
-      value: invoice.profile.entry?.note
-        ? `${invoice.specLabel} (${invoice.profile.entry.note})`
-        : invoice.specLabel,
-    },
-    { label: 'Kennung (BT-24)', value: invoice.profile.id ?? MISSING },
     {
       label: 'Art der Rechnung (BT-3)',
       value: type ? `${type}${TYPE_CODES[type] ? ` – ${TYPE_CODES[type]}` : ''}` : MISSING,
@@ -52,12 +48,22 @@ export function invoiceDetails(invoice: InvoiceVerdict, inPdf: boolean): DetailR
       value: iso ? germanDate(iso) : (date ?? MISSING),
     },
     { label: 'Lieferant (BT-27)', value: first(h, 'BT-27') ?? MISSING },
-    { label: 'Schema (XSD)', value: schemaDetail(invoice) },
     {
       label: 'Gesamtbetrag mit Umsatzsteuer (BT-112)',
       value: parsed
         ? `${formatAmount(parsed)}${currency ? ` ${currency}` : ''}`
         : (amount ?? MISSING),
     },
+    { label: 'Syntax', value: invoice.syntaxLabel, technical: true },
+    {
+      label: 'Spezifikation',
+      value: invoice.profile.entry?.note
+        ? `${invoice.specLabel} (${invoice.profile.entry.note})`
+        : invoice.specLabel,
+      technical: true,
+    },
+    { label: 'Kennung (BT-24)', value: invoice.profile.id ?? MISSING, technical: true },
+    // a format error stays visible (G-2)
+    { label: 'Schema (XSD)', value: schemaDetail(invoice), technical: !schemaFailed },
   ];
 }

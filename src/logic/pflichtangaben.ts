@@ -350,7 +350,7 @@ export const PFLICHTANGABEN: readonly Pflichtangabe[] = [
           ],
         },
         modes: ['regel'],
-        text: 'Nicht jede Position hat einen eigenen Leistungszeitraum, und die Rechnung nennt keinen gemeinsamen Leistungszeitpunkt. Eine Nebenleistung (z. B. Porto oder Versand) teilt umsatzsteuerlich das Schicksal der Hauptleistung (Abschnitt 3.10 Abs. 5 UStAE). Bitte prüfen Sie, ob die Positionen ohne Zeitraum solche Nebenleistungen sind.',
+        text: 'Nicht jede Position hat einen eigenen Leistungszeitraum, und die Rechnung nennt keinen gemeinsamen Leistungszeitpunkt. Eine Nebenleistung (z. B. Porto oder Versand) wird umsatzsteuerlich wie die Hauptleistung behandelt (Abschnitt 3.10 Abs. 5 UStAE). Bitte prüfen Sie, ob die Positionen ohne Zeitraum solche Nebenleistungen sind.',
       },
     ],
     source: 'KoSIT/FeRD S. 3–4: BT-72, BG-14, BG-26',
@@ -723,7 +723,7 @@ export const PFLICHTANGABEN: readonly Pflichtangabe[] = [
       kleinbetrag: {
         kind: 'nicht',
         because:
-          'Kleinbetragsrechnungen gelten nicht für diese Fälle (§ 33 Satz 3 UStDV) – das Tool prüft dann im Regelfall.',
+          'Für diese Fälle gibt es die Erleichterungen für Kleinbetragsrechnungen nicht (§ 33 Satz 3 UStDV). Das Tool prüft deshalb alle Angaben wie bei einer normalen Rechnung.',
       },
       kleinunternehmer: { kind: 'nicht', because: 'Nicht bei Kleinunternehmern.' },
     },

@@ -92,38 +92,60 @@ function RowsTable({ rows, labelledBy }: { rows: RowResult[]; labelledBy: string
   );
 }
 
-/**
- * `contextId`: the heading "Rechnungsdaten n von m" when a PDF holds several invoice XML, so each
- * section has its own name for a screen reader (audit 2026-11-14, U-13).
- */
-export function PflichtangabenView({
-  result,
-  contextId,
-}: {
-  result: PflichtResult;
-  contextId?: string | undefined;
-}) {
+/** G-1: a row "nur im Einzelfall nötig" without a value and without a hint is folded */
+function folded(row: RowResult): boolean {
+  const hasValues = row.values.length > 0 || row.groups.some((g) => g.items.length > 0);
+  return row.status === 'einzelfall' && !hasValues && row.hints.length === 0;
+}
+
+/** The rows of one table; the folded ones in a closed list below them (G-1). */
+function Rows({ rows, labelledBy }: { rows: RowResult[]; labelledBy: string }) {
+  const open = rows.filter((r) => !folded(r));
+  const closed = rows.filter(folded);
+  return (
+    <>
+      {open.length > 0 && <RowsTable rows={open} labelledBy={labelledBy} />}
+      {closed.length > 0 && (
+        <details className="folded" data-testid="folded-rows">
+          <summary>
+            {closed.length === 1
+              ? TEXTS.foldedRow
+              : fill(TEXTS.foldedRows, { count: closed.length })}
+          </summary>
+          <RowsTable rows={closed} labelledBy={labelledBy} />
+        </details>
+      )}
+    </>
+  );
+}
+
+/** `id`: the target of the jump link from the result box (G-1). */
+export function PflichtangabenView({ result, id }: { result: PflichtResult; id?: string }) {
   const main = result.rows.filter((r) => r.row.section === 'paragraph14');
   const special = result.rows.filter((r) => r.row.section === 'besondere');
   const headingId = useId();
   const specialId = useId();
-  // With several invoice XML the section and its tables are named after "Rechnungsdaten n von m"
-  const withContext = (id: string) => (contextId ? `${contextId} ${id}` : id);
   return (
-    <section className="pflicht" aria-labelledby={withContext(headingId)}>
+    <section className="pflicht" aria-labelledby={headingId} id={id}>
       <h3 id={headingId}>{TEXTS.pflichtHeading}</h3>
       {result.modeText && <p className="mode">{result.modeText}</p>}
       <p
-        className={`summary ${result.missingLabels.length > 0 ? 'summary-missing' : 'summary-ok'}`}
+        className={`summary ${
+          result.missingLabels.length > 0
+            ? 'summary-missing'
+            : result.hintCount > 0
+              ? 'summary-warn'
+              : 'summary-ok'
+        }`}
         data-testid="pflicht-summary"
       >
         {result.summary}
       </p>
-      <RowsTable rows={main} labelledBy={withContext(headingId)} />
+      <Rows rows={main} labelledBy={headingId} />
       {special.length > 0 && (
         <>
           <h4 id={specialId}>{TEXTS.besondereHeading}</h4>
-          <RowsTable rows={special} labelledBy={withContext(specialId)} />
+          <Rows rows={special} labelledBy={specialId} />
         </>
       )}
     </section>

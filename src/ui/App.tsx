@@ -3,9 +3,11 @@ import { APP_NAME, APP_VERSION } from '../appInfo';
 import { MAX_FILE_BYTES, analyzeFile, tooLargeFile, unreadableFile } from '../io/analyze';
 import { loadPdfJs } from '../io/pdfjs';
 import type { Analysis } from '../logic/analysis';
+import { checkPflichtangaben } from '../logic/check';
 import { germanMoment } from '../logic/dates';
 import { TEXTS, fill } from '../logic/texts';
-import { verdictOf, xmlCounts } from '../logic/verdict';
+import { pflichtModel, rulesOf, verdictOf, xmlCounts } from '../logic/verdict';
+import { resultText } from '../logic/zusammenfassung';
 import type { Verdict } from '../logic/verdict';
 import { DropZone } from './DropZone';
 import { ResultView } from './ResultView';
@@ -24,6 +26,48 @@ function announcement(state: State): string {
   }
 }
 
+/** G-6: "Maßgeblich … XML" only where there is a picture to compare with: a PDF */
+function noticeText(state: State): string {
+  return state.step === 'done' && state.analysis.kind === 'pdf' && xmlCounts(state.verdict)
+    ? TEXTS.fixedNotice
+    : TEXTS.fixedNoticeGeneral;
+}
+
+type Done = Extract<State, { step: 'done' }>;
+
+/** G-4: the result as text for a mail to the Kanzlei */
+function textOf(state: Done): string {
+  const [first] = state.verdict.comparison?.same === false ? [] : state.verdict.invoices;
+  const model = first ? pflichtModel(first) : undefined;
+  return resultText({
+    fileName: state.analysis.fileName,
+    ...germanMoment(state.checkedAt),
+    verdict: state.verdict,
+    pflicht: model ? checkPflichtangaben(model).summary : undefined,
+    rules: first ? rulesOf(first)?.summary : undefined,
+    notice: noticeText(state),
+    version: APP_VERSION,
+  });
+}
+
+/** Into the clipboard; where the Clipboard API is missing or refused, the classic way. */
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.className = 'visually-hidden';
+    document.body.append(area);
+    area.select();
+    const done = document.execCommand('copy');
+    area.remove();
+    return done;
+  }
+}
+
 type State =
   | { step: 'idle' }
   | { step: 'checking'; fileName: string }
@@ -32,11 +76,14 @@ type State =
 
 export function App() {
   const [state, setState] = useState<State>({ step: 'idle' });
+  // G-4: the outcome of "Ergebnis als Text kopieren", said in the status line
+  const [copied, setCopied] = useState<boolean | undefined>(undefined);
 
   const [pageDrag, setPageDrag] = useState(false);
   const dragEnd = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const check = async (file: File, count = 1) => {
+    setCopied(undefined);
     const done = (analysis: Analysis) =>
       setState({
         step: 'done',
@@ -133,21 +180,30 @@ export function App() {
   return (
     <main className="page">
       <h1>{APP_NAME}</h1>
-      <p className="lead">
-        Ziehen Sie eine Rechnung hierher. Das Tool zeigt, ob es eine E-Rechnung ist und welche
-        Angaben sie enthält.
-      </p>
+      {/* G-6: what the tool shows — only before a result, the result itself says the rest */}
+      {state.step !== 'done' && (
+        <div className="lead">
+          <p>{TEXTS.introLeadText}</p>
+          <p>{TEXTS.introLead}</p>
+          <ul>
+            {TEXTS.introPoints.map((point) => (
+              <li key={point}>{point}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <DropZone
         onFile={(file, count) => void check(file, count)}
         disabled={busy}
         pageDrag={pageDrag}
+        compact={state.step === 'done'}
       />
 
       {/* Always present, so screen readers announce changes; only a short sentence goes in
           (audit 2026-11-14, U-04) */}
       <p className="visually-hidden" role="status" data-testid="announce">
-        {announcement(state)}
+        {copied === undefined ? announcement(state) : copied ? TEXTS.copied : TEXTS.copyFailed}
       </p>
       {state.step === 'checking' && <p className="status">„{state.fileName}“ wird geprüft …</p>}
       <div ref={result}>
@@ -164,7 +220,33 @@ export function App() {
                 {fill(TEXTS.onlyFirstFile, { count: state.count })}
               </p>
             )}
-            <ResultView analysis={state.analysis} verdict={state.verdict} />
+            <ResultView
+              analysis={state.analysis}
+              verdict={state.verdict}
+              notice={
+                <p className="notice" data-testid="fixed-notice">
+                  {noticeText(state)}
+                </p>
+              }
+              actions={
+                <div className="result-actions">
+                  <button type="button" onClick={() => window.print()}>
+                    {TEXTS.printResult}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void copyText(textOf(state)).then(setCopied)}
+                  >
+                    {TEXTS.copyResult}
+                  </button>
+                  {copied !== undefined && (
+                    <span className="muted" data-testid="copy-result">
+                      {copied ? TEXTS.copied : TEXTS.copyFailed}
+                    </span>
+                  )}
+                </div>
+              }
+            />
           </>
         )}
         {state.step === 'failed' && (
@@ -180,11 +262,12 @@ export function App() {
         )}
       </div>
 
-      <p className="notice" data-testid="fixed-notice">
-        {state.step === 'done' && xmlCounts(state.verdict)
-          ? TEXTS.fixedNotice
-          : TEXTS.fixedNoticeGeneral}
-      </p>
+      {/* After a result the notice stands right under the result box (G-6, ResultView) */}
+      {state.step !== 'done' && (
+        <p className="notice" data-testid="fixed-notice">
+          {noticeText(state)}
+        </p>
+      )}
       <p className="version">Version {APP_VERSION} · in Entwicklung</p>
     </main>
   );

@@ -281,7 +281,7 @@ export const INVOICE: GroupDef = {
     ),
     term(
       'BT-10',
-      'Käuferreferenz (Leitweg-ID)',
+      'Referenz des Rechnungsempfängers (Leitweg-ID)',
       'id',
       '/*/cbc:BuyerReference',
       `${AGREEMENT}/ram:BuyerReference`,
@@ -356,21 +356,21 @@ export const INVOICE: GroupDef = {
     },
     {
       bg: 'BG-4',
-      label: 'Verkäufer (leistender Unternehmer)',
+      label: 'Lieferant (leistender Unternehmer)',
       repeats: false,
       ubl: '/*/cac:AccountingSupplierParty/cac:Party',
       cii: `${AGREEMENT}/ram:SellerTradeParty`,
       terms: [
         term(
           'BT-27',
-          'Name des Verkäufers',
+          'Name des Lieferanten',
           'text',
           'cac:PartyLegalEntity/cbc:RegistrationName',
           'ram:Name',
         ),
         term(
           'BT-28',
-          'Handelsname des Verkäufers',
+          'Handelsname des Lieferanten',
           'text',
           'cac:PartyName/cbc:Name',
           'ram:SpecifiedLegalOrganization/ram:TradingBusinessName',
@@ -391,14 +391,14 @@ export const INVOICE: GroupDef = {
         ),
         term(
           'BT-31',
-          'USt-IdNr. des Verkäufers',
+          'USt-IdNr. des Lieferanten',
           'id',
           "cac:PartyTaxScheme[cac:TaxScheme/cbc:ID = 'VAT']/cbc:CompanyID",
           "ram:SpecifiedTaxRegistration/ram:ID[@schemeID = 'VA']",
         ),
         term(
           'BT-32',
-          'Steuernummer des Verkäufers',
+          'Steuernummer des Lieferanten',
           'id',
           "cac:PartyTaxScheme[not(cac:TaxScheme/cbc:ID = 'VAT')]/cbc:CompanyID",
           "ram:SpecifiedTaxRegistration/ram:ID[@schemeID = 'FC']",
@@ -431,21 +431,21 @@ export const INVOICE: GroupDef = {
     },
     {
       bg: 'BG-7',
-      label: 'Käufer (Leistungsempfänger)',
+      label: 'Rechnungsempfänger (Leistungsempfänger)',
       repeats: false,
       ubl: '/*/cac:AccountingCustomerParty/cac:Party',
       cii: `${AGREEMENT}/ram:BuyerTradeParty`,
       terms: [
         term(
           'BT-44',
-          'Name des Käufers',
+          'Name des Rechnungsempfängers',
           'text',
           'cac:PartyLegalEntity/cbc:RegistrationName',
           'ram:Name',
         ),
         term(
           'BT-45',
-          'Handelsname des Käufers',
+          'Handelsname des Rechnungsempfängers',
           'text',
           'cac:PartyName/cbc:Name',
           'ram:SpecifiedLegalOrganization/ram:TradingBusinessName',
@@ -461,7 +461,7 @@ export const INVOICE: GroupDef = {
         // CII: KoSIT accepts schemeID VA and VAT (XPath 2.0 sequence rewritten with "or").
         term(
           'BT-48',
-          'USt-IdNr. des Käufers',
+          'USt-IdNr. des Rechnungsempfängers',
           'id',
           "cac:PartyTaxScheme[cac:TaxScheme/cbc:ID = 'VAT']/cbc:CompanyID",
           "ram:SpecifiedTaxRegistration/ram:ID[@schemeID = 'VA' or @schemeID = 'VAT']",
@@ -874,14 +874,14 @@ export const INVOICE: GroupDef = {
             term('BT-154', 'Beschreibung', 'text', 'cbc:Description', 'ram:Description'),
             term(
               'BT-155',
-              'Artikelnummer des Verkäufers',
+              'Artikelnummer des Lieferanten',
               'id',
               'cac:SellersItemIdentification/cbc:ID',
               'ram:SellerAssignedID',
             ),
             term(
               'BT-156',
-              'Artikelnummer des Käufers',
+              'Artikelnummer des Rechnungsempfängers',
               'id',
               'cac:BuyersItemIdentification/cbc:ID',
               'ram:BuyerAssignedID',

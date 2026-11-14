@@ -14,7 +14,8 @@ test('announces the result in one short sentence and moves the focus to it', asy
   await expect(status).toHaveText('');
 
   await upload(page, 'x.xml', official('kosit/01.01a-INVOICE_ubl.xml'), 'application/xml');
-  await expect(status).toHaveText('Ergebnis: E-Rechnung erkannt (XRechnung 3.0).');
+  // G-3: a yellow result says so in the announcement too
+  await expect(status).toHaveText('Ergebnis: E-Rechnung erkannt (XRechnung 3.0) – mit Hinweisen.');
   expect(await page.locator('[aria-live]').count()).toBe(0);
   await expect(page.getByTestId('headline')).toBeFocused();
 
@@ -39,31 +40,33 @@ test('gives every Pflichtangabe a row header and keeps the column headers on a p
   expect(await sideEffects(page)).toEqual([]);
 });
 
-test('names the Pflichtangaben of several invoice XML apart', async ({ page }) => {
+// F27/G-8: with several invoice XML each name stays unique — the same data is shown once (one
+// section of each kind), different data only as a named comparison table (audit Bedienung, Z-03)
+test('keeps the names of sections and tables unique with several invoice XML', async ({ page }) => {
   const problems = await openApp(page);
   const cii = officialText('cen/CII_example1.xml');
   const xml = (name: string, text: string) => ({ name, bytes: encode(text), mime: 'text/xml' });
+
+  await upload(
+    page,
+    'gleich.pdf',
+    miniPdf({ attachments: [xml('a.xml', cii), xml('b.xml', cii)] }),
+    'application/pdf',
+  );
+  await expect(page.getByRole('region', { name: /^Pflichtangaben/ })).toHaveCount(1);
+  await expect(page.getByRole('region', { name: /^Rechnerische Prüfung/ })).toHaveCount(1);
+  await expect(
+    page.getByRole('heading', { name: /gleich in „a\.xml“ und „b\.xml“/ }),
+  ).toBeVisible();
+
   await upload(
     page,
     'zwei.pdf',
     miniPdf({ attachments: [xml('a.xml', cii), xml('b.xml', withInvoiceNumber(cii, 'X-2'))] }),
     'application/pdf',
   );
-  await expect(
-    page.getByRole('region', { name: /^Rechnungsdaten 1 von 2 – Anhang „a\.xml“ Pflichtangaben/ }),
-  ).toHaveCount(1);
-  await expect(
-    page.getByRole('region', { name: /^Rechnungsdaten 2 von 2 – Anhang „b\.xml“ Pflichtangaben/ }),
-  ).toHaveCount(1);
-  // The calculation sections and the tables too (audit Bedienung, Z-03: axe landmark-unique)
-  for (const n of [1, 2]) {
-    await expect(
-      page.getByRole('region', { name: new RegExp(`^Rechnungsdaten ${n} von 2 .* Rechnerische`) }),
-    ).toHaveCount(1);
-    await expect(
-      page.getByRole('table', { name: new RegExp(`^Rechnungsdaten ${n} von 2 .* Pflichtangaben`) }),
-    ).toHaveCount(1);
-  }
+  await expect(page.getByRole('region', { name: /^Pflichtangaben/ })).toHaveCount(0);
+  await expect(page.getByRole('table', { name: 'Vergleich der Rechnungsdaten' })).toHaveCount(1);
 
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);

@@ -208,6 +208,11 @@ button.primary:disabled {
   color: var(--ok);
 }
 
+/* F22: all present, but hints in the rows */
+.summary-warn {
+  color: var(--warn);
+}
+
 .summary-missing {
   color: var(--bad);
 }
@@ -442,11 +447,100 @@ button.primary:disabled {
   color: var(--accent);
 }
 
+/* G-6: what the tool shows, before a file is chosen */
+.lead p {
+  margin: 0 0 4px;
+}
+
+.lead ul {
+  margin: 0 0 12px;
+  padding-left: 20px;
+}
+
+/* G-5: on a phone nothing can be dragged — the title says "auswählen" */
+.title-narrow {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .title-wide {
+    display: none;
+  }
+
+  .title-narrow {
+    display: inline;
+  }
+}
+
+/* G-5: after a result the drop zone is one line; dropping still works on the whole page */
+.dropzone.compact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 10px 14px;
+  text-align: left;
+}
+
+.dropzone.compact .dropzone-sub {
+  margin: 0;
+}
+
+/* G-1: jump links from the result box; G-4: print and copy */
+.jump {
+  margin: 8px 0 0;
+}
+
+.result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 0 0 16px;
+}
+
+.result-actions button {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.result-actions button:focus-visible {
+  outline: 3px solid var(--text);
+  outline-offset: 2px;
+}
+
+/* G-1/G-2: folded rows and technical details */
+details.folded,
+details.technical {
+  margin: 6px 0 10px;
+}
+
+details.folded > summary,
+details.technical > summary {
+  cursor: pointer;
+  color: var(--accent);
+}
+
+/* G-8/F27: the compared values of several invoice XML; the differing ones marked */
+.comparison tr.differs th,
+.comparison tr.differs td {
+  color: var(--bad);
+  font-weight: 600;
+}
+
 /* Printing for the Kanzlei (audit Bedienung, E-02): no drop zone, colours kept where the browser
    allows it, rows and rules not split across pages; App opens closed sections before printing */
 @media print {
   .lead,
-  .dropzone {
+  .dropzone,
+  .dropzone.compact,
+  .jump,
+  .result-actions {
     display: none;
   }
 

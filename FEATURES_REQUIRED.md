@@ -20,8 +20,11 @@
 
 ## Schema und Plausibilität (Phasen 2, 3)
 
-- [x] **Schemafehler** — „Formatfehler, gem. Rn. 6a ggf. keine E-Rechnung“ mit Fundstelle (Zeile und technische Meldung; EXTENDED gegen das FeRD-Schema)
+- [x] **Schemafehler** — „Die Datei hat einen Formatfehler. Sie ist deshalb möglicherweise keine E-Rechnung (BMF-Schreiben vom 15.10.2025, Rn. 6a).“ (F24), dazu der Satz nach Leistungs- und Rechnungsdatum (F26), zuletzt die technische Meldung mit Zeile; Factur-X-Profile gegen ihr FeRD-Schema (F28)
 - [x] **Rechenfehler** — „mögliche Auffälligkeit: …“ mit Regel-ID, belegenden Werten (mit Namen) und dem Wert, den die Regel erwartet
+
+- [x] **Fehlende Pflichtangabe oder Hinweis** — Ergebnisbox gelb mit Zeile und Handlungshinweis (F22, F23)
+- [x] **Zwei verschiedene Rechnungs-XML** — Formatfehler mit Vergleichstabelle (F27)
 
 ## Bedienung (Audit 14.11.2026)
 
