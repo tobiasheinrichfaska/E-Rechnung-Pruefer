@@ -269,6 +269,12 @@ export const ENTITIES: EntityDoc[] = [
         meaning: 'Bezeichnungen der fehlenden Angaben',
       },
       {
+        name: 'hintCount',
+        type: 'number',
+        required: true,
+        meaning: 'Zahl der Hinweise an den Zeilen (F22: machen das Ergebnis gelb)',
+      },
+      {
         name: 'summary',
         type: 'string',
         required: true,

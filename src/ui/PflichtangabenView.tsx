@@ -114,7 +114,13 @@ export function PflichtangabenView({
       <h3 id={headingId}>{TEXTS.pflichtHeading}</h3>
       {result.modeText && <p className="mode">{result.modeText}</p>}
       <p
-        className={`summary ${result.missingLabels.length > 0 ? 'summary-missing' : 'summary-ok'}`}
+        className={`summary ${
+          result.missingLabels.length > 0
+            ? 'summary-missing'
+            : result.hintCount > 0
+              ? 'summary-warn'
+              : 'summary-ok'
+        }`}
         data-testid="pflicht-summary"
       >
         {result.summary}

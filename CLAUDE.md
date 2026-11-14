@@ -166,12 +166,15 @@ cd E-Rechnung-Pruefer && npm ci --ignore-scripts && npx playwright install --wit
 ```
 
 The FeRD samples may not be redistributed: they live in the **private repository
-`tobiasheinrichfaska/E-Rechnung-Pruefer-privat`** (`ferd/` = the 61 samples, `ferd-paket/` = the whole
-FeRD package, SHA-256 as in `docs/quellen.md`), linked or cloned as `tests/fixtures/lokal`
-(gitignored as folder and as link). In a cloud session with that repository attached, the shared
-setup script links it; attached later (`add_repo`): `ln -s /home/user/e-rechnung-pruefer-privat
-tests/fixtures/lokal`. Without it `tests/io/ferdLokal.test.ts` is skipped — not a pass. Use `npm ci`,
-not `npm install` (npm 10 drops the `libc` fields from `package-lock.json`).
+`tobiasheinrichfaska/E-Rechnung-Pruefer-privat`** (`ferd/` = the 61 samples, `ferd-paket/` = the
+whole FeRD package, SHA-256 as in `docs/quellen.md`), linked or cloned as `tests/fixtures/lokal`
+(gitignored as folder and as link). **Every cloud session attaches it by itself (Tobias
+2026-11-14):** if `tests/fixtures/lokal` is missing at the start, call `add_repo` (owner
+`tobiasheinrichfaska`, repo `E-Rechnung-Pruefer-privat`, access `push`), clone it as that tool says,
+`register_repo_root`, then `ln -s /home/user/e-rechnung-pruefer-privat tests/fixtures/lokal`.
+Selected at session start, the shared setup script links it already. Without it
+`tests/io/ferdLokal.test.ts` is skipped — not a pass. Use `npm ci`, not `npm install` (npm 10 drops
+the `libc` fields from `package-lock.json`).
 
 ## Development Server Ports
 

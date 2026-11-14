@@ -66,6 +66,12 @@ export function RulesView({
       >
         {result.summary}
       </p>
+      {/* F23: what the client could do, by the kind of the irregular rules */}
+      {result.advice.map((line) => (
+        <p key={line} className="rule-advice">
+          {line}
+        </p>
+      ))}
       {result.note && (
         <p className="muted" data-testid="rules-note">
           {result.note}

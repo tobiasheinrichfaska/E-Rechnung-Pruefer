@@ -1,5 +1,5 @@
 import type { InvoiceModel, ModelGroup } from './model';
-import { checkRules } from './rules';
+import { adviceFor, checkRules } from './rules';
 import { TEXTS } from './texts';
 
 type Spec = { [key: string]: string | Spec[] };
@@ -195,5 +195,19 @@ describe('FeRD EXTENDED (own forms of the rules)', () => {
     const result = checkRules(logistics);
     expect(result.auffaellig).toEqual(expect.arrayContaining(['BR-CO-10', 'BR-CO-12']));
     expect(result.note).toBeUndefined();
+  });
+});
+
+describe('what the client could do, by the kind of rule (F23)', () => {
+  it('names the input VAT for the tax amount and the Entgelt, the payment for the gross amount', () => {
+    expect(adviceFor([])).toEqual([]);
+    expect(adviceFor(['BR-CO-17'])).toEqual([TEXTS.adviceAmount, TEXTS.adviceTax]);
+    expect(adviceFor(['BR-S-08'])).toEqual([TEXTS.adviceAmount, TEXTS.adviceNet]);
+    expect(adviceFor(['BR-CO-15', 'BR-CO-16'])).toEqual([TEXTS.adviceAmountBeforePayment]);
+    expect(adviceFor(['BR-CO-13', 'BR-CO-14', 'BR-CO-15'])).toEqual([
+      TEXTS.adviceAmountBeforePayment,
+      TEXTS.adviceTax,
+      TEXTS.adviceNet,
+    ]);
   });
 });

@@ -208,6 +208,11 @@ button.primary:disabled {
   color: var(--ok);
 }
 
+/* F22: all present, but hints in the rows */
+.summary-warn {
+  color: var(--warn);
+}
+
 .summary-missing {
   color: var(--bad);
 }

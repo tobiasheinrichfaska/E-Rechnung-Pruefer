@@ -45,7 +45,8 @@ describe.skipIf(!present)('FeRD ZUGFeRD 2.5.2 sample invoices (local only)', () 
         /^PDF mit Rechnungsdaten, Profil (MINIMUM|BASIC WL): keine E-Rechnung/,
       );
     } else {
-      expect(verdict.tone).toBe('ok');
+      // an e-invoice; a hint on the Pflichtangaben may make it yellow (F22, e.g. X16)
+      expect(verdict.tone).not.toBe('bad');
       expect(verdict.headline).toMatch(/^E-Rechnung erkannt/);
       const model = analysis.invoices[0]?.model;
       expect(model).toBeDefined();

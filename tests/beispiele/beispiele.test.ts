@@ -132,8 +132,11 @@ describe('coverage: every text of the tool appears in a sample', () => {
     new RegExp(`^${template.replace(/[.*+?^$()|[\]\\]/g, '\\$&').replace(/\{\w+\}/g, '.+')}$`);
   const HEADLINES = [
     TEXTS.eRechnung,
+    TEXTS.eRechnungHints,
     TEXTS.keineERechnungPdf,
     TEXTS.keineERechnungXml,
+    TEXTS.zugferd1Pdf,
+    TEXTS.zugferd1Xml,
     TEXTS.nichtBeurteilt,
     TEXTS.contradicting,
     TEXTS.otherXml,

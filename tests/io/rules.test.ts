@@ -46,9 +46,11 @@ describe('calculation rules on the official files', () => {
     if (!model) throw new Error('no model');
     const rules = checkRules(model);
     expect(rules.auffaellig).toEqual(['BR-CO-15', 'BR-CO-16']);
-    expect(rules.summary).toBe(
-      'Mögliche Auffälligkeit: BR-CO-15, BR-CO-16. Bitte prüfen Sie die Beträge.',
-    );
+    expect(rules.summary).toBe('Mögliche Auffälligkeit: BR-CO-15, BR-CO-16.');
+    // F23: only the gross and due amount — ask before paying, nothing on the input VAT
+    expect(rules.advice).toEqual([
+      'Sie könnten vor der Zahlung mit dem Lieferanten klären, welcher Betrag richtig ist.',
+    ]);
     const co15 = rules.results.find((r) => r.id === 'BR-CO-15');
     // names first, and what the rule expects (audit Bedienung, V-04)
     expect(co15?.values).toEqual([
@@ -63,7 +65,7 @@ describe('calculation rules on the official files', () => {
     });
     const verdict = verdictOf(analysis);
     expect(verdict.tone).toBe('warn');
-    expect(verdict.headline).toBe('E-Rechnung erkannt (XRechnung 3.0)');
+    expect(verdict.headline).toBe('E-Rechnung erkannt (XRechnung 3.0) – mit Hinweisen');
     expect(verdict.explanation.join(' ')).toContain('BR-CO-15, BR-CO-16');
   });
 });

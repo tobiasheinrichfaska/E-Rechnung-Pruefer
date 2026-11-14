@@ -51,19 +51,27 @@ test('recognises an XML e-invoice, a hybrid PDF and a plain PDF without storing 
   await expect(page.getByTestId('fixed-notice')).not.toContainText('Maßgeblich');
   await upload(page, 'rechnung.xml', official('cen/CII_example1.xml'), 'application/xml');
   await expect(page.getByTestId('headline')).toHaveText(/^E-Rechnung erkannt \(EN 16931/);
-  await expect(page.getByTestId('fixed-notice')).toContainText(
-    'Maßgeblich sind die Daten in der XML',
-  );
+  // G-6: "Maßgeblich … XML" only for a PDF — an XML file has no picture to compare with
+  await expect(page.getByTestId('fixed-notice')).not.toContainText('Maßgeblich');
   await expect(page.getByRole('row', { name: /Syntax/ })).toContainText('UN/CEFACT CII');
 
   const hybrid = miniPdf({
     text: 'Rechnung',
     attachments: [
-      { name: 'factur-x.xml', bytes: encode(CII), mime: 'text/xml', relationship: 'Alternative' },
+      // CEN example 2: complete Pflichtangaben, no hints — green (F22)
+      {
+        name: 'factur-x.xml',
+        bytes: official('cen/CII_example2.xml'),
+        mime: 'text/xml',
+        relationship: 'Alternative',
+      },
     ],
   });
   await upload(page, 'hybrid.pdf', hybrid, 'application/pdf');
   await expect(page.getByTestId('verdict')).toContainText('Anhang „factur-x.xml“');
+  await expect(page.getByTestId('fixed-notice')).toContainText(
+    'Maßgeblich sind die Daten in der XML',
+  );
   await expect(page.getByTestId('verdict')).toHaveClass(/tone-ok/);
 
   await upload(page, 'scan.pdf', miniPdf({ text: 'Rechnung' }), 'application/pdf');
@@ -98,7 +106,7 @@ test('names MINIMUM, contradicting invoice data and a protected PDF', async ({ p
     'application/pdf',
   );
   await expect(page.getByTestId('headline')).toHaveText(
-    'Mögliche Auffälligkeit: widersprüchliche Rechnungsdaten im PDF',
+    'Rechnungsdaten mit Formatfehler: mehrere Rechnungs-XML im PDF',
   );
   // the values of both parts, without scrolling to them (audit Bedienung, E-04)
   await expect(page.getByTestId('differing')).toHaveText(
@@ -176,7 +184,9 @@ test('takes a dropped file', async ({ page }) => {
     return dt;
   }, bytes);
   await page.locator('.dropzone').dispatchEvent('drop', { dataTransfer: transfer });
-  await expect(page.getByTestId('headline')).toHaveText('E-Rechnung erkannt (XRechnung 3.0)');
+  await expect(page.getByTestId('headline')).toHaveText(
+    'E-Rechnung erkannt (XRechnung 3.0) – mit Hinweisen',
+  );
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);
 });
@@ -204,7 +214,9 @@ test('takes a file dropped anywhere on the page', async ({ page }) => {
     }, transfer);
   await expect.poll(prevented).toBe(true);
   await page.locator('h1').dispatchEvent('drop', { dataTransfer: transfer });
-  await expect(page.getByTestId('headline')).toHaveText('E-Rechnung erkannt (XRechnung 3.0)');
+  await expect(page.getByTestId('headline')).toHaveText(
+    'E-Rechnung erkannt (XRechnung 3.0) – mit Hinweisen',
+  );
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);
 });
@@ -224,7 +236,7 @@ test('reports a schema problem with its line and lists the technical messages', 
   );
   await expect(page.getByTestId('verdict')).toHaveClass(/tone-bad/);
   await expect(page.getByTestId('verdict')).toContainText(
-    'Formatfehler, gem. Rn. 6a ggf. keine E-Rechnung.',
+    'Die Datei hat einen Formatfehler. Sie ist deshalb möglicherweise keine E-Rechnung (BMF-Schreiben vom 15.10.2025, Rn. 6a).',
   );
   await expect(page.getByRole('row', { name: /Schema \(XSD\)/ })).toContainText(
     'Abweichungen vom Schema UBL 2.1 (Invoice): ',
@@ -244,11 +256,17 @@ test('names a calculation irregularity with its rule and values', async ({ page 
     '<cbc:TaxInclusiveAmount currencyID="EUR">346.9</cbc:TaxInclusiveAmount>',
   );
   await upload(page, 'summe.xml', encode(text), 'application/xml');
-  await expect(page.getByTestId('headline')).toHaveText('E-Rechnung erkannt (XRechnung 3.0)');
+  await expect(page.getByTestId('headline')).toHaveText(
+    'E-Rechnung erkannt (XRechnung 3.0) – mit Hinweisen',
+  );
   await expect(page.getByTestId('verdict')).toHaveClass(/tone-warn/);
   await expect(page.getByTestId('rules-summary')).toHaveText(
-    'Mögliche Auffälligkeit: BR-CO-15, BR-CO-16. Bitte prüfen Sie die Beträge.',
+    'Mögliche Auffälligkeit: BR-CO-15, BR-CO-16.',
   );
+  // F23: only the gross and due amount — ask before paying
+  await expect(page.locator('.rule-advice')).toHaveText([
+    'Sie könnten vor der Zahlung mit dem Lieferanten klären, welcher Betrag richtig ist.',
+  ]);
   const rule = page.getByTestId('rule-BR-CO-15');
   await expect(rule).toContainText('mögliche Auffälligkeit');
   await expect(rule).toContainText('Gesamtbetrag mit Umsatzsteuer (BT-112): 346,90 EUR');

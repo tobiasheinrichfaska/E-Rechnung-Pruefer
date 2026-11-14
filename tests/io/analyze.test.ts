@@ -2,6 +2,7 @@ import { readdirSync } from 'node:fs';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { MAX_FILE_BYTES, analyzeFile, fileKindOf, tooLargeFile } from '../../src/io/analyze';
 import type { PdfJsLike } from '../../src/io/pdf';
+import { TEXTS } from '../../src/logic/texts';
 import { verdictOf } from '../../src/logic/verdict';
 import { encode, official, officialText, withInvoiceNumber, withSpecId } from '../support/fixtures';
 import { compressedPdf } from '../../src/build/compressedPdf';
@@ -48,7 +49,8 @@ describe('XML files', () => {
   ])('%s is recognised as %s', async (path, syntax, headline) => {
     const { analysis, verdict } = await check(path, official(path));
     expect(analysis.invoices.map((i) => i.syntax)).toEqual([syntax]);
-    expect(verdict.tone).toBe('ok');
+    // recognised as an e-invoice; a hint on the Pflichtangaben may make it yellow (F22)
+    expect(verdict.tone).not.toBe('bad');
     expect(verdict.headline.startsWith(headline)).toBe(true);
   });
 
@@ -96,7 +98,7 @@ describe('XML files', () => {
     const { analysis, verdict } = await check('zugferd-invoice.xml', encode(zugferd1));
     expect(analysis.invoices[0]?.syntax).toBe('zugferd1');
     expect(verdict.headline).toBe(
-      'Rechnungsdaten im Profil ZUGFeRD 1.0: keine E-Rechnung im Sinne des UStG',
+      'Rechnungsdaten nach ZUGFeRD 1.0: keine E-Rechnung im Sinne des UStG',
     );
   });
 
@@ -114,10 +116,10 @@ describe('XML files', () => {
     expect(broken.verdict.headline).toBe('Die XML-Datei ist fehlerhaft');
     expect(broken.verdict.explanation.join(' ')).toMatch(/Rn\. 6a/);
     expect(broken.verdict.explanation.join(' ')).toMatch(/Technische Meldung \(Zeile \d+\):/);
-    // the technical message first, then the consequence — as for a broken XML in a PDF (U-07)
-    expect(broken.verdict.explanation.at(-1)).toBe(
-      'Formatfehler, gem. Rn. 6a ggf. keine E-Rechnung.',
-    );
+    // G-10: the German sentence first (F24), the engine's message last
+    expect(broken.verdict.explanation[0]).toBe(TEXTS.formatError);
+    expect(broken.verdict.explanation.at(-1)).toMatch(/^Technische Meldung \(Zeile \d+\):/);
+    expect(broken.verdict.explanation).toContain(TEXTS.supplierMendFile);
   });
 });
 
@@ -133,7 +135,7 @@ describe('PDF files', () => {
       miniPdf({ attachments: [xml('irgendwas.dat', CII)] }),
     );
     expect(analysis.invoices[0]?.origin).toBe('irgendwas.dat');
-    expect(verdict.tone).toBe('ok');
+    expect(verdict.headline).toMatch(/^E-Rechnung erkannt/);
     expect(verdict.explanation[0]).toContain('irgendwas.dat');
   });
 
@@ -146,7 +148,7 @@ describe('PDF files', () => {
     const pdf = compressedPdf(encode(officialText(XR_CII)), 'factur-x.xml', options);
     expect(new TextDecoder('latin1').decode(pdf)).toContain('/ObjStm');
     const { analysis, verdict } = await check('r.pdf', pdf);
-    expect(verdict.headline).toBe('E-Rechnung erkannt (XRechnung 3.0)');
+    expect(verdict.headline).toBe('E-Rechnung erkannt (XRechnung 3.0) – mit Hinweisen');
     expect(analysis.invoices[0]?.origin).toBe('factur-x.xml');
   });
 
@@ -180,7 +182,7 @@ describe('PDF files', () => {
       ],
     });
     const { verdict } = await check('r.pdf', pdf);
-    expect(verdict.headline).toBe('E-Rechnung erkannt (XRechnung 3.0)');
+    expect(verdict.headline).toBe('E-Rechnung erkannt (XRechnung 3.0) – mit Hinweisen');
   });
 
   it('reports a broken XML attachment as a format error', async () => {
@@ -200,7 +202,7 @@ describe('PDF files', () => {
     const { verdict } = await check('r.pdf', pdf);
     expect(verdict.comparison).toEqual({ same: true, differing: [] });
     expect(verdict.tone).toBe('warn');
-    expect(verdict.headline).toBe('E-Rechnung erkannt (XRechnung 3.0)');
+    expect(verdict.headline).toBe('E-Rechnung erkannt (XRechnung 3.0) – mit Hinweisen');
     expect(verdict.explanation.join(' ')).toContain('2-mal eingebettet');
   });
 
@@ -209,7 +211,12 @@ describe('PDF files', () => {
       attachments: [xml('a.xml', CII), xml('b.xml', withInvoiceNumber(CII, 'ANDERE-NR'))],
     });
     const { verdict } = await check('r.pdf', pdf);
-    expect(verdict.headline).toBe('Mögliche Auffälligkeit: widersprüchliche Rechnungsdaten im PDF');
+    // F27: different data in two invoice XML is a format error (standard: one XML per PDF)
+    expect(verdict.headline).toBe('Rechnungsdaten mit Formatfehler: mehrere Rechnungs-XML im PDF');
+    expect(verdict.tone).toBe('bad');
+    expect(verdict.explanation).toEqual(
+      expect.arrayContaining([TEXTS.oneXmlOnly, TEXTS.formatError, TEXTS.askSupplier]),
+    );
     expect(verdict.comparison).toEqual({ same: false, differing: ['BT-1'] });
     expect(verdict.invoices).toHaveLength(2);
   });
@@ -346,7 +353,11 @@ describe('schema check (step 2b)', () => {
     expect(verdict.tone).toBe('bad');
     expect(verdict.headline).toBe('Rechnungsdaten mit Formatfehler (XRechnung 3.0)');
     expect(verdict.explanation.join(' ')).toMatch(/Technische Meldung \(Zeile \d+\):.*336,90/);
-    expect(verdict.explanation.at(-1)).toBe('Formatfehler, gem. Rn. 6a ggf. keine E-Rechnung.');
+    // F24 and G-10: the German statement before the engine's message
+    const statement = verdict.explanation.indexOf(TEXTS.formatError);
+    const technical = verdict.explanation.findIndex((l) => l.startsWith('Technische Meldung'));
+    expect(statement).toBeGreaterThan(-1);
+    expect(statement).toBeLessThan(technical);
   });
 
   it('names the attachment and judges several XML whatever their order', async () => {
@@ -372,7 +383,7 @@ describe('schema check (step 2b)', () => {
       checked: true,
       count: 0,
     });
-    expect(verdict.headline).toBe('E-Rechnung erkannt (ZUGFeRD/Factur-X, Profil EXTENDED)');
+    expect(verdict.headline).toMatch(/^E-Rechnung erkannt \(ZUGFeRD\/Factur-X, Profil EXTENDED\)/);
 
     const broken = withSpecId(CII, id).replace(
       '<rsm:ExchangedDocument>',

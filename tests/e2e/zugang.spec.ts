@@ -14,7 +14,8 @@ test('announces the result in one short sentence and moves the focus to it', asy
   await expect(status).toHaveText('');
 
   await upload(page, 'x.xml', official('kosit/01.01a-INVOICE_ubl.xml'), 'application/xml');
-  await expect(status).toHaveText('Ergebnis: E-Rechnung erkannt (XRechnung 3.0).');
+  // G-3: a yellow result says so in the announcement too
+  await expect(status).toHaveText('Ergebnis: E-Rechnung erkannt (XRechnung 3.0) – mit Hinweisen.');
   expect(await page.locator('[aria-live]').count()).toBe(0);
   await expect(page.getByTestId('headline')).toBeFocused();
 

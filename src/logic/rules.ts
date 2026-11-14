@@ -50,6 +50,8 @@ export interface RulesResult {
   auffaellig: string[];
   /** How many rules could not be checked (a value missing or no number) */
   notChecked: number;
+  /** F23: what the client could do, by the kind of the irregular rules (empty when none) */
+  advice: string[];
   summary: string;
   /** Why only some rules are checked (FeRD EXTENDED) */
   note?: string;
@@ -118,6 +120,26 @@ export interface RulesOptions {
 
 /** The rules of this selection that the FeRD EXTENDED Schematron (Factur-X 1.09.2) keeps unchanged. */
 const UNCHANGED_IN_EXTENDED: ReadonlySet<string> = new Set(['BR-CO-14']);
+
+/** F23 (Tobias 2026-11-14): the tax amount, the Entgelt, or only the gross/due amount. */
+const TAX_RULES: ReadonlySet<string> = new Set(['BR-CO-14', 'BR-CO-17']);
+const GROSS_RULES: ReadonlySet<string> = new Set(['BR-CO-15', 'BR-CO-16']);
+
+/**
+ * What the client could do about irregular rules: ask the supplier which amount is right (before
+ * paying, where the gross or due amount is concerned), and what that means for the input VAT.
+ */
+export function adviceFor(ids: readonly string[]): string[] {
+  if (ids.length === 0) return [];
+  const tax = ids.some((id) => TAX_RULES.has(id));
+  const gross = ids.some((id) => GROSS_RULES.has(id));
+  const net = ids.some((id) => !TAX_RULES.has(id) && !GROSS_RULES.has(id));
+  return [
+    gross ? TEXTS.adviceAmountBeforePayment : TEXTS.adviceAmount,
+    ...(tax ? [TEXTS.adviceTax] : []),
+    ...(net ? [TEXTS.adviceNet] : []),
+  ];
+}
 
 export function checkRules(model: InvoiceModel, options: RulesOptions = {}): RulesResult {
   const currency = valuesOf(model, 'BT-5')[0]?.value;
@@ -363,6 +385,7 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
   return {
     results: checked,
     auffaellig,
+    advice: adviceFor(auffaellig),
     ...(options.ownRules ? { note: TEXTS.rulesOwnRules } : {}),
     notChecked,
     summary:

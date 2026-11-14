@@ -6,12 +6,15 @@ import { germanDate, isoDate } from './dates';
 import { decimalEquals, formatAmount, parseDecimal } from './decimal';
 import { first } from './model';
 import type { BtId, InvoiceModel } from './model';
+import { checkPflichtangaben } from './check';
 import { profileOf } from './profiles';
-import { checkRules } from './rules';
+import { adviceFor, checkRules } from './rules';
 import type { RulesResult } from './rules';
 import type { Einordnung, ProfileMatch } from './profiles';
 import { syntaxById } from './syntax';
 import { TEXTS, fill } from './texts';
+import { commonTransition, transitionOf } from './uebergang';
+import type { Transition } from './uebergang';
 
 export type Tone = 'ok' | 'warn' | 'bad';
 
@@ -137,8 +140,7 @@ function schemaFailed(invoice: InvoiceVerdict): boolean {
   return invoice.einordnung !== 'keineERechnung' && (invoice.part.schema?.count ?? 0) > 0;
 }
 
-/** Step 3a: the rule ids with a possible irregularity — only where the XML counts (F19). */
-/** The rules of one invoice XML; for EXTENDED without the sums over the lines (B-02b). */
+/** Step 3a; FeRD EXTENDED has its own forms of the rules (Profile.ownRules). */
 export function rulesOf(invoice: InvoiceVerdict): RulesResult | undefined {
   const model = pflichtModel(invoice);
   return model
@@ -150,78 +152,178 @@ function rulesFailed(invoice: InvoiceVerdict): string[] {
   return rulesOf(invoice)?.auffaellig ?? [];
 }
 
-function rulesLines(invoice: InvoiceVerdict, several: boolean): string[] {
-  const ids = rulesFailed(invoice);
-  if (ids.length === 0) return [];
+/** The rule ids of each part, then once what the client could do about them (F23). */
+function rulesLines(invoices: readonly InvoiceVerdict[]): string[] {
+  const several = invoices.length > 1;
+  const lines = invoices.flatMap((invoice) => {
+    const ids = rulesFailed(invoice);
+    if (ids.length === 0) return [];
+    return [
+      several
+        ? fill(TEXTS.rulesHintIn, { name: invoice.part.origin, ids: ids.join(', ') })
+        : fill(TEXTS.rulesHint, { ids: ids.join(', ') }),
+    ];
+  });
+  return [...lines, ...adviceFor(invoices.flatMap(rulesFailed))];
+}
+
+/** F22/F23: missing Pflichtangaben and the hints of the rows, for the result box. */
+function pflichtLines(invoice: InvoiceVerdict): string[] {
+  const model = pflichtModel(invoice);
+  if (!model) return [];
+  const result = checkPflichtangaben(model);
   return [
-    several
-      ? fill(TEXTS.rulesHintIn, { name: invoice.part.origin, ids: ids.join(', ') })
-      : fill(TEXTS.rulesHint, { ids: ids.join(', ') }),
+    ...(result.missingLabels.length > 0
+      ? [
+          fill(TEXTS.pflichtMissingLine, { list: result.missingLabels.join('; ') }),
+          TEXTS.supplierComplete,
+        ]
+      : []),
+    ...(result.hintCount === 1
+      ? [TEXTS.pflichtHintLine]
+      : result.hintCount > 1
+        ? [fill(TEXTS.pflichtHintsLine, { count: result.hintCount })]
+        : []),
   ];
+}
+
+/** F26: the transition sentence of the parts (one only where all parts agree). */
+function transitionFor(invoices: readonly InvoiceVerdict[]): Transition {
+  return commonTransition(
+    invoices.map((i) => (i.part.model ? transitionOf(i.part.model) : { regime: 'unbekannt' })),
+  );
+}
+
+/**
+ * F23/F26: the sentence by the date of supply and invoice; without a readable date the general
+ * one. `mendFile`: a format error, where the supplier could mend the file.
+ */
+function transitionLines(transition: Transition, mendFile: boolean): string[] {
+  switch (transition.regime) {
+    case 'zulaessig':
+      return [TEXTS.regimeAllowed];
+    case 'nur800k':
+      return [TEXTS.regimeTurnover];
+    case 'pflicht':
+      return [TEXTS.regimeRequired];
+    case 'unbekannt':
+      return [
+        ...(transition.conflict === 'lieferungUndZeitraum'
+          ? [TEXTS.datesApart]
+          : transition.conflict === 'positionen'
+            ? [TEXTS.linePeriodsApart]
+            : []),
+        ...(mendFile ? [TEXTS.supplierMendFile] : []),
+        TEXTS.regimeGeneral,
+      ];
+  }
 }
 
 /** How many technical schema messages the result itself shows (all are listed below it). */
 const SCHEMA_LINES = 3;
 
-function schemaLines(invoice: InvoiceVerdict, inPdf: boolean): string[] {
-  const schema = invoice.part.schema;
-  if (!schema || !schemaFailed(invoice)) return [];
-  const shown = schema.problems.slice(0, SCHEMA_LINES);
-  return [
-    fill(inPdf ? TEXTS.schemaMismatchIn : TEXTS.schemaMismatch, {
-      name: invoice.part.origin,
-      schema: schema.schema,
-      count: schema.count,
-    }),
-    ...shown.map(technicalLine),
-    ...(schema.count > shown.length
-      ? [fill(TEXTS.schemaMore, { count: schema.count - shown.length })]
-      : []),
-  ];
+/** The German sentence of a schema mismatch, and the engine's messages (G-10: shown last). */
+function schemaParts(
+  invoices: readonly InvoiceVerdict[],
+  inPdf: boolean,
+): { german: string[]; technical: string[] } {
+  const german: string[] = [];
+  const technical: string[] = [];
+  for (const invoice of invoices) {
+    const schema = invoice.part.schema;
+    if (!schema || !schemaFailed(invoice)) continue;
+    german.push(
+      fill(inPdf ? TEXTS.schemaMismatchIn : TEXTS.schemaMismatch, {
+        name: invoice.part.origin,
+        schema: schema.schema,
+        count: schema.count,
+      }),
+    );
+    const shown = schema.problems.slice(0, SCHEMA_LINES);
+    technical.push(
+      ...shown.map(technicalLine),
+      ...(schema.count > shown.length
+        ? [fill(TEXTS.schemaMore, { count: schema.count - shown.length })]
+        : []),
+    );
+  }
+  return { german, technical };
 }
 
-function singleVerdict(analysis: Analysis, invoice: InvoiceVerdict, withSchema = true): Verdict {
+/** A format error: what is wrong, the F24 sentence, the transition sentence — technique last. */
+function formatErrorLines(
+  invoices: readonly InvoiceVerdict[],
+  inPdf: boolean,
+): { german: string[]; technical: string[] } {
+  const { german, technical } = schemaParts(invoices, inPdf);
+  if (german.length === 0) return { german, technical };
+  return {
+    german: [...german, TEXTS.formatError, ...transitionLines(transitionFor(invoices), true)],
+    technical,
+  };
+}
+
+function sourceLines(invoice: InvoiceVerdict, inPdf: boolean): string[] {
+  return inPdf
+    ? [fill(TEXTS.hybridSource, { name: invoice.part.origin }), TEXTS.xmlCounts]
+    : [TEXTS.xmlFile];
+}
+
+function singleVerdict(analysis: Analysis, invoice: InvoiceVerdict): Verdict {
   const inPdf = analysis.kind === 'pdf';
   const profileName = invoice.profile.entry?.profile ?? invoice.specLabel;
-  const schema = withSchema ? schemaLines(invoice, inPdf) : [];
-  const rules = withSchema ? rulesLines(invoice, false) : [];
+  const format = formatErrorLines([invoice], inPdf);
+  const rules = rulesLines([invoice]);
   switch (invoice.einordnung) {
     case 'eRechnung': {
-      const source = inPdf
-        ? [fill(TEXTS.hybridSource, { name: invoice.part.origin }), TEXTS.xmlCounts]
-        : [TEXTS.xmlFile];
       const hint = invoice.profile.entry?.hint ? [invoice.profile.entry.hint] : [];
-      if (schema.length > 0) {
-        // Step 2b: the XML does not match the official schema — F4: "Formatfehler, gem. Rn. 6a
-        // ggf. keine E-Rechnung"
+      if (format.german.length > 0) {
+        // Step 2b: the XML does not match the official schema (F24)
         return {
           tone: 'bad',
           headline: fill(TEXTS.schemaErrorHeadline, { spec: invoice.specLabel }),
-          explanation: [...source, ...hint, ...schema, TEXTS.formatError, ...rules],
+          explanation: [
+            ...sourceLines(invoice, inPdf),
+            ...hint,
+            ...format.german,
+            ...rules,
+            ...format.technical,
+          ],
           invoices: [invoice],
         };
       }
-      // Step 3a: a possible irregularity in the amounts is a hint (warn), not a format error
+      // F22: missing Pflichtangaben and hints make an e-invoice yellow, as do calculation
+      // irregularities (step 3a); G-3: the headline says so
+      const pflicht = pflichtLines(invoice);
+      const warn = rules.length > 0 || pflicht.length > 0;
       return {
-        tone: rules.length > 0 ? 'warn' : 'ok',
-        headline: fill(TEXTS.eRechnung, { spec: invoice.specLabel }),
-        explanation: [...source, ...hint, ...rules],
+        tone: warn ? 'warn' : 'ok',
+        headline: fill(warn ? TEXTS.eRechnungHints : TEXTS.eRechnung, { spec: invoice.specLabel }),
+        explanation: [...sourceLines(invoice, inPdf), ...hint, ...pflicht, ...rules],
         invoices: [invoice],
       };
     }
-    case 'keineERechnung':
+    case 'keineERechnung': {
+      // G-7: ZUGFeRD 1.0 is a version, not a profile
+      const zugferd1 =
+        invoice.part.syntax === 'zugferd1' || invoice.profile.entry?.profile === 'ZUGFeRD 1.0';
       return {
         tone: 'bad',
-        headline: fill(inPdf ? TEXTS.keineERechnungPdf : TEXTS.keineERechnungXml, {
-          profile: profileName,
-        }),
+        headline: zugferd1
+          ? inPdf
+            ? TEXTS.zugferd1Pdf
+            : TEXTS.zugferd1Xml
+          : fill(inPdf ? TEXTS.keineERechnungPdf : TEXTS.keineERechnungXml, {
+              profile: profileName,
+            }),
         explanation: [
-          invoice.part.syntax === 'zugferd1' || invoice.profile.entry?.profile === 'ZUGFeRD 1.0'
-            ? TEXTS.zugferd1Reason
-            : TEXTS.minimumReason,
+          zugferd1 ? TEXTS.zugferd1Reason : TEXTS.minimumReason,
+          // F26: with readable dates the sentence by date, else the general one (F23)
+          ...transitionLines(transitionFor([invoice]), false),
         ],
         invoices: [invoice],
       };
+    }
     case 'nichtBeurteilt':
       return {
         tone: 'warn',
@@ -231,8 +333,10 @@ function singleVerdict(analysis: Analysis, invoice: InvoiceVerdict, withSchema =
             ? fill(TEXTS.unknownSpec, { id: invoice.profile.id })
             : TEXTS.missingSpec,
           TEXTS.shownAnyway,
-          ...(schema.length > 0 ? [...schema, TEXTS.formatError] : []),
+          ...format.german,
           ...rules,
+          TEXTS.kanzleiJudges,
+          ...format.technical,
         ],
         invoices: [invoice],
       };
@@ -243,15 +347,14 @@ function fileProblemVerdict(analysis: Analysis): Verdict | undefined {
   const problem = analysis.problem;
   if (!problem) return undefined;
   const text = TEXTS.fileProblems[problem.kind];
-  const technical = problemLine(problem.problems[0]);
+  // G-10: the German sentences first, the engine's message last; a broken XML is a format error
+  // whose dates cannot be read (F23: the supplier hint and the general sentence)
+  const transition =
+    problem.kind === 'xmlBroken' ? transitionLines({ regime: 'unbekannt' }, true) : [];
   return {
     tone: text.tone,
     headline: text.headline,
-    // the technical message before "Formatfehler …", as for a broken XML inside a PDF (U-07)
-    explanation:
-      problem.kind === 'xmlBroken'
-        ? [...technical, ...text.explanation]
-        : [...text.explanation, ...technical],
+    explanation: [...text.explanation, ...transition, ...problemLine(problem.problems[0])],
     invoices: [],
   };
 }
@@ -266,6 +369,7 @@ export function pflichtModel(invoice: InvoiceVerdict): InvoiceModel | undefined 
 
 /** Whether the XML is what counts: at least one invoice XML is an e-invoice (fixed notice, F19). */
 export function xmlCounts(verdict: Verdict): boolean {
+  if (verdict.comparison && !verdict.comparison.same) return false;
   return verdict.invoices.some((invoice) => invoice.einordnung === 'eRechnung');
 }
 
@@ -277,41 +381,50 @@ export function verdictOf(analysis: Analysis): Verdict {
   const [only] = invoices;
   if (invoices.length === 1 && only) return singleVerdict(analysis, only);
 
-  if (invoices.length > 1) {
+  if (invoices.length > 1 && only) {
     const differing = differingTerms(analysis.invoices);
     const names = analysis.invoices.map((p) => p.origin).join(', ');
     // the schema result of every part, never only of the first (cf. L-03)
-    const failed = invoices.filter(schemaFailed);
-    const schema =
-      failed.length > 0 ? [...failed.flatMap((i) => schemaLines(i, true)), TEXTS.formatError] : [];
-    const rules = invoices.flatMap((i) => rulesLines(i, true));
-    if (differing.length === 0 && only) {
-      const base = singleVerdict(analysis, only, false);
-      const [firstFailed] = failed;
+    const format = formatErrorLines(invoices, true);
+    if (differing.length === 0) {
+      // F27: the same data twice — one part is shown, with a hint on the standard
+      const base = singleVerdict(analysis, only);
+      const failed = format.german.length > 0;
+      const firstFailed = invoices.find(schemaFailed);
+      const eRechnung = only.einordnung === 'eRechnung';
       return {
-        ...base,
-        tone: failed.length > 0 ? 'bad' : base.tone === 'ok' ? 'warn' : base.tone,
+        tone: failed ? 'bad' : base.tone === 'bad' ? 'bad' : 'warn',
         headline: firstFailed
           ? fill(TEXTS.schemaErrorHeadline, { spec: firstFailed.specLabel })
-          : base.headline,
+          : eRechnung
+            ? fill(TEXTS.eRechnungHints, { spec: only.specLabel })
+            : base.headline,
         explanation: [
-          ...base.explanation,
+          ...(eRechnung ? sourceLines(only, true) : base.explanation),
+          ...(eRechnung && only.profile.entry?.hint ? [only.profile.entry.hint] : []),
           fill(TEXTS.sameSeveral, { count: invoices.length, names }),
-          ...schema,
-          ...rules,
+          ...format.german,
+          ...(eRechnung && !failed ? pflichtLines(only) : []),
+          ...rulesLines(invoices),
+          ...format.technical,
         ],
         invoices,
         comparison: { same: true, differing },
       };
     }
+    // F27: different data — a format error: no unambiguous extraction (BMF 15.10.2025 Rn. 6a),
+    // and the standard allows one invoice XML per PDF; only the values are compared
     return {
-      tone: failed.length > 0 ? 'bad' : 'warn',
+      tone: 'bad',
       headline: TEXTS.contradicting,
       explanation: [
         fill(TEXTS.contradictingWhy, { count: invoices.length, names }),
+        TEXTS.oneXmlOnly,
+        TEXTS.formatError,
         TEXTS.askSupplier,
-        ...schema,
-        ...rules,
+        ...transitionLines(transitionFor(invoices), false),
+        ...schemaParts(invoices, true).german,
+        ...format.technical,
       ],
       invoices,
       comparison: { same: false, differing },
@@ -331,6 +444,7 @@ export function verdictOf(analysis: Analysis): Verdict {
             })
           : '',
         TEXTS.otherFormats,
+        TEXTS.kanzleiJudges,
       ].filter((line) => line.length > 0),
       invoices: [],
     };
@@ -342,8 +456,9 @@ export function verdictOf(analysis: Analysis): Verdict {
       headline: TEXTS.pdfBrokenXml,
       explanation: [
         fill(TEXTS.attachmentBroken, { name: broken.origin }),
-        ...problemLine(broken.problems?.[0]),
         TEXTS.formatError,
+        ...transitionLines({ regime: 'unbekannt' }, true),
+        ...problemLine(broken.problems?.[0]),
       ],
       invoices: [],
     };
@@ -375,9 +490,15 @@ export function verdictOf(analysis: Analysis): Verdict {
       explanation: [
         fill(TEXTS.attachmentsNoInvoice, { names: names.join(', ') }),
         TEXTS.plainPdfWhy,
+        TEXTS.regimeGeneral,
       ],
       invoices: [],
     };
   }
-  return { tone: 'bad', headline: TEXTS.plainPdf, explanation: [TEXTS.plainPdfWhy], invoices: [] };
+  return {
+    tone: 'bad',
+    headline: TEXTS.plainPdf,
+    explanation: [TEXTS.plainPdfWhy, TEXTS.regimeGeneral],
+    invoices: [],
+  };
 }

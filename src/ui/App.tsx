@@ -181,7 +181,8 @@ export function App() {
       </div>
 
       <p className="notice" data-testid="fixed-notice">
-        {state.step === 'done' && xmlCounts(state.verdict)
+        {/* G-6: "Maßgeblich … XML" only where there is a picture to compare with: a PDF */}
+        {state.step === 'done' && state.analysis.kind === 'pdf' && xmlCounts(state.verdict)
           ? TEXTS.fixedNotice
           : TEXTS.fixedNoticeGeneral}
       </p>

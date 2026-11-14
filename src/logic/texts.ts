@@ -3,23 +3,39 @@
 import type { FileProblemKind } from './analysis';
 import type { Tone } from './verdict';
 
-/** F4 (Tobias 2026-11-13), word for word — one constant for every place it is shown (V-03) */
-const FORMAT_ERROR = 'Formatfehler, gem. Rn. 6a ggf. keine E-Rechnung.';
+/** F24 (Tobias 2026-11-14, replaces the F4 wording) — one constant for every place it is shown */
+const FORMAT_ERROR =
+  'Die Datei hat einen Formatfehler. Sie ist deshalb möglicherweise keine E-Rechnung (BMF-Schreiben vom 15.10.2025, Rn. 6a).';
+/** F23: the supplier, not the tool, can mend a file (Tobias: a hint, not a demand) */
+const RESEND = 'Sie könnten den Lieferanten bitten, die Datei noch einmal zu schicken.';
+const KANZLEI_JUDGES = 'Ob das eine E-Rechnung ist, kann Ihre Kanzlei beurteilen.';
 
 export const TEXTS = {
+  /** A PDF with an e-invoice: the XML counts, not the picture (F19; G-6: only for a PDF) */
   fixedNotice:
-    'Technische Erstprüfung, keine steuerliche Prüfung. Maßgeblich sind die Daten in der XML. Bei Fragen wenden Sie sich an Ihre Kanzlei.',
-  /** Before a result and when no e-invoice was found: the XML is not what counts (F19) */
+    'Technische Erstprüfung, keine steuerliche Prüfung: Das Tool liest nur die Daten der Datei und beurteilt nicht, ob die Rechnung steuerlich richtig ist. Maßgeblich sind die Daten in der XML. Bei Fragen wenden Sie sich an Ihre Kanzlei.',
   fixedNoticeGeneral:
-    'Technische Erstprüfung, keine steuerliche Prüfung. Bei Fragen wenden Sie sich an Ihre Kanzlei.',
+    'Technische Erstprüfung, keine steuerliche Prüfung: Das Tool liest nur die Daten der Datei und beurteilt nicht, ob die Rechnung steuerlich richtig ist. Bei Fragen wenden Sie sich an Ihre Kanzlei.',
+  // G-6: what the tool shows, before a file is chosen
+  introPoints: [
+    'ob es eine E-Rechnung ist,',
+    'welche Pflichtangaben sie enthält,',
+    'ob die Datei dem Standard entspricht und die Beträge zusammenpassen.',
+  ],
+  introLead: 'Das Tool zeigt:',
 
   eRechnung: 'E-Rechnung erkannt ({spec})',
+  // G-3: a yellow result says so in its headline (and the announcement)
+  eRechnungHints: 'E-Rechnung erkannt ({spec}) – mit Hinweisen',
   hybridSource: 'Das PDF enthält Rechnungsdaten als XML (Anhang „{name}“).',
   xmlCounts: 'Maßgeblich sind die Daten in der XML, nicht das Bild des PDF.',
   xmlFile: 'Die Datei enthält die Rechnungsdaten als XML.',
 
   keineERechnungPdf: 'PDF mit Rechnungsdaten, Profil {profile}: keine E-Rechnung im Sinne des UStG',
   keineERechnungXml: 'Rechnungsdaten im Profil {profile}: keine E-Rechnung im Sinne des UStG',
+  // G-7: ZUGFeRD 1.0 is a version, not a profile
+  zugferd1Pdf: 'PDF mit Rechnungsdaten nach ZUGFeRD 1.0: keine E-Rechnung im Sinne des UStG',
+  zugferd1Xml: 'Rechnungsdaten nach ZUGFeRD 1.0: keine E-Rechnung im Sinne des UStG',
   minimumReason:
     'Nach dem BMF-Schreiben vom 15.10.2024 (Rn. 25 und 30) und Abschnitt 14.1 Abs. 14 UStAE gelten ZUGFeRD- und Factur-X-Rechnungen in den Profilen MINIMUM und BASIC WL nicht als E-Rechnung.',
   zugferd1Reason:
@@ -30,15 +46,18 @@ export const TEXTS = {
   unknownSpec: 'Kennung der Spezifikation (BT-24): {id}. Diese Kennung kennt das Tool nicht.',
   missingSpec: 'Die Kennung der Spezifikation (BT-24) fehlt.',
   shownAnyway: 'Die Angaben aus der XML werden trotzdem angezeigt.',
+  kanzleiJudges: KANZLEI_JUDGES,
   zugferd20Hint:
     'Ob die Datei nach ZUGFeRD 2.0 oder 2.0.1 erstellt ist, lässt sich an ihr nicht erkennen; das BMF erkennt ZUGFeRD erst ab Version 2.0.1 als E-Rechnung an (BMF-Schreiben vom 15.10.2024, Rn. 30).',
 
+  // F27: the standard allows one invoice XML per PDF (Factur-X 1.09.2, specification p. 28)
   sameSeveral:
-    'Dieselbe Rechnung ist {count}-mal eingebettet ({names}). Vorgesehen ist nur eine Rechnungs-XML je PDF.',
-  contradicting: 'Mögliche Auffälligkeit: widersprüchliche Rechnungsdaten im PDF',
+    'Dieselbe Rechnung ist {count}-mal eingebettet ({names}). Nach dem Standard ist nur eine Rechnungs-XML je PDF zulässig.',
+  contradicting: 'Rechnungsdaten mit Formatfehler: mehrere Rechnungs-XML im PDF',
   contradictingWhy:
     'Das PDF enthält {count} Rechnungs-XML mit unterschiedlichen Daten ({names}). Unklar ist, welche gilt.',
-  askSupplier: 'Bitte fordern Sie beim Lieferanten eine eindeutige Fassung an.',
+  oneXmlOnly: 'Nach dem Standard (Factur-X/ZUGFeRD) ist nur eine Rechnungs-XML je PDF zulässig.',
+  askSupplier: 'Sie könnten beim Lieferanten eine eindeutige Fassung anfordern.',
 
   otherXml: 'XML-Datei ohne bekanntes Rechnungsformat',
   rootIs: 'Wurzelelement: {name} (Namensraum {namespace}).',
@@ -59,6 +78,27 @@ export const TEXTS = {
   attachmentsTruncated: 'Das PDF hat sehr viele Anhänge. Das Tool hat nur die ersten 50 gelesen.',
   notJudged: 'Ob das PDF eine E-Rechnung ist, kann das Tool deshalb nicht sagen.',
   formatError: FORMAT_ERROR,
+
+  // F26: § 27 Abs. 38 UStG by the date of supply and invoice (src/logic/uebergang.ts)
+  regimeAllowed:
+    'Für diese Rechnung ist eine sonstige Rechnung noch zulässig (§ 27 Abs. 38 Nr. 1 UStG).',
+  regimeTurnover:
+    'Für eine Leistung im Jahr 2027 ist eine sonstige Rechnung nur zulässig, wenn der Gesamtumsatz des Lieferanten 2026 höchstens 800.000 Euro betrug (§ 27 Abs. 38 Nr. 2 UStG). Haben Sie zuverlässig geklärt, dass der Lieferant keine E-Rechnung ausstellen muss?',
+  regimeRequired:
+    'Hier ist eine E-Rechnung nötig. Sie könnten mit dem Lieferanten klären, ob er die Datei berichtigt. Ohne Berichtigung kann der Vorsteuerabzug gefährdet sein.',
+  // F23: no readable supply date
+  regimeGeneral:
+    'Ob der Lieferant eine E-Rechnung ausstellen muss, hängt vom Datum der Leistung und von seinem Umsatz ab. Ihre Kanzlei kann das beurteilen.',
+  supplierMendFile: 'Sie könnten mit dem Lieferanten klären, ob er die Datei berichtigt.',
+  datesApart: 'Lieferdatum und Leistungszeitraum liegen in verschiedenen Jahren.',
+  linePeriodsApart: 'Die Leistungszeiträume der Positionen liegen in verschiedenen Jahren.',
+
+  // F22/F23: missing Pflichtangaben and hints of the rows, in the result box
+  pflichtMissingLine: 'Es fehlen Pflichtangaben: {list} (siehe „Pflichtangaben“).',
+  pflichtHintLine: 'Ein Hinweis zu den Pflichtangaben (siehe „Pflichtangaben“).',
+  pflichtHintsLine: '{count} Hinweise zu den Pflichtangaben (siehe „Pflichtangaben“).',
+  supplierComplete:
+    'Sie könnten mit dem Lieferanten klären, ob er die Rechnung ergänzt. Ohne die fehlende Angabe kann der Vorsteuerabzug gefährdet sein.',
 
   // Step 2b: the official schema (F4 for the statement)
   schemaErrorHeadline: 'Rechnungsdaten mit Formatfehler ({spec})',
@@ -96,7 +136,15 @@ export const TEXTS = {
   rulesOk: 'Die geprüften Beträge passen zusammen.',
   rulesOwnRules:
     'Für das Profil EXTENDED gelten eigene Rechenregeln von FeRD. Diese werden hier nicht geprüft, nur die Regel BR-CO-14.',
-  rulesAuffaellig: 'Mögliche Auffälligkeit: {ids}. Bitte prüfen Sie die Beträge.',
+  rulesAuffaellig: 'Mögliche Auffälligkeit: {ids}.',
+  // F23 by the kind of rule (Tobias 2026-11-14)
+  adviceAmount: 'Sie könnten mit dem Lieferanten klären, welcher Betrag richtig ist.',
+  adviceAmountBeforePayment:
+    'Sie könnten vor der Zahlung mit dem Lieferanten klären, welcher Betrag richtig ist.',
+  adviceTax:
+    'Als Vorsteuer abziehbar ist höchstens die gesetzlich geschuldete Steuer, bei zu niedrigem Ausweis nur der ausgewiesene Betrag.',
+  adviceNet:
+    'Das Entgelt ist eine Pflichtangabe; ein Fehler darin kann den Vorsteuerabzug gefährden.',
   rulesHint: 'Mögliche Auffälligkeit bei den Beträgen: {ids} (siehe „Rechnerische Prüfung“).',
   rulesHintIn:
     'Mögliche Auffälligkeit bei den Beträgen im Anhang „{name}“: {ids} (siehe „Rechnerische Prüfung“).',
@@ -124,6 +172,9 @@ export const TEXTS = {
   // F21 (Tobias 2026-11-14)
   allPresent:
     'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
+  // F22: the F21 sentence names the hints of the rows
+  hintBelow: 'Bitte beachten Sie den Hinweis unten.',
+  hintsBelow: 'Bitte beachten Sie die {count} Hinweise unten.',
   missingList: 'Es fehlt: {list}.',
   missingOnly: 'nur',
   addressCity: 'Ort',
@@ -140,7 +191,7 @@ export const TEXTS = {
     'Für Rechnungsdaten, die keine E-Rechnung sind, zeigt das Tool keine Pflichtangaben. Maßgeblich ist dann die lesbare Rechnung, nicht die XML.',
 
   fileProblems: {
-    empty: { tone: 'bad', headline: 'Die Datei ist leer', explanation: [] },
+    empty: { tone: 'bad', headline: 'Die Datei ist leer', explanation: [RESEND] },
     // The browser cannot read it: a dropped folder, or a file moved or deleted meanwhile — the
     // browser's own (English) message is not shown (audit Bedienung, A-03)
     unreadable: {
@@ -148,6 +199,7 @@ export const TEXTS = {
       headline: 'Die Datei lässt sich nicht öffnen',
       explanation: [
         'Vielleicht ist es ein Ordner, oder die Datei wurde inzwischen verschoben. Bitte wählen Sie eine einzelne PDF- oder XML-Datei.',
+        RESEND,
       ],
     },
     unsupportedType: {
@@ -164,19 +216,20 @@ export const TEXTS = {
       tone: 'bad',
       headline: 'Das PDF ist mit einem Kennwort geschützt',
       explanation: [
-        'Das Tool kann geschützte PDF-Dateien nicht lesen. Bitte fordern Sie beim Lieferanten eine ungeschützte Fassung an.',
+        'Das Tool kann geschützte PDF-Dateien nicht lesen. Sie könnten beim Lieferanten eine ungeschützte Fassung anfordern.',
       ],
     },
     damaged: {
       tone: 'bad',
       headline: 'Das PDF lässt sich nicht lesen',
-      explanation: ['Die Datei ist beschädigt oder kein PDF.'],
+      explanation: ['Die Datei ist beschädigt oder kein PDF.', RESEND],
     },
     xmlDoctype: {
       tone: 'warn',
       headline: 'XML-Datei mit Dokumenttyp-Angabe: nicht geprüft',
       explanation: [
         'E-Rechnungen enthalten keine Dokumenttyp-Angabe (DOCTYPE). Aus Sicherheitsgründen prüft das Tool solche Dateien nicht.',
+        KANZLEI_JUDGES,
       ],
     },
     xmlBroken: {
