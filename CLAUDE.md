@@ -270,6 +270,16 @@ false`). An official CEN example in CII D16B carrying the ZUGFeRD 1.0 id is call
 
 ## Status / next step
 
+**2026-11-14 — version 0.3.0 (Tobias' decisions in the dialogue, one question per round):** PR #2
+merged (`d8b9d76`). F22 (missing Pflichtangaben and hints make the box yellow, "– mit Hinweisen"),
+F23 (hints instead of demands, the Kanzlei only where it helps, advice by kind of rule), F24
+(format error sentence with BMF 15.10.2025 Rn. 6a), F25 (simpler wording), F26 (sentence by the
+date of supply and invoice, `uebergang.ts`), F27 (different invoice XML = format error with a
+comparison table), F28 (Factur-X profile schemas), F29 (FeRD rules for EXTENDED,
+`rulesExtended.ts`), G-1 … G-10 (folded rows, jump links, technical details closed, print and
+copy buttons, compact drop zone, start view, wording). Samples 31–35. Open: F30 (supply before
+2025), ZUGFeRD 1.0 evidence (research). Next: PR, then Tobias uploads app and samples (local).
+
 **2026-11-14 — quality audit of the handling (Tobias: "Qualitätsaudit, insbesondere für die
 Handhabung des Nutzers"):** PR #1 merged into `main` (`06e96a0`, 0.2.0); the tag `v0.2.0` could not
 be pushed from the cloud session (the session's git access allows only its own branch) — Tobias sets
