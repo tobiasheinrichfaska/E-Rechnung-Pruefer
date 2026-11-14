@@ -13,7 +13,7 @@ import/
 import-archiv/
 
 # Sample invoices whose licence forbids redistribution (FeRD Musterrechnungen) — local only
-tests/fixtures/lokal/
+tests/fixtures/lokal
 
 # Upload tool: tester list (hashes) and generated access rules — local only
 deploy/.local/

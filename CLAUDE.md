@@ -36,6 +36,11 @@ only after his explicit OK**. GitHub: https://github.com/tobiasheinrichfaska/E-R
 (public, created 2026-11-14 on his request; Claude Code on the web works from his GitHub account —
 keep `main` pushed after his OK so web sessions see the current state).
 
+**Cloud / local split (Tobias 2026-11-14):** development, all tests and audits run in Claude Code on
+the web; locally only the upload (`npm run hochladen`), server headers, downloads behind forms and
+the manual tests remain — briefing for the local Claude Code:
+[`docs/briefing-claude-lokal.md`](docs/briefing-claude-lokal.md) (German).
+
 - Plan and step status: [`docs/plan.md`](docs/plan.md) (German)
 - Sources, versions, licences, SHA-256: [`docs/quellen.md`](docs/quellen.md)
 - Open and decided tax questions: [`docs/offene-fragen.md`](docs/offene-fragen.md)
@@ -58,7 +63,7 @@ keep `main` pushed after his OK so web sessions see the current state).
 | `tsconfig.json`                                            | Strict TS like the Fragebogen app                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `eslint.config.js`                                         | Layering (`src/logic` free of UI/IO/engines) and a ban on storage and network APIs in `src/`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `playwright.config.ts`                                     | E2E in Chromium, Firefox, WebKit on the built file                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| `.gitignore`, `.prettierignore`                            | Ignores (`node_modules/`, `dist/`, `.tmp/`, `import/`, `import-archiv/`, `tests/fixtures/lokal/`, `deploy/.local/`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `.gitignore`, `.prettierignore`                            | Ignores (`node_modules/`, `dist/`, `.tmp/`, `import/`, `import-archiv/`, `tests/fixtures/lokal` as folder or link to the private repo, `deploy/.local/`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `index.html`                                               | Entry HTML (`lang="de"`, no external URLs)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `src/main.tsx`                                             | Mounts the React app                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `src/appInfo.ts`                                           | App name + version (`__APP_VERSION__` from `package.json`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
@@ -114,7 +119,7 @@ keep `main` pushed after his OK so web sessions see the current state).
 | `tests/static/words.test.ts`                               | No "ordnungsgemäß"/"gültig" in any table with German text (TEXTS, PFLICHTANGABEN, MODES, PROFILES, labels) or in the UI components                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `tests/fixtures/offiziell/`                                | Official test files, byte-identical (`-text`): CEN 1.3.17 examples (EUPL-1.2), KoSIT testsuite instances incl. all 33 UBL/CII pairs of `instances/standard` in `kosit/paare/` (Apache-2.0) — see its README                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `docs/data-model.html`                                     | Generated data model (see Data Model) — never edit by hand                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| `docs/plan.md`, `docs/quellen.md`, `docs/offene-fragen.md` | Plan, sources, tax questions (German); `docs/bestandsaufnahme-2026-11-14.md`: inventory and audit with refutation agents (findings, verdicts, fixes, open points); `docs/audit-bedienung-2026-11-14.md`: quality audit of the handling (flow, comprehension, accessibility, result page) with refutation agents, fixes, open design questions G-1 … G-10                                                                                                                                                                                                                                                                                                                                                    |
+| `docs/plan.md`, `docs/quellen.md`, `docs/offene-fragen.md` | Plan, sources, tax questions (German); `docs/briefing-claude-lokal.md`: what the cloud session does and what remains local; `docs/bestandsaufnahme-2026-11-14.md`: inventory and audit with refutation agents (findings, verdicts, fixes, open points); `docs/audit-bedienung-2026-11-14.md`: quality audit of the handling (flow, comprehension, accessibility, result page) with refutation agents, fixes, open design questions G-1 … G-10                                                                                                                                                                                                                                                               |
 | `deploy/upload.json`                                       | Upload target `test` → `NebenprojektERechnung/` (access `ipOrLogin`) for `private/Auslieferung`; `deploy/README.md`: server headers the meta CSP cannot set (`frame-ancestors`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `manual_tests/`                                            | Human-tester instructions (German), ONLY what automated tests cannot cover (Tobias 2026-11-14): `01_echte_rechnungen.md` (real supplier files vs. PDF image), `02_geraete.md` (drag from mail client/Explorer, real phone), `03_verstaendlichkeit.md` (every result read like a client) — see [`manual_tests/README.md`](manual_tests/README.md)                                                                                                                                                                                                                                                                                                                                                            |
 | `.tmp/quellen/`                                            | Downloaded official artefacts (gitignored, see `docs/quellen.md`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
@@ -160,10 +165,13 @@ script with `update_environment` ("replaces the existing setup script"). Without
 cd E-Rechnung-Pruefer && npm ci --ignore-scripts && npx playwright install --with-deps chromium firefox webkit
 ```
 
-The FeRD samples are not in the repo: Tobias uploads `ZUGFeRD_2.5.2_DE.zip` into the session
-(SHA-256 in `docs/quellen.md`), its `Beispiele/` folder goes to `tests/fixtures/lokal/ferd/`
-(gitignored, never committed). Use `npm ci`, not `npm install` (npm 10 drops the `libc` fields
-from `package-lock.json`).
+The FeRD samples may not be redistributed: they live in the **private repository
+`tobiasheinrichfaska/E-Rechnung-Pruefer-privat`** (`ferd/` = the 61 samples, `ferd-paket/` = the whole
+FeRD package, SHA-256 as in `docs/quellen.md`), linked or cloned as `tests/fixtures/lokal`
+(gitignored as folder and as link). In a cloud session with that repository attached, the shared
+setup script links it; attached later (`add_repo`): `ln -s /home/user/e-rechnung-pruefer-privat
+tests/fixtures/lokal`. Without it `tests/io/ferdLokal.test.ts` is skipped — not a pass. Use `npm ci`,
+not `npm install` (npm 10 drops the `libc` fields from `package-lock.json`).
 
 ## Development Server Ports
 
@@ -174,7 +182,13 @@ from `package-lock.json`).
 ## Versioning
 
 Semantic versioning in `package.json`, injected as `__APP_VERSION__`. Workflow: bump
-`package.json` → `chore: bump version to X.Y.Z` → `git tag vX.Y.Z`.
+`package.json` → `chore: bump version to X.Y.Z` → after the merge, a row in the table below. **No git
+tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads them).
+
+| Version | Merge commit in `main` | Date       | Content                                                        |
+| ------- | ---------------------- | ---------- | -------------------------------------------------------------- |
+| 0.2.0   | `06e96a0`              | 2026-11-14 | Inventory and audit, F16–F21, schema check (2a/2b), rules (3a) |
+| 0.1.0   | (Fragebogen `76828a3`) | 2026-11-13 | Steps 1a–1c; the copy online in `NebenprojektERechnung/`       |
 
 ---
 
@@ -224,8 +238,8 @@ false`). An official CEN example in CII D16B carrying the ZUGFeRD 1.0 id is call
 - **Password-protected PDF** is tested with a synthetic encryption dictionary (the reader asks for
   a password); a real protected supplier PDF is not in the tests.
 - **E2E runs on file://**; the hosted copy is **older** than the repo (uploaded 2026-11-13 at
-  Fragebogen commit 76828a3, step 1c, version 0.1.0); the repo is at 0.2.0 (tag `v0.2.0` after the
-  merge into `main`) — upload only after Tobias' OK.
+  Fragebogen commit 76828a3, step 1c, version 0.1.0); the repo is at 0.2.0 (merge `06e96a0`, see Versioning) —
+  upload only after Tobias' OK.
 - **Browsers:** the single inline script needs class static blocks and the CSP
   `'wasm-unsafe-eval'`, so the floor is about Chrome/Edge 98, Firefox 102, Safari 16.4 (derived from
   MDN data, not tested in those versions). Above it XML and PDF work (pdf.js legacy build, e2e test
@@ -237,9 +251,10 @@ false`). An official CEN example in CII D16B carrying the ZUGFeRD 1.0 id is call
   "XML ohne bekanntes Rechnungsformat"); duplicate keys in a PDF name tree hide one attachment
   (pdf.js builds a map); the size of a compressed attachment is only known after unpacking (only
   the file size is limited); a `<meta>` CSP cannot set `frame-ancestors` (`deploy/README.md`).
-- **FeRD ZUGFeRD 2.5.2 sample invoices** may not be redistributed → they stay local in
-  `tests/fixtures/lokal/ferd/` (61 Factur-X PDFs); `tests/io/ferdLokal.test.ts` checks all of them
-  and is **skipped** where the folder is missing — a skipped test is not a pass.
+- **FeRD ZUGFeRD 2.5.2 sample invoices** may not be redistributed → they live in the private
+  repository `E-Rechnung-Pruefer-privat`, used as `tests/fixtures/lokal/` (61 Factur-X PDFs in
+  `ferd/`); `tests/io/ferdLokal.test.ts` checks all of them and is **skipped** where the folder is
+  missing — a skipped test is not a pass.
 - **Mapping source:** KoSIT/FeRD recommendation, Stand 25.07.2025 — copyrighted, not in the repo;
   our data table cites it per row. Deviations from the hand-over's provisional table: F9.
 
