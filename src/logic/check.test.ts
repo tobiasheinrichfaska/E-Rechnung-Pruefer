@@ -113,7 +113,10 @@ describe('the Pflichtangaben table as data', () => {
         paths.push(p.group, ...p.paths.map((x) => `${p.group}/${x}`));
         if (p.unless) paths.push(`${p.group}/${p.unless.path}`);
       }
-      if (p.kind === 'some') paths.push(p.group, ...p.paths.map((x) => `${p.group}/${x}`));
+      if (p.kind === 'some') {
+        paths.push(p.group, ...p.paths.map((x) => `${p.group}/${x}`));
+        if (p.where) paths.push(`${p.group}/${p.where.path}`);
+      }
       if (p.kind === 'anyOf' || p.kind === 'allOf') p.of.forEach(fromPresence);
     };
     const fromCondition = (c: Condition): void => {
@@ -126,7 +129,10 @@ describe('the Pflichtangaben table as data', () => {
     };
     for (const p of PFLICHTANGABEN) {
       paths.push(...p.show);
-      for (const each of p.each ?? []) paths.push(...each.paths.map((x) => `${each.group}/${x}`));
+      for (const each of p.each ?? []) {
+        paths.push(...each.paths.map((x) => `${each.group}/${x}`));
+        if (each.where) paths.push(`${each.group}/${each.where.path}`);
+      }
       fromPresence(p.presence);
       for (const need of Object.values(p.needs))
         if (need.kind === 'bedingt') fromCondition(need.when);
@@ -357,6 +363,40 @@ describe('special cases (§ 14a, § 22c UStG)', () => {
     expect(row(ae({ 'BT-121': 'VATEX-EU-AE' }), 'reverse-charge').status).toBe('vorhanden');
     // both parties in Germany: § 13b at home, no VAT ids needed
     expect(row(ae({}), 'ust-id-beide').status).toBe('einzelfall');
+  });
+
+  it('takes an exemption reason as reverse-charge note only from an AE breakdown, and back', () => {
+    // KoSIT 01.04a: category O "als gemeinnützig anerkannt" is no note on § 13b UStG
+    const notTaxable = checkPflichtangaben(
+      model({
+        'BG-23': [
+          { 'BT-116': '100', 'BT-117': '0', 'BT-118': 'O', 'BT-120': 'als gemeinnützig anerkannt' },
+        ],
+      }),
+    );
+    expect(row(notTaxable, 'reverse-charge').status).toBe('einzelfall');
+    expect(row(notTaxable, 'reverse-charge').groups[0]?.items).toEqual([]);
+    expect(row(notTaxable, 'befreiung').status).toBe('vorhanden');
+
+    // KoSIT 01.21a: the AE reason "Umkehrung der Steuerschuldnerschaft" is no exemption hint
+    const reverse = checkPflichtangaben(
+      model({
+        'BG-23': [
+          { 'BT-116': '100', 'BT-117': '19', 'BT-118': 'S', 'BT-119': '19' },
+          {
+            'BT-116': '50',
+            'BT-117': '0',
+            'BT-118': 'AE',
+            'BT-119': '0',
+            'BT-120': 'Umkehrung der Steuerschuldnerschaft',
+          },
+        ],
+      }),
+    );
+    expect(row(reverse, 'reverse-charge').status).toBe('vorhanden');
+    expect(row(reverse, 'reverse-charge').groups[0]?.items).toHaveLength(1);
+    expect(row(reverse, 'befreiung').status).toBe('einzelfall');
+    expect(row(reverse, 'befreiung').groups[0]?.items).toEqual([]);
   });
 
   it('asks for both VAT ids for an intra-Community supply', () => {

@@ -16,13 +16,19 @@ export type Need =
   /** this list of minimum content does not ask for it */
   | { kind: 'nicht'; because: string };
 
+/** Occurrences of a repeated group whose value at `path` is one of `values` (e.g. BT-118 = AE). */
+export interface OccurrenceFilter {
+  path: string;
+  values: string[];
+}
+
 export type Presence =
   | { kind: 'any'; paths: string[] }
   | { kind: 'address'; group: string }
   /** every occurrence of `group` (at least one) has a value at every relative path */
-  | { kind: 'each'; group: string; paths: string[]; unless?: { path: string; values: string[] } }
-  /** at least one occurrence of `group` has a value at one of the relative paths */
-  | { kind: 'some'; group: string; paths: string[] }
+  | { kind: 'each'; group: string; paths: string[]; unless?: OccurrenceFilter }
+  /** at least one occurrence of `group` (only those matching `where`) has a value at a path */
+  | { kind: 'some'; group: string; paths: string[]; where?: OccurrenceFilter }
   /** a value matches the pattern (case-insensitive) at one of the paths */
   | { kind: 'text'; paths: string[]; pattern: string }
   | { kind: 'equals'; path: string; values: string[] }
@@ -51,7 +57,7 @@ export interface Pflichtangabe {
   /** Terms shown with their values (paths into the model) */
   show: string[];
   /** Per occurrence of a repeated group (positions, VAT breakdown …): what each shows */
-  each?: { group: string; paths: string[] }[];
+  each?: { group: string; paths: string[]; where?: OccurrenceFilter }[];
   presence: Presence;
   needs: Record<Mode, Need>;
   /** Shown only in these modes (rows that exist for a special list of minimum content) */
@@ -76,6 +82,11 @@ export const ADDRESS_PARTS: Readonly<
 
 const NOTES = ['BG-1/BT-22'];
 const EXEMPTION_TEXT = ['BG-23/BT-120', 'BG-23/BT-121', ...NOTES];
+const REASON = ['BT-120', 'BT-121'];
+// An exemption reason belongs to its VAT category: the AE reason is the § 13b note, not an
+// exemption, and an O/E reason is no § 13b note (KoSIT 01.04a, 01.21a).
+const EXEMPT: OccurrenceFilter = { path: 'BT-118', values: ['E', 'K', 'G', 'O'] };
+const REVERSE: OccurrenceFilter = { path: 'BT-118', values: ['AE'] };
 const EXEMPTION_WORDS =
   'steuerfrei|steuerbefrei|befreit|befreiung|§\\s*4\\s*nr|nicht steuerbar|nicht im inland steuerbar|innergemeinschaftlich|ausfuhr|vatex';
 const IMMER: Need = { kind: 'immer' };
@@ -457,11 +468,11 @@ export const PFLICHTANGABEN: readonly Pflichtangabe[] = [
     label: 'Hinweis auf eine Steuerbefreiung',
     section: 'paragraph14',
     show: [],
-    each: [{ group: 'BG-23', paths: ['BT-118', 'BT-120', 'BT-121'] }],
+    each: [{ group: 'BG-23', paths: ['BT-118', ...REASON], where: EXEMPT }],
     presence: {
       kind: 'anyOf',
       of: [
-        { kind: 'any', paths: ['BG-23/BT-120', 'BG-23/BT-121'] },
+        { kind: 'some', group: 'BG-23', paths: REASON, where: EXEMPT },
         { kind: 'text', paths: NOTES, pattern: EXEMPTION_WORDS },
       ],
     },
@@ -581,11 +592,11 @@ export const PFLICHTANGABEN: readonly Pflichtangabe[] = [
     label: 'Angabe „Steuerschuldnerschaft des Leistungsempfängers“',
     section: 'besondere',
     show: [],
-    each: [{ group: 'BG-23', paths: ['BT-118', 'BT-120', 'BT-121'] }],
+    each: [{ group: 'BG-23', paths: ['BT-118', ...REASON], where: REVERSE }],
     presence: {
       kind: 'anyOf',
       of: [
-        { kind: 'any', paths: ['BG-23/BT-120', 'BG-23/BT-121'] },
+        { kind: 'some', group: 'BG-23', paths: REASON, where: REVERSE },
         {
           kind: 'text',
           paths: NOTES,

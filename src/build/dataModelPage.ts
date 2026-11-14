@@ -383,7 +383,8 @@ export const FUNCTIONS: { layer: string; signature: string; purpose: string }[] 
   {
     layer: 'logic',
     signature: 'present(model, presence) / holds(model, condition)',
-    purpose: 'Vorhandensein und Bedingungen aus den Daten auswerten',
+    purpose:
+      'Vorhandensein und Bedingungen aus den Daten auswerten; ein Filter (OccurrenceFilter, z. B. BT-118 = AE) beschränkt eine Gruppe auf passende Vorkommen',
   },
   {
     layer: 'logic',

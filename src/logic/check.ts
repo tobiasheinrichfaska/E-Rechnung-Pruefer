@@ -8,7 +8,7 @@ import { compareDecimal, formatAmount, parseDecimal } from './decimal';
 import { firstValue, groupsOf, valuesOf } from './model';
 import type { InvoiceModel, ModelGroup } from './model';
 import { ADDRESS_PARTS, MODES, PFLICHTANGABEN } from './pflichtangaben';
-import type { Condition, Mode, Pflichtangabe, Presence } from './pflichtangaben';
+import type { Condition, Mode, OccurrenceFilter, Pflichtangabe, Presence } from './pflichtangaben';
 import { CATEGORY_LABELS, TEXTS, UNIT_LABELS, fill } from './texts';
 
 export type Status = 'vorhanden' | 'fehlt' | 'einzelfall';
@@ -141,6 +141,12 @@ function occurrenceName(groupId: string, group: ModelGroup, index: number): stri
   return `${GROUP_LABEL.get(groupId) ?? groupId} ${index + 1}`;
 }
 
+/** No filter: every occurrence; otherwise its value at the path must be one of the codes. */
+function matchesFilter(group: ModelGroup, filter: OccurrenceFilter | undefined): boolean {
+  if (!filter) return true;
+  return valuesOf(group, filter.path).some((v) => filter.values.includes(v.value.toUpperCase()));
+}
+
 interface PresenceResult {
   ok: boolean;
   missing: string[];
@@ -168,7 +174,9 @@ export function present(model: InvoiceModel, presence: Presence): PresenceResult
       return { ok: missing.length === 0, missing };
     }
     case 'some': {
-      const groups = groupsOf(model, presence.group);
+      const groups = groupsOf(model, presence.group).filter((g) =>
+        matchesFilter(g, presence.where),
+      );
       return {
         ok: groups.some((group) => presence.paths.some((path) => has(group, path))),
         missing: [],
@@ -187,12 +195,7 @@ export function present(model: InvoiceModel, presence: Presence): PresenceResult
         };
       }
       const perGroup = groups.map((group, index) => {
-        const exempt = presence.unless
-          ? valuesOf(group, presence.unless.path).some((v) =>
-              presence.unless?.values.includes(v.value.toUpperCase()),
-            )
-          : false;
-        if (exempt) return [];
+        if (presence.unless && matchesFilter(group, presence.unless)) return [];
         return presence.paths
           .filter((path) => !has(group, path))
           .map(
@@ -244,12 +247,13 @@ function evaluateRow(model: InvoiceModel, row: Pflichtangabe, mode: Mode): RowRe
   const need = row.needs[mode];
   const required = need.kind === 'immer' || (need.kind === 'bedingt' && holds(model, need.when));
   const status: Status = ok ? 'vorhanden' : required ? 'fehlt' : 'einzelfall';
-  const groups: GroupDisplay[] = (row.each ?? []).map(({ group, paths }) => ({
+  const groups: GroupDisplay[] = (row.each ?? []).map(({ group, paths, where }) => ({
     group,
     label: GROUP_LABEL.get(lastSegment(group)) ?? group,
     // An occurrence that shows only its own number (e.g. a position without a period) says
     // nothing for this row and is left out.
     items: groupsOf(model, group)
+      .filter((occurrence) => matchesFilter(occurrence, where))
       .map((occurrence) => shown(occurrence, paths, currency))
       .filter((items) => items.some((item) => item.label !== POSITION_NUMBER)),
   }));
