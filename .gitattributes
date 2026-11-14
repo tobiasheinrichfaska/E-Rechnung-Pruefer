@@ -27,3 +27,4 @@
 # no line-ending conversion. Listed last so they win over "* text=auto".
 schemas/**/*.xsd -text
 tests/fixtures/** -text
+beispiele/** -text

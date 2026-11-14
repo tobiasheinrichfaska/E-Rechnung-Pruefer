@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Beispieldatei des E-Rechnungs-Prüfers mit erfundenen Daten -->
+<Lieferschein xmlns="urn:beispiel:lieferschein">
+  <Nummer>LS-100</Nummer>
+  <Datum>2026-11-02</Datum>
+  <Position>Bürostuhl, 2 Stück</Position>
+</Lieferschein>

@@ -17,6 +17,7 @@
     "test:watch": "vitest",
     "test:e2e": "npm run build && playwright test",
     "docs": "vitest run tests/docs --update",
+    "beispiele": "vitest run tests/beispiele --mode schreiben",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write .",

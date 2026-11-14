@@ -8,7 +8,10 @@
       "access": "ipOrLogin",
       "authName": "E-Rechnung - Test",
       "testers": "deploy/.local/tester.json",
-      "files": [{ "from": "dist/index.html", "to": "index.html", "verify": true }]
+      "files": [
+        { "from": "dist/index.html", "to": "index.html", "verify": true },
+        { "from": "beispiele/", "to": "beispiele/" }
+      ]
     }
   },
   "forbidden": [".tmp/", "tests/fixtures/lokal/", "deploy/.local/"]

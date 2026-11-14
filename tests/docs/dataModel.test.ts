@@ -5,7 +5,7 @@ import type { PdfJsLike } from '../../src/io/pdf';
 import { checkPflichtangaben } from '../../src/logic/check';
 import { verdictOf } from '../../src/logic/verdict';
 import { encode, officialText } from '../support/fixtures';
-import { miniPdf } from '../support/minipdf';
+import { miniPdf } from '../../src/build/minipdf';
 
 describe('docs/data-model.html', () => {
   it('is up to date with the source (regenerate with npm run docs)', async () => {

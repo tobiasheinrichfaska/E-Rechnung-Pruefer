@@ -3,8 +3,8 @@ import { analyzeFile, fileKindOf } from '../../src/io/analyze';
 import type { PdfJsLike } from '../../src/io/pdf';
 import { verdictOf } from '../../src/logic/verdict';
 import { encode, official, officialText, withInvoiceNumber, withSpecId } from '../support/fixtures';
-import { miniPdf } from '../support/minipdf';
-import type { Attachment } from '../support/minipdf';
+import { miniPdf } from '../../src/build/minipdf';
+import type { Attachment } from '../../src/build/minipdf';
 
 const load = () => Promise.resolve(pdfjs as unknown as PdfJsLike);
 const check = async (name: string, bytes: Uint8Array) => {

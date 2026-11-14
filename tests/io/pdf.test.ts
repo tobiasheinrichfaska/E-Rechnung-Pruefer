@@ -1,6 +1,6 @@
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { readPdfAttachments, type PdfJsLike } from '../../src/io/pdf';
-import { miniPdf } from '../support/minipdf';
+import { miniPdf } from '../../src/build/minipdf';
 
 const lib = pdfjs as unknown as PdfJsLike;
 const enc = (text: string) => new TextEncoder().encode(text);

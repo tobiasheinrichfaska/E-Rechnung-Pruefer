@@ -1,0 +1,15 @@
+Beispielrechnungen des E-Rechnungs-Prüfers
+==========================================
+
+Alle Daten sind erfunden. Keine Datei ist eine echte Rechnung.
+
+XML-Dateien und die Rechnungsdaten in den PDF-Dateien
+  Quelle: KoSIT XRechnung-Testsuite v2026-08-31 (https://github.com/itplr-kosit/xrechnung-testsuite), Apache License 2.0
+  Lizenz: Apache License 2.0, Text in LICENSE-Apache-2.0.txt
+  Geändert: erfundene Namen statt der Platzhalter der Testsuite, Zeilenenden LF und je Datei die
+  Änderungen, die im Kommentar am Anfang der XML stehen.
+
+Eigene Dateien (13_Keine_Rechnung.xml, 14_Fehlerhafte_XML.xml, 15_XML_mit_Dokumenttyp.xml,
+26_PDF_beschaedigt.pdf, die sichtbaren Seiten der PDF-Dateien)
+  E-Rechnungs-Prüfer, https://github.com/tobiasheinrichfaska/E-Rechnung-Pruefer
+  Lizenz: GNU AGPL v3 oder kommerziell (siehe LICENSE im Repository).

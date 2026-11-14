@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { encode, official, officialText, withInvoiceNumber, withSpecId } from '../support/fixtures';
-import { miniPdf } from '../support/minipdf';
+import { miniPdf } from '../../src/build/minipdf';
 import { openApp, sideEffects, upload } from './helpers';
 
 const CII = officialText('cen/CII_example1.xml');

@@ -6,7 +6,8 @@ können sie nicht nachstellen.
 
 ## MT-02: Rechnung aus dem Mailprogramm und dem Explorer ziehen
 
-**Voraussetzung:** Eine E-Mail mit einer PDF- oder XML-Rechnung im Anhang. Das Tool ist in einem
+**Voraussetzung:** Eine E-Mail mit einer PDF- oder XML-Rechnung im Anhang – ohne echte Rechnung
+schicken Sie sich eine Beispielrechnung (siehe [README](README.md)). Das Tool ist in einem
 Browserfenster geöffnet, das Mailprogramm daneben.
 
 1. Ziehen Sie den Anhang aus der E-Mail über die Fläche „Rechnung hierher ziehen“ und halten Sie ihn
@@ -18,11 +19,15 @@ Browserfenster geöffnet, das Mailprogramm daneben.
      Mailprogramm (z. B. Outlook, Outlook im Browser, Thunderbird).
 3. Speichern Sie den Anhang und ziehen Sie ihn aus dem Explorer auf die Fläche.
    - **Danach:** Wie in Schritt 2.
+4. Laden Sie auf der Seite mit den Beispielrechnungen eine Datei herunter. Ziehen Sie sie direkt aus
+   der Download-Liste des Browsers (Edge und Chrome: Symbol „Downloads“ oben rechts) auf die Fläche.
+   - **Danach:** Wie in Schritt 2. Lässt sich die Datei dort nicht ziehen, notieren Sie den Browser.
 
 ## MT-03: Am Handy oder Tablet
 
 **Voraussetzung:** Ein Handy oder Tablet (iPhone, iPad oder Android). Darauf ist eine Rechnung als
-Datei gespeichert, z. B. aus einer E-Mail.
+Datei gespeichert, z. B. aus einer E-Mail oder eine Beispielrechnung von der Seite mit den
+Beispielen.
 
 1. Öffnen Sie die Adresse des Tools im Browser des Geräts.
    - **Danach:** Außerhalb der Kanzlei fragt der Browser nach Benutzername und Kennwort – nehmen Sie

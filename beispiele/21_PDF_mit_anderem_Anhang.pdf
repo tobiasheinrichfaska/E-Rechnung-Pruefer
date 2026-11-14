@@ -1,0 +1,68 @@
+%PDF-1.7
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R /Names << /EmbeddedFiles << /Names [(lieferschein.txt) 8 0 R] >> >> /AF [8 0 R] >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 1435 >>
+stream
+BT /F2 11 Tf 56 775 Td (RECHNUNG) Tj ET
+BT /F1 10 Tf 56 756 Td (Muster Lieferant GmbH ∑ Lieferweg 1 ∑ 12345 Musterstadt) Tj ET
+BT /F1 10 Tf 56 729 Td (Beispiel K‰ufer GmbH) Tj ET
+BT /F1 10 Tf 56 716 Td (Kaufstraﬂe 2) Tj ET
+BT /F1 10 Tf 56 703 Td (12345 Beispielstadt) Tj ET
+BT /F1 10 Tf 56 674 Td (Rechnungsnummer: PRG1502112) Tj ET
+BT /F1 10 Tf 56 661 Td (Rechnungsdatum: 24.04.2015) Tj ET
+BT /F1 10 Tf 56 648 Td (Leistungszeitraum: 20.04.2015 bis 24.04.2015) Tj ET
+BT /F2 11 Tf 56 621 Td (Pos.  Menge  Bezeichnung  Betrag netto) Tj ET
+BT /F1 10 Tf 56 608 Td (Seminar: [Ö] 5 DAY \(Tag\) Seminar 6.700,00 EUR) Tj ET
+BT /F1 10 Tf 56 595 Td (Raumkosten Schulungsort 5 DAY \(Tag\) Raumkosten 1.500,00 EUR) Tj ET
+BT /F1 10 Tf 56 582 Td (Reisekostenpauschale 5 XPP \(St¸ck\) Reisekostenpauschale 450,00 EUR) Tj ET
+BT /F1 10 Tf 56 569 Td (Seminarunterlagen 11 XPP \(St¸ck\) Seminarunterlagen 220,00 EUR) Tj ET
+BT /F1 10 Tf 56 546 Td (Summe netto: 8.870,00 EUR) Tj ET
+BT /F1 10 Tf 56 533 Td (Umsatzsteuer S ñ steuerpflichtig 19 % auf 8.870,00 EUR: 1.685,30 EUR) Tj ET
+BT /F2 11 Tf 56 518 Td (Gesamtbetrag: 10.555,30 EUR) Tj ET
+BT /F1 10 Tf 56 505 Td (Zu zahlen: 10.555,30 EUR) Tj ET
+BT /F1 10 Tf 56 482 Td (14 Tage) Tj ET
+BT /F1 10 Tf 56 463 Td (Trainer: Herr [Ö]) Tj ET
+BT /F2 11 Tf 56 430 Td (Beispielrechnung mit erfundenen Daten, keine echte Rechnung. Dieses PDF enth‰lt keine) Tj ET
+BT /F2 11 Tf 56 415 Td (Rechnungsdaten als XML.) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+7 0 obj
+<< /Type /EmbeddedFile /Subtype /text#2fplain /Length 41 >>
+stream
+Lieferschein LS-100: B√ºrostuhl, 2 St√ºck
+endstream
+endobj
+8 0 obj
+<< /Type /Filespec /F (lieferschein.txt) /UF (lieferschein.txt) /EF << /F 7 0 R >> /AFRelationship /Supplement >>
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000015 00000 n 
+0000000144 00000 n 
+0000000201 00000 n 
+0000000337 00000 n 
+0000001824 00000 n 
+0000001921 00000 n 
+0000002023 00000 n 
+0000002157 00000 n 
+trailer
+<< /Size 9 /Root 1 0 R >>
+startxref
+2286
+%%EOF

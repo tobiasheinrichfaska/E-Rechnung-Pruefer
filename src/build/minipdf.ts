@@ -1,6 +1,7 @@
-// A minimal PDF writer for test files: one A4 page with an optional line of text and any number
-// of embedded files (EmbeddedFiles name tree + /AF, as Factur-X/ZUGFeRD place the invoice XML).
-// Own edge cases (plain PDF, foreign attachment, several XML) without third-party samples.
+// A minimal PDF writer for test and sample files: one A4 page with text lines and any number of
+// embedded files (EmbeddedFiles name tree + /AF, as Factur-X/ZUGFeRD place the invoice XML).
+// Own edge cases (plain PDF, foreign attachment, several XML) without third-party samples. No
+// PDF/A (no XMP, no output intent) — the tool does not check PDF/A.
 
 export interface Attachment {
   name: string;
@@ -12,8 +13,19 @@ export interface Attachment {
   description?: string;
 }
 
+/** One line of the page; long lines are not wrapped (the caller keeps them short). */
+export interface PageLine {
+  text: string;
+  bold?: boolean;
+  /** Extra space above the line in points */
+  space?: number;
+}
+
 export interface MiniPdfOptions {
+  /** One line at the top (12 pt) */
   text?: string;
+  /** The page as lines (10 pt, bold 11 pt), from the top */
+  lines?: PageLine[];
   attachments?: Attachment[];
   /**
    * Adds a standard security handler (RC4, revision 2) whose user password is not empty, so a
@@ -26,6 +38,44 @@ export interface MiniPdfOptions {
 const HEX_32 = 'A1B2C3D4E5F60718293A4B5C6D7E8F90A1B2C3D4E5F60718293A4B5C6D7E8F90';
 
 const latin1 = (text: string) => Uint8Array.from(text, (c) => c.charCodeAt(0) & 0xff);
+
+// WinAnsiEncoding: Latin-1 plus these; anything else becomes "?".
+const WIN_ANSI: Readonly<Record<string, number>> = {
+  '€': 0x80,
+  '‚': 0x82,
+  '„': 0x84,
+  '…': 0x85,
+  '‘': 0x91,
+  '’': 0x92,
+  '“': 0x93,
+  '”': 0x94,
+  '–': 0x96,
+  '—': 0x97,
+};
+
+export function winAnsi(text: string): Uint8Array {
+  return Uint8Array.from(text, (c) => {
+    const code = c.charCodeAt(0);
+    if (code < 0x80 || (code >= 0xa0 && code <= 0xff)) return code;
+    return WIN_ANSI[c] ?? 0x3f;
+  });
+}
+
+const TOP = 790;
+const LEFT = 56;
+
+function pageContent(options: MiniPdfOptions): string {
+  const parts: string[] = [];
+  if (options.text) parts.push(`BT /F1 12 Tf 72 770 Td ${literal(options.text)} Tj ET`);
+  let y = TOP;
+  for (const line of options.lines ?? []) {
+    y -= (line.bold ? 15 : 13) + (line.space ?? 0);
+    if (y < 40) break;
+    const font = line.bold ? '/F2 11' : '/F1 10';
+    parts.push(`BT ${font} Tf ${LEFT} ${y} Td ${literal(line.text)} Tj ET`);
+  }
+  return parts.join('\n');
+}
 const literal = (text: string) => `(${text.replace(/[\\()]/g, (c) => `\\${c}`)})`;
 const pdfName = (text: string) =>
   `/${text.replace(/[^A-Za-z0-9.-]/g, (c) => `#${c.charCodeAt(0).toString(16).padStart(2, '0')}`)}`;
@@ -40,10 +90,10 @@ export function miniPdf(options: MiniPdfOptions = {}): Uint8Array {
     return objects.length;
   };
 
-  // Reserve 1 catalog, 2 pages, 3 page, 4 content, 5 font; attachments follow.
-  const content = options.text ? `BT /F1 12 Tf 72 770 Td ${literal(options.text)} Tj ET` : '';
+  // Reserve 1 catalog, 2 pages, 3 page, 4 content, 5 font, 6 bold font; attachments follow.
+  const content = winAnsi(pageContent(options));
   const specIds: number[] = [];
-  objects.length = 5;
+  objects.length = 6;
   for (const file of attachments) {
     const streamId = add([
       `<< /Type /EmbeddedFile${file.mime ? ` /Subtype ${pdfName(file.mime)}` : ''} /Length ${file.bytes.byteLength} >>\nstream\n`,
@@ -67,11 +117,18 @@ export function miniPdf(options: MiniPdfOptions = {}): Uint8Array {
   objects[1] = [latin1('<< /Type /Pages /Kids [3 0 R] /Count 1 >>')];
   objects[2] = [
     latin1(
-      '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+      '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>',
     ),
   ];
-  objects[3] = [latin1(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`)];
-  objects[4] = [latin1('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>')];
+  objects[3] = [
+    latin1(`<< /Length ${content.byteLength} >>\nstream\n`),
+    content,
+    latin1('\nendstream'),
+  ];
+  const font = (name: string) =>
+    latin1(`<< /Type /Font /Subtype /Type1 /BaseFont /${name} /Encoding /WinAnsiEncoding >>`);
+  objects[4] = [font('Helvetica')];
+  objects[5] = [font('Helvetica-Bold')];
   const encryptId = options.passwordProtected
     ? add([`<< /Filter /Standard /V 1 /R 2 /O <${HEX_32}> /U <${HEX_32}> /P -44 >>`])
     : undefined;
