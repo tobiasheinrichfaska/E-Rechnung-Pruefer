@@ -20,7 +20,9 @@ import {
   within,
 } from './decimal';
 import type { Decimal } from './decimal';
+import type { ExtendedAmounts } from './analysis';
 import { termLabel } from './binding';
+import { checkExtendedRules } from './rulesExtended';
 import { groupsOf, valuesOf } from './model';
 import type { InvoiceModel, ModelGroup } from './model';
 import { TEXTS, fill } from './texts';
@@ -70,6 +72,23 @@ export const RULE_LABELS: Readonly<Record<string, string>> = {
     'Steuerbetrag (BT-117) = Bemessungsgrundlage (BT-116) × Steuersatz (BT-119), Abweichung bis 1 erlaubt',
   BREAKDOWN:
     'Bemessungsgrundlage (BT-116) = Positionen + Zuschläge − Nachlässe dieser Kategorie und dieses Satzes',
+  // F29: the FeRD forms for Factur-X EXTENDED (lines without GROUP/INFORMATION, logistics charges)
+  'BR-FXEXT-CO-10':
+    'Summe der Nettobeträge (BT-106) = Summe der Positionen (BT-131), Abweichung bis 0,01 je Position',
+  'BR-FXEXT-CO-11':
+    'Summe der Nachlässe (BT-107) = Nachlässe auf Dokumentebene (BT-92), Abweichung bis 0,01 je Nachlass',
+  'BR-FXEXT-CO-12':
+    'Summe der Zuschläge (BT-108) = Zuschläge auf Dokumentebene (BT-99) + Logistikkosten, Abweichung bis 0,01 je Betrag',
+  'BR-FXEXT-CO-13':
+    'Gesamtbetrag ohne Umsatzsteuer (BT-109) = Positionen − Nachlässe + Zuschläge und Logistikkosten, Abweichung bis 0,01 je Betrag',
+  'BR-FXEXT-CO-15':
+    'Gesamtbetrag mit Umsatzsteuer (BT-112) = BT-109 + BT-110, Abweichung bis 0,01 je Betrag',
+  'BR-FXEXT-CO-16':
+    'Fälliger Betrag (BT-115) = BT-112 − Vorauszahlung (BT-113) + Rundung (BT-114) + Ausgleichsbeträge',
+  'BR-FXEXT-S-09b':
+    'Steuerbetrag (BT-117) = Bemessungsgrundlage (BT-116) × Steuersatz (BT-119), Abweichung bis 0,01 je Betrag',
+  BREAKDOWN_EXTENDED:
+    'Bemessungsgrundlage (BT-116) = Positionen + Zuschläge + Logistikkosten − Nachlässe dieser Kategorie und dieses Satzes, Abweichung bis 0,01 je Betrag',
 };
 
 /** The breakdown rule per VAT category; S, L and M per rate with a tolerance of 1. */
@@ -113,17 +132,34 @@ const code = (source: Source, path: string) =>
 export interface RulesOptions {
   /**
    * true for FeRD EXTENDED (Profile.ownRules): its Schematron has its own forms of the totals and
-   * breakdown rules and no BR-CO-17, so only the rules it takes over unchanged are checked.
+   * breakdown rules and no BR-CO-17 — with `extended` they are rebuilt (F29, Factur-X 1.09.2),
+   * without it (ZUGFeRD 2.0 EXTENDED) only BR-CO-14, taken over unchanged, is checked.
    */
   ownRules?: boolean;
+  /** Factur-X EXTENDED: line status, logistics charges, financial adjustments (InvoicePart) */
+  extended?: ExtendedAmounts | undefined;
 }
+
+/** Names of the sums the FeRD rules compare (F29) */
+const EXTENDED_VALUE_LABELS: Readonly<Record<string, string>> = {
+  lineSum: TEXTS.ruleLineSumDetail,
+  allowanceSum: TEXTS.ruleSumAllowances,
+  chargeSum: TEXTS.ruleSumCharges,
+  logisticsSum: TEXTS.ruleSumLogistics,
+  adjustmentSum: TEXTS.ruleSumAdjustments,
+};
 
 /** The rules of this selection that the FeRD EXTENDED Schematron (Factur-X 1.09.2) keeps unchanged. */
 const UNCHANGED_IN_EXTENDED: ReadonlySet<string> = new Set(['BR-CO-14']);
 
 /** F23 (Tobias 2026-11-14): the tax amount, the Entgelt, or only the gross/due amount. */
-const TAX_RULES: ReadonlySet<string> = new Set(['BR-CO-14', 'BR-CO-17']);
-const GROSS_RULES: ReadonlySet<string> = new Set(['BR-CO-15', 'BR-CO-16']);
+const TAX_RULES: ReadonlySet<string> = new Set(['BR-CO-14', 'BR-CO-17', 'BR-FXEXT-S-09b']);
+const GROSS_RULES: ReadonlySet<string> = new Set([
+  'BR-CO-15',
+  'BR-CO-16',
+  'BR-FXEXT-CO-15',
+  'BR-FXEXT-CO-16',
+]);
 
 /**
  * What the client could do about irregular rules: ask the supplier which amount is right (before
@@ -370,9 +406,39 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
     );
   }
 
-  const checked = options.ownRules
-    ? results.filter((r) => UNCHANGED_IN_EXTENDED.has(r.id))
-    : results;
+  const unchanged = results.filter((r) => UNCHANGED_IN_EXTENDED.has(r.id));
+  let checked = results;
+  if (options.ownRules && options.extended) {
+    // F29: the FeRD rules, BR-CO-14 after the sums of the document as in the Schematron
+    const extended = checkExtendedRules(model, options.extended).map((c): RuleResult => ({
+      id: c.id,
+      label: RULE_LABELS[c.id] ?? RULE_LABELS.BREAKDOWN_EXTENDED ?? c.id,
+      ...(c.breakdown
+        ? {
+            occurrence: fill(TEXTS.ruleOccurrence, {
+              category: c.breakdown.category || '–',
+              rate: c.breakdown.rate ? percent(c.breakdown.rate) : '–',
+            }),
+          }
+        : {}),
+      status: c.ok === undefined ? 'nichtPruefbar' : c.ok ? 'passt' : 'auffaellig',
+      values: [
+        ...c.values.map(([key, value]) => ({
+          label: EXTENDED_VALUE_LABELS[key] ?? named(key),
+          value: key === 'BT-119' && value ? percent(value) : money(value),
+        })),
+        ...(c.expected ? [{ label: TEXTS.ruleExpected, value: money(c.expected) }] : []),
+      ],
+    }));
+    const documentLevel = extended.filter((r) => /^BR-FXEXT-CO-1[0-3]$/.test(r.id));
+    checked = [
+      ...documentLevel,
+      ...unchanged,
+      ...extended.filter((r) => !documentLevel.includes(r)),
+    ];
+  } else if (options.ownRules) {
+    checked = unchanged;
+  }
   const auffaellig = [
     ...new Set(checked.filter((r) => r.status === 'auffaellig').map((r) => r.id)),
   ];
@@ -386,7 +452,9 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
     results: checked,
     auffaellig,
     advice: adviceFor(auffaellig),
-    ...(options.ownRules ? { note: TEXTS.rulesOwnRules } : {}),
+    ...(options.ownRules
+      ? { note: options.extended ? TEXTS.rulesFerdRules : TEXTS.rulesOwnRules }
+      : {}),
     notChecked,
     summary:
       checked.length === 0

@@ -164,6 +164,8 @@ export const TEXTS = {
   // Step 3a: calculation rules of EN 16931 (a selection)
   rulesHeading: 'Rechnerische Prüfung (Auswahl von Regeln der EN 16931)',
   rulesOk: 'Die geprüften Beträge passen zusammen.',
+  rulesFerdRules:
+    'Für das Profil EXTENDED gelten die Rechenregeln von FeRD (Factur-X 1.09.2): Logistikkosten zählen als Zuschläge, Gruppen- und Infozeilen zählen nicht mit, kleine Abweichungen je Betrag sind erlaubt.',
   rulesOwnRules:
     'Für das Profil EXTENDED gelten eigene Rechenregeln von FeRD. Diese werden hier nicht geprüft, nur die Regel BR-CO-14.',
   rulesAuffaellig: 'Mögliche Auffälligkeit: {ids}.',
@@ -185,6 +187,9 @@ export const TEXTS = {
   ruleStatusNichtPruefbar: 'nicht prüfbar',
   ruleOccurrence: 'Kategorie {category}, {rate}',
   ruleLineSum: 'Summe der Positionen (BT-131)',
+  ruleLineSumDetail: 'Summe der Positionen (BT-131, ohne Gruppen- und Infozeilen)',
+  ruleSumLogistics: 'Summe der Logistikkosten (BT-X-272)',
+  ruleSumAdjustments: 'Summe der Ausgleichsbeträge',
   ruleSumAllowances: 'Summe der Nachlässe auf Dokumentebene (BT-92)',
   ruleSumCharges: 'Summe der Zuschläge auf Dokumentebene (BT-99)',
   ruleSumTaxes: 'Summe der Steuerbeträge je Kategorie (BT-117)',

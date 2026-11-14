@@ -94,6 +94,38 @@ export const ENTITIES: EntityDoc[] = [
         required: false,
         meaning: 'Prüfung gegen das offizielle Schema (Schritt 2b); fehlt bei ZUGFeRD 1.0',
       },
+      {
+        name: 'extended',
+        type: 'ExtendedAmounts',
+        required: false,
+        meaning: 'Nur Factur-X EXTENDED: Zusatzbeträge für die Rechenregeln von FeRD (F29)',
+      },
+    ],
+  },
+  {
+    name: 'ExtendedAmounts',
+    file: 'src/logic/analysis.ts',
+    purpose:
+      'Was die Rechenregeln von FeRD für Factur-X EXTENDED über EN 16931 hinaus brauchen (BR-FXEXT-…, F29).',
+    fields: [
+      {
+        name: 'lineStatus',
+        type: 'string[]',
+        required: true,
+        meaning: 'LineStatusReasonCode je Position (DETAIL, GROUP, INFORMATION; leer ohne)',
+      },
+      {
+        name: 'logistics',
+        type: '{ amount; category; rate }[]',
+        required: true,
+        meaning: 'Logistikkosten (BT-X-272) mit Steuerkategorie und Satz',
+      },
+      {
+        name: 'adjustments',
+        type: 'string[]',
+        required: true,
+        meaning: 'Ausgleichsbeträge (SpecifiedFinancialAdjustment), ändern den fälligen Betrag',
+      },
     ],
   },
   {
@@ -412,9 +444,9 @@ export const FUNCTIONS: { layer: string; signature: string; purpose: string }[] 
   },
   {
     layer: 'logic',
-    signature: 'checkRules(model, { ownRules }): RulesResult',
+    signature: 'checkRules(model, { ownRules, extended }): RulesResult',
     purpose:
-      'Rechenregeln der EN 16931 (BR-CO-10 bis -17, Aufschlüsselung je Kategorie und Satz) wie im CEN-Schematron; für FeRD EXTENDED (eigene Regeln BR-FXEXT-…) nur BR-CO-14',
+      'Rechenregeln der EN 16931 (BR-CO-10 bis -17, Aufschlüsselung je Kategorie und Satz) wie im CEN-Schematron; für Factur-X EXTENDED die Regeln von FeRD (BR-FXEXT-…, checkExtendedRules) und BR-CO-14; ZUGFeRD 2.0 EXTENDED nur BR-CO-14',
   },
   {
     layer: 'logic',
@@ -443,6 +475,7 @@ export const RELATIONS: [string, string, string, string][] = [
   ['InvoicePart', 'syntax', 'SyntaxEntry (SYNTAXES)', '1'],
   ['InvoicePart', 'model', 'ModelGroup', '0..1'],
   ['InvoicePart', 'schema', 'SchemaResult', '0..1'],
+  ['InvoicePart', 'extended', 'ExtendedAmounts', '0..1'],
   ['SchemaResult', 'problems', 'Problem', '0..n'],
   ['ModelGroup', 'groups', 'ModelGroup', '0..n'],
   ['ModelGroup', 'terms', 'TermValue', '0..n'],

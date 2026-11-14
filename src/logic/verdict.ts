@@ -167,7 +167,10 @@ function schemaFailed(invoice: InvoiceVerdict): boolean {
 export function rulesOf(invoice: InvoiceVerdict): RulesResult | undefined {
   const model = pflichtModel(invoice);
   return model
-    ? checkRules(model, { ownRules: invoice.profile.entry?.ownRules ?? false })
+    ? checkRules(model, {
+        ownRules: invoice.profile.entry?.ownRules ?? false,
+        extended: invoice.part.extended,
+      })
     : undefined;
 }
 
