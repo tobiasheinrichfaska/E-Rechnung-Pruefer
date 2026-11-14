@@ -8,18 +8,26 @@ const CII = officialText('cen/CII_example1.xml');
 test('the spy notices storage and cookie access (so an empty list means something)', async ({
   page,
 }) => {
-  await openApp(page);
-  const seen = await page.evaluate(() => {
+  const problems = await openApp(page);
+  await page.evaluate(() => {
     try {
       window.localStorage.setItem('probe', '1');
       window.localStorage.removeItem('probe');
+      // named access passes no Storage method: found by what is left afterwards
+      (window.localStorage as unknown as Record<string, string>)['named'] = '1';
     } catch {
       // file:// may refuse storage — the attempt is still recorded
     }
     void document.cookie;
-    return (window as unknown as { __sideEffects: string[] }).__sideEffects;
+    new BroadcastChannel('probe').close();
+    window.open('about:blank');
   });
-  expect(seen).toEqual(expect.arrayContaining(['storage.setItem', 'cookie.get']));
+  const seen = await sideEffects(page);
+  const expected = ['storage.setItem', 'cookie.get', 'BroadcastChannel', 'window.open'];
+  if (await page.evaluate(() => window.localStorage.length > 0)) expected.push('left:localStorage');
+  expect(seen).toEqual(expect.arrayContaining(expected));
+  await expect.poll(() => problems.some((p) => p.startsWith('popup:'))).toBe(true);
+  await page.evaluate(() => window.localStorage.clear());
 });
 
 test('shows the page with the fixed notice and a CSP', async ({ page }) => {

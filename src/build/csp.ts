@@ -1,5 +1,8 @@
-// Content-Security-Policy of the single HTML file: the browser itself refuses every network
-// connection, every foreign script and eval — whatever the code or a library tries. Same approach
+// Content-Security-Policy of the single HTML file: the browser itself refuses every connection
+// (fetch, XHR, WebSocket, beacons), every foreign script and eval — whatever the code or a library
+// tries. A CSP cannot stop navigation, popups or WebRTC: the code uses none of them (ESLint bans,
+// e2e spy; audit 2026-11-14, S-07). frame-ancestors cannot be set in a <meta> CSP: the server
+// must send it (deploy/README.md). Same approach
 // as the Fragebogen app (src/build/csp.ts there), plus 'wasm-unsafe-eval' for the XML engine
 // (libxml2 compiled to WebAssembly). The inlined script and style are allowed by SHA-256 hash.
 import { createHash } from 'node:crypto';

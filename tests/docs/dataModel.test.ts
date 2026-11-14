@@ -7,6 +7,12 @@ import { verdictOf } from '../../src/logic/verdict';
 import { encode, officialText } from '../support/fixtures';
 import { miniPdf } from '../../src/build/minipdf';
 
+/** The example must carry the object, or the check below would pass on an empty one (T-16). */
+function must<T>(value: T | undefined): T {
+  if (value === undefined) throw new Error('example object missing');
+  return value;
+}
+
 describe('docs/data-model.html', () => {
   it('is up to date with the source (regenerate with npm run docs)', async () => {
     await expect(dataModelPage()).toMatchFileSnapshot('../../docs/data-model.html');
@@ -28,11 +34,11 @@ describe('docs/data-model.html', () => {
     const undocumented = (name: string, object: object) =>
       Object.keys(object).filter((key) => !documented(name).has(key));
     expect(undocumented('Analysis', analysis)).toEqual([]);
-    expect(undocumented('InvoicePart', analysis.invoices[0] ?? {})).toEqual([]);
-    expect(undocumented('OtherPart', analysis.others[0] ?? {})).toEqual([]);
+    expect(undocumented('InvoicePart', must(analysis.invoices[0]))).toEqual([]);
+    expect(undocumented('OtherPart', must(analysis.others[0]))).toEqual([]);
     expect(undocumented('Verdict', verdict)).toEqual([]);
-    expect(undocumented('InvoiceVerdict', verdict.invoices[0] ?? {})).toEqual([]);
-    expect(undocumented('ModelGroup', analysis.invoices[0]?.model ?? {})).toEqual([]);
+    expect(undocumented('InvoiceVerdict', must(verdict.invoices[0]))).toEqual([]);
+    expect(undocumented('ModelGroup', must(analysis.invoices[0]?.model))).toEqual([]);
     const model = analysis.invoices[0]?.model;
     if (!model) throw new Error('no model');
     // a Kleinbetrag case so that the optional modeText is present as well
@@ -47,7 +53,7 @@ describe('docs/data-model.html', () => {
     expect(check.modeText).toBeDefined();
     expect(undocumented('PflichtResult', check)).toEqual([]);
     const withReason = check.rows.find((r) => r.reason !== undefined);
-    expect(undocumented('RowResult', withReason ?? {})).toEqual([]);
+    expect(undocumented('RowResult', must(withReason))).toEqual([]);
   });
 
   it('names only documented entities in the relationship table', () => {
