@@ -11,13 +11,18 @@
 // Supply date (F26): the actual delivery date (BT-72); else the end of the invoicing period
 // (BT-74); else the latest end of the line periods (BT-135). Where several of these lead to
 // different sentences, no date is assumed (hint + general sentence). The invoice date never stands
-// in for the supply date (F15). Before 2025 the transition rules do not speak — no sentence is
-// assumed there either.
+// in for the supply date (F15).
+//
+// Before 2025 (F30, Tobias 2026-11-14): changes of the UStG apply to supplies carried out from
+// their entry into force (§ 27 Abs. 1 Satz 1 UStG), so the E-Rechnung rules of 01.01.2025 do not
+// reach older supplies — "Für Umsätze, die vor dem 1. Januar 2025 ausgeführt worden sind, gilt
+// keine Verpflichtung zur Verwendung einer E-Rechnung" (BMF 15.10.2024 Rn. 50, unchanged by the
+// letters of 15.10.2025 and 15.10.2026), whatever the invoice date.
 import { isoDate } from './dates';
 import { valuesOf } from './model';
 import type { InvoiceModel } from './model';
 
-export type Regime = 'zulaessig' | 'nur800k' | 'pflicht' | 'unbekannt';
+export type Regime = 'vor2025' | 'zulaessig' | 'nur800k' | 'pflicht' | 'unbekannt';
 
 /** Why no regime could be found although dates exist */
 export type Conflict = 'lieferungUndZeitraum' | 'positionen';
@@ -33,7 +38,7 @@ const START_2025 = '2025-01-01';
 
 /** The regime for one supply date and the invoice date (both ISO). */
 export function regimeOf(supply: string, invoice: string | undefined): Regime {
-  if (supply < START_2025) return 'unbekannt';
+  if (supply < START_2025) return 'vor2025';
   if (supply <= END_2026) {
     if (invoice === undefined) return 'unbekannt';
     return invoice <= END_2026 ? 'zulaessig' : 'pflicht';

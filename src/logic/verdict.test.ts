@@ -264,6 +264,11 @@ describe('decisions of 2026-11-14, dialogue (F22–F27, G-3, G-7, G-10)', () => 
     // delivery and period lead to different sentences: a hint and the general sentence
     const apart = at(dated('2027-01-05', '2027-01-02', '2026-12-31'));
     expect(apart).toEqual(expect.arrayContaining([TEXTS.datesApart, TEXTS.regimeGeneral]));
+    // F30: a supply before 2025 needs no E-Rechnung, also when invoiced in 2027 (BMF Rn. 50)
+    expect(at(dated('2027-03-01', '2024-11-28'))).toEqual(
+      expect.arrayContaining([TEXTS.regimeBefore2025]),
+    );
+    expect(at(dated('2027-03-01', '2024-11-28'))).not.toContain(TEXTS.regimeGeneral);
   });
 
   it('F23: a plain PDF and an unknown XML say whom to ask', () => {

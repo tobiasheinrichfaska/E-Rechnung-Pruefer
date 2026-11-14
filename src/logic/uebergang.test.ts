@@ -36,10 +36,16 @@ describe('§ 27 Abs. 38 UStG by supply and invoice date (F26)', () => {
     expect(regimeOf('2028-01-01', undefined)).toBe('pflicht');
   });
 
-  it('assumes nothing without an invoice date where it matters, or before 2025', () => {
+  it('needs no E-Rechnung for a supply before 2025, whatever the invoice date (F30)', () => {
+    expect(regimeOf('2024-12-31', '2025-01-10')).toBe('vor2025');
+    expect(regimeOf('2018-03-01', '2027-06-30')).toBe('vor2025');
+    expect(regimeOf('2024-12-31', '2028-01-02')).toBe('vor2025');
+    expect(regimeOf('2024-12-31', undefined)).toBe('vor2025');
+  });
+
+  it('assumes nothing without an invoice date where it matters', () => {
     expect(regimeOf('2026-05-01', undefined)).toBe('unbekannt');
     expect(regimeOf('2027-05-01', undefined)).toBe('unbekannt');
-    expect(regimeOf('2024-12-31', '2025-01-10')).toBe('unbekannt');
   });
 });
 
