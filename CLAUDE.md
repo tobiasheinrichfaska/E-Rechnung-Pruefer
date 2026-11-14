@@ -159,7 +159,7 @@ Semantic versioning in `package.json`, injected as `__APP_VERSION__`. Workflow: 
   Nebenleistung), F13, F14, F15 (replaces F3: a note "Leistungsdatum entspricht Rechnungsdatum"
   is not enough in an e-invoice, UStAE 14.5 Abs. 16 — "fehlt" with a hint).
 - **Text detection** (notes, exemption reasons, payment terms) uses German keywords as data
-  (`pflichtangaben.ts`, e.g. `REDUCTION_WORDS` for § 14 Abs. 4 Nr. 7, F8 proposal); other
+  (`pflichtangaben.ts`, e.g. `REDUCTION_WORDS` for § 14 Abs. 4 Nr. 7, F8); other
   languages or unusual wording are not recognised. A row found by its wording shows the matching
   text as its value.
 - **§ 3c UStG** (distance sales, excluded from § 33 UStDV) and new vehicles (§ 14a Abs. 4) cannot be
