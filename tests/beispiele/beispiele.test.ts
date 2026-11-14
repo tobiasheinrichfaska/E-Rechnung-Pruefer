@@ -128,6 +128,7 @@ describe('coverage: every text of the tool appears in a sample', () => {
     TEXTS.plainPdf,
     TEXTS.pdfWithoutInvoiceData,
     TEXTS.pdfBrokenXml,
+    TEXTS.pdfNotChecked,
     ...Object.values(TEXTS.fileProblems).map((p) => p.headline),
   ];
 

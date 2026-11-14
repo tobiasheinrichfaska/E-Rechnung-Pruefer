@@ -149,3 +149,24 @@ test('takes a dropped file', async ({ page }) => {
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);
 });
+
+// Dropped next to the drop zone, the browser would open the file instead of the app (U-05)
+test('takes a file dropped anywhere on the page', async ({ page }) => {
+  const problems = await openApp(page);
+  const bytes = [...official('kosit/01.01a-INVOICE_ubl.xml')];
+  const transfer = await page.evaluateHandle((data) => {
+    const dt = new DataTransfer();
+    dt.items.add(new File([new Uint8Array(data)], 'daneben.xml', { type: 'application/xml' }));
+    return dt;
+  }, bytes);
+  const prevented = await page.evaluate((dt) => {
+    const event = new DragEvent('dragover', { dataTransfer: dt, bubbles: true, cancelable: true });
+    document.querySelector('h1')?.dispatchEvent(event);
+    return event.defaultPrevented;
+  }, transfer);
+  expect(prevented).toBe(true);
+  await page.locator('h1').dispatchEvent('drop', { dataTransfer: transfer });
+  await expect(page.getByTestId('headline')).toHaveText('E-Rechnung erkannt (XRechnung 3.0)');
+  expect(problems).toEqual([]);
+  expect(await sideEffects(page)).toEqual([]);
+});

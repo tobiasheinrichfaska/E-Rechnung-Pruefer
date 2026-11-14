@@ -179,17 +179,34 @@ export function verdictOf(analysis: Analysis): Verdict {
       invoices: [],
     };
   }
-  const broken = analysis.others.find((o) => o.kind === 'brokenXml' || o.kind === 'doctypeXml');
+  const broken = analysis.others.find((o) => o.kind === 'brokenXml');
   if (broken) {
     return {
       tone: 'bad',
       headline: TEXTS.pdfBrokenXml,
       explanation: [
-        fill(broken.kind === 'doctypeXml' ? TEXTS.attachmentDoctype : TEXTS.attachmentBroken, {
-          name: broken.origin,
-        }),
+        fill(TEXTS.attachmentBroken, { name: broken.origin }),
         ...problemLine(broken.problems?.[0]),
         TEXTS.formatError,
+      ],
+      invoices: [],
+    };
+  }
+  // An XML the tool does not read (DOCTYPE, over its size limit) or attachments beyond the first
+  // 50: not judged — as a single XML with a DOCTYPE, never "Formatfehler" (audit 2026-11-14, U-06).
+  const unread = analysis.others.filter((o) => o.kind === 'doctypeXml' || o.kind === 'tooLargeXml');
+  if (unread.length > 0 || analysis.pdf?.truncated) {
+    return {
+      tone: 'warn',
+      headline: TEXTS.pdfNotChecked,
+      explanation: [
+        ...unread.map((o) =>
+          fill(o.kind === 'doctypeXml' ? TEXTS.attachmentDoctype : TEXTS.attachmentTooLarge, {
+            name: o.origin,
+          }),
+        ),
+        ...(analysis.pdf?.truncated ? [TEXTS.attachmentsTruncated] : []),
+        TEXTS.notJudged,
       ],
       invoices: [],
     };

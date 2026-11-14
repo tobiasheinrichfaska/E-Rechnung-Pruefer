@@ -92,6 +92,9 @@ const ZUGFERD_EN16931: KositXml = {
 const BROKEN_XML =
   '<?xml version="1.0" encoding="UTF-8"?>\n<rsm:CrossIndustryInvoice xmlns:rsm="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100">\n  <rsm:ExchangedDocument>\n    <ram:ID>R-1</ram:ID>\n</rsm:CrossIndustryInvoice>\n';
 
+const DOCTYPE_XML =
+  '<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE Rechnung [ <!ENTITY firma "Muster Lieferant GmbH"> ]>\n<Rechnung>&firma;</Rechnung>\n';
+
 export const BEISPIELE: readonly Beispiel[] = [
   {
     datei: '01_XRechnung_UBL_vollstaendig.xml',
@@ -320,10 +323,7 @@ export const BEISPIELE: readonly Beispiel[] = [
   {
     datei: '15_XML_mit_Dokumenttyp.xml',
     zeigt: 'Eine XML-Datei mit Dokumenttyp-Angabe (DOCTYPE): aus Sicherheitsgründen nicht geprüft.',
-    quelle: {
-      art: 'eigeneXml',
-      text: '<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE Rechnung [ <!ENTITY firma "Muster Lieferant GmbH"> ]>\n<Rechnung>&firma;</Rechnung>\n',
-    },
+    quelle: { art: 'eigeneXml', text: DOCTYPE_XML },
     erwartet: { ton: 'warn', ueberschrift: 'XML-Datei mit Dokumenttyp-Angabe: nicht geprüft' },
   },
   {
@@ -489,6 +489,17 @@ export const BEISPIELE: readonly Beispiel[] = [
     zeigt: 'Eine Datei, die mit „%PDF“ beginnt, aber kein lesbares PDF ist.',
     quelle: { art: 'roh', text: '%PDF-1.7\nDiese Datei ist absichtlich beschädigt.\n' },
     erwartet: { ton: 'bad', ueberschrift: 'Das PDF lässt sich nicht lesen' },
+  },
+  {
+    datei: '27_PDF_mit_XML_mit_Dokumenttyp.pdf',
+    zeigt:
+      'Ein PDF, dessen XML-Anhang eine Dokumenttyp-Angabe (DOCTYPE) enthält: aus Sicherheitsgründen nicht gelesen, also nicht beurteilt.',
+    quelle: {
+      art: 'pdf',
+      seite: { basis: CII_CLEAN },
+      xml: [{ name: 'factur-x.xml', xml: DOCTYPE_XML }],
+    },
+    erwartet: { ton: 'warn', ueberschrift: 'PDF nicht vollständig geprüft' },
   },
 ];
 

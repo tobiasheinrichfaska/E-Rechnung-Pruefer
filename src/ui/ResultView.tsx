@@ -16,6 +16,7 @@ const OTHER_KIND: Readonly<Record<string, string>> = {
   otherXml: 'XML, aber keine Rechnung',
   brokenXml: 'XML, fehlerhaft',
   doctypeXml: 'XML mit DOCTYPE, nicht gelesen',
+  tooLargeXml: 'XML über 20 MB, nicht gelesen',
 };
 
 export function ResultView({ analysis, verdict }: Props) {
@@ -72,11 +73,7 @@ export function ResultView({ analysis, verdict }: Props) {
           </ul>
         </div>
       )}
-      {analysis.pdf?.truncated && (
-        <p className="hint">
-          Das PDF hat sehr viele Anhänge. Das Tool hat nur die ersten 50 gelesen.
-        </p>
-      )}
+      {analysis.pdf?.truncated && <p className="hint">{TEXTS.attachmentsTruncated}</p>}
     </section>
   );
 }

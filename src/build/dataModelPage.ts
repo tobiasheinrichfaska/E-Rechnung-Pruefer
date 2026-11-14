@@ -98,7 +98,7 @@ export const ENTITIES: EntityDoc[] = [
       { name: 'origin', type: 'string', required: true, meaning: 'Name des Anhangs' },
       {
         name: 'kind',
-        type: "'otherXml' | 'brokenXml' | 'doctypeXml' | 'notXml'",
+        type: "'otherXml' | 'brokenXml' | 'doctypeXml' | 'tooLargeXml' | 'notXml'",
         required: true,
         meaning: 'Warum keine Rechnung',
       },

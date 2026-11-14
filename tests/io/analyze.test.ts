@@ -1,5 +1,5 @@
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { analyzeFile, fileKindOf } from '../../src/io/analyze';
+import { MAX_FILE_BYTES, analyzeFile, fileKindOf, tooLargeFile } from '../../src/io/analyze';
 import type { PdfJsLike } from '../../src/io/pdf';
 import { verdictOf } from '../../src/logic/verdict';
 import { encode, official, officialText, withInvoiceNumber, withSpecId } from '../support/fixtures';
@@ -195,6 +195,73 @@ describe('PDF files', () => {
     expect(verdict.invoices).toHaveLength(2);
   });
 
+  // Audit 2026-11-14, U-06/S-05/T-05: what the tool does not read is "not judged", never a
+  // "Formatfehler" — as with a single XML file with a DOCTYPE.
+  it('does not call an attachment with a DOCTYPE a format error', async () => {
+    const doctype = '<?xml version="1.0"?><!DOCTYPE a [<!ENTITY x "y">]><a>&x;</a>';
+    const { analysis, verdict } = await check(
+      'r.pdf',
+      miniPdf({ attachments: [xml('a.xml', doctype)] }),
+    );
+    expect(analysis.others).toEqual([{ origin: 'a.xml', kind: 'doctypeXml' }]);
+    expect(verdict.tone).toBe('warn');
+    expect(verdict.headline).toBe('PDF nicht vollständig geprüft');
+    expect(verdict.explanation.join(' ')).toContain('Dokumenttyp-Angabe');
+    expect(verdict.explanation.join(' ')).not.toContain('Rn. 6a');
+  });
+
+  it('does not call a well-formed XML attachment over 20 MB a format error', async () => {
+    const big = `<?xml version="1.0"?><a>${'x'.repeat(21 * 1024 * 1024)}</a>`;
+    const { analysis, verdict } = await check(
+      'r.pdf',
+      miniPdf({ attachments: [xml('a.xml', big)] }),
+    );
+    expect(analysis.others).toEqual([{ origin: 'a.xml', kind: 'tooLargeXml' }]);
+    expect(verdict.headline).toBe('PDF nicht vollständig geprüft');
+    expect(verdict.explanation.join(' ')).toContain('größer als 20 MB');
+    expect(verdict.explanation.join(' ')).not.toContain('Rn. 6a');
+  });
+
+  it('does not say "no e-invoice" when attachments beyond the first 50 were not read', async () => {
+    const attachments = Array.from({ length: 51 }, (_, i) => ({
+      name: `anlage-${String(i).padStart(2, '0')}.txt`,
+      bytes: encode('x'),
+    }));
+    const pdf = miniPdf({ attachments: [...attachments, xml('zz-factur-x.xml', CII)] });
+    const { analysis, verdict } = await check('r.pdf', pdf);
+    expect(analysis.pdf?.truncated).toBe(true);
+    expect(analysis.invoices).toEqual([]);
+    expect(verdict.tone).toBe('warn');
+    expect(verdict.headline).toBe('PDF nicht vollständig geprüft');
+    expect(verdict.explanation.join(' ')).toContain('nur die ersten 50');
+  });
+
+  it('reports a PDF whose list of attachments is broken as damaged, not as a crash', async () => {
+    // The same kid twice in the EmbeddedFiles name tree: pdf.js throws in getAttachments (U-03)
+    const x = '<?xml version="1.0"?><r/>';
+    const objects = [
+      '<< /Type /Catalog /Pages 2 0 R /Names << /EmbeddedFiles 4 0 R >> >>',
+      '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+      '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>',
+      '<< /Kids [5 0 R 5 0 R] >>',
+      '<< /Names [(b.xml) 6 0 R] >>',
+      '<< /Type /Filespec /F (b.xml) /EF << /F 7 0 R >> >>',
+      `<< /Type /EmbeddedFile /Length ${x.length} >>\nstream\n${x}\nendstream`,
+    ];
+    let out = '%PDF-1.4\n';
+    const offsets: number[] = [];
+    objects.forEach((body, i) => {
+      offsets.push(out.length);
+      out += `${i + 1} 0 obj\n${body}\nendobj\n`;
+    });
+    const xref = out.length;
+    out += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+    out += offsets.map((o) => `${String(o).padStart(10, '0')} 00000 n \n`).join('');
+    out += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+    const { verdict } = await check('r.pdf', encode(out));
+    expect(verdict.headline).toBe('Das PDF lässt sich nicht lesen');
+  });
+
   it('reports a password-protected PDF', async () => {
     const { verdict } = await check('r.pdf', miniPdf({ passwordProtected: true }));
     expect(verdict.headline).toBe('Das PDF ist mit einem Kennwort geschützt');
@@ -214,6 +281,11 @@ describe('PDF files', () => {
 });
 
 describe('other files', () => {
+  it('judges a file above every limit by its size alone', () => {
+    expect(MAX_FILE_BYTES).toBe(30 * 1024 * 1024);
+    expect(verdictOf(tooLargeFile('riesig.pdf')).headline).toBe('Die Datei ist zu groß');
+  });
+
   it('names empty and unsupported files', async () => {
     expect((await check('leer.pdf', new Uint8Array())).verdict.headline).toBe('Die Datei ist leer');
     const png = await check('bild.png', new Uint8Array([0x89, 0x50, 0x4e, 0x47]));

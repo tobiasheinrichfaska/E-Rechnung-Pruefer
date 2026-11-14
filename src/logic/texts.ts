@@ -45,6 +45,11 @@ export const TEXTS = {
   attachmentBroken: 'Der Anhang „{name}“ ist XML, lässt sich aber nicht lesen.',
   attachmentDoctype:
     'Der Anhang „{name}“ enthält eine Dokumenttyp-Angabe (DOCTYPE). Aus Sicherheitsgründen liest das Tool ihn nicht.',
+  pdfNotChecked: 'PDF nicht vollständig geprüft',
+  attachmentTooLarge:
+    'Der Anhang „{name}“ ist größer als 20 MB. So große XML-Dateien liest das Tool nicht.',
+  attachmentsTruncated: 'Das PDF hat sehr viele Anhänge. Das Tool hat nur die ersten 50 gelesen.',
+  notJudged: 'Ob das PDF eine E-Rechnung ist, kann das Tool deshalb nicht sagen.',
   formatError: 'Formatfehler, gem. Rn. 6a ggf. keine E-Rechnung.',
   problemAtLine: 'Zeile {line}: {message}',
 

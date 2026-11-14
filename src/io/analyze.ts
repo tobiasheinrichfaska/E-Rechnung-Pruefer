@@ -6,9 +6,23 @@ import { coreValues, normalize } from '../logic/model';
 import { looksLikeXml } from '../logic/prolog';
 import { syntaxOf } from '../logic/syntax';
 import { extractModel } from './extract';
-import { readPdfAttachments } from './pdf';
+import { MAX_PDF_BYTES, readPdfAttachments } from './pdf';
 import type { PdfJsLike } from './pdf';
-import { readXml, rootOf, valuesAt } from './xml';
+import { MAX_XML_BYTES, readXml, rootOf, valuesAt } from './xml';
+
+/** Above this size a file is not even read into memory (the larger of the two limits). */
+export const MAX_FILE_BYTES = Math.max(MAX_PDF_BYTES, MAX_XML_BYTES);
+
+/** The result for a file above MAX_FILE_BYTES, decided from its size alone (audit S-04). */
+export function tooLargeFile(fileName: string): Analysis {
+  return {
+    fileName,
+    kind: 'unknown',
+    invoices: [],
+    others: [],
+    problem: { kind: 'tooLarge', problems: [] },
+  };
+}
 
 const PDF_MAGIC = '%PDF-';
 
@@ -107,12 +121,11 @@ export async function analyzeFile(
         others.push({ origin: attachment.name, kind: 'otherXml', root: outcome.root });
       } else if (outcome.kind === 'doctype') {
         others.push({ origin: attachment.name, kind: 'doctypeXml' });
+      } else if (outcome.kind === 'tooLarge') {
+        // The tool's own limit, no fault of the invoice (audit 2026-11-14, S-05)
+        others.push({ origin: attachment.name, kind: 'tooLargeXml' });
       } else {
-        others.push({
-          origin: attachment.name,
-          kind: 'brokenXml',
-          problems: outcome.kind === 'broken' ? outcome.problems : [],
-        });
+        others.push({ origin: attachment.name, kind: 'brokenXml', problems: outcome.problems });
       }
     }
     return {

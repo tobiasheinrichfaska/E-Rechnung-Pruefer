@@ -57,6 +57,10 @@ function isPasswordError(error: unknown): boolean {
   );
 }
 
+function messageOf(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export async function readPdfAttachments(pdfjs: PdfJsLike, bytes: Uint8Array): Promise<PdfRead> {
   if (bytes.byteLength > MAX_PDF_BYTES) return { ok: false, issue: 'tooLarge' };
   const task = pdfjs.getDocument({
@@ -73,13 +77,16 @@ export async function readPdfAttachments(pdfjs: PdfJsLike, bytes: Uint8Array): P
       doc = await task.promise;
     } catch (error) {
       if (isPasswordError(error)) return { ok: false, issue: 'password' };
-      return {
-        ok: false,
-        issue: 'damaged',
-        detail: error instanceof Error ? error.message : String(error),
-      };
+      return { ok: false, issue: 'damaged', detail: messageOf(error) };
     }
-    const list = (await doc.getAttachments()) ?? {};
+    let list: Awaited<ReturnType<DocumentLike['getAttachments']>>;
+    try {
+      list = await doc.getAttachments();
+    } catch (error) {
+      // e.g. a broken name tree ("Duplicate entry in Names tree") — audit 2026-11-14, U-03
+      return { ok: false, issue: 'damaged', detail: messageOf(error) };
+    }
+    list ??= {};
     const listed: [string, AttachmentInfo][] =
       list instanceof Map ? [...list.entries()] : Object.entries(list);
     const attachments: PdfAttachment[] = [];

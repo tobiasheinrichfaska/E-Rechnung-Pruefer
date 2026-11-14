@@ -25,7 +25,7 @@ export interface InvoicePart {
   model?: InvoiceModel;
 }
 
-export type OtherPartKind = 'otherXml' | 'brokenXml' | 'doctypeXml' | 'notXml';
+export type OtherPartKind = 'otherXml' | 'brokenXml' | 'doctypeXml' | 'tooLargeXml' | 'notXml';
 
 /** A PDF attachment that is no invoice XML. */
 export interface OtherPart {

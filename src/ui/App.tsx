@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { APP_NAME, APP_VERSION } from '../appInfo';
-import { analyzeFile } from '../io/analyze';
+import { MAX_FILE_BYTES, analyzeFile, tooLargeFile } from '../io/analyze';
 import { loadPdfJs } from '../io/pdfjs';
 import type { Analysis } from '../logic/analysis';
 import { TEXTS } from '../logic/texts';
@@ -19,6 +19,12 @@ export function App() {
   const [state, setState] = useState<State>({ step: 'idle' });
 
   const check = async (file: File) => {
+    if (file.size > MAX_FILE_BYTES) {
+      // Decided by the size alone, without reading the file into memory (audit 2026-11-14, S-04)
+      const analysis = tooLargeFile(file.name);
+      setState({ step: 'done', analysis, verdict: verdictOf(analysis) });
+      return;
+    }
     setState({ step: 'checking', fileName: file.name });
     try {
       const bytes = new Uint8Array(await file.arrayBuffer());
@@ -34,6 +40,28 @@ export function App() {
     }
   };
 
+  const busy = state.step === 'checking';
+
+  // A file dropped next to the drop zone would make the browser leave the app and open the file:
+  // the whole page takes it (audit 2026-11-14, U-05). The drop zone handles its own drops.
+  useEffect(() => {
+    const onDragOver = (event: DragEvent) => {
+      if (event.dataTransfer?.types.includes('Files')) event.preventDefault();
+    };
+    const onDrop = (event: DragEvent) => {
+      if (event.defaultPrevented || !event.dataTransfer?.types.includes('Files')) return;
+      event.preventDefault();
+      const file = event.dataTransfer.files[0];
+      if (file && !busy) void check(file);
+    };
+    window.addEventListener('dragover', onDragOver);
+    window.addEventListener('drop', onDrop);
+    return () => {
+      window.removeEventListener('dragover', onDragOver);
+      window.removeEventListener('drop', onDrop);
+    };
+  });
+
   return (
     <main className="page">
       <h1>{APP_NAME}</h1>
@@ -42,7 +70,7 @@ export function App() {
         Angaben sie enthält.
       </p>
 
-      <DropZone onFile={(file) => void check(file)} disabled={state.step === 'checking'} />
+      <DropZone onFile={(file) => void check(file)} disabled={busy} />
 
       {state.step === 'checking' && (
         <p className="status" role="status">
