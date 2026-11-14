@@ -146,14 +146,18 @@ npm run beispiele    # regenerate beispiele/ (tester samples)
 
 Report only results observed in the same session (workspace test-integrity rule).
 
-**Claude Code on the web (everything runs there, Tobias 2026-11-14):** the container's own
-Chromium is newer than the pinned Playwright 1.61.0 expects, so install the pinned browsers once
-(about a minute) and run the unchanged scripts — all three browsers:
+**Claude Code on the web (everything runs there, Tobias 2026-11-14):** the Default environment
+has one setup script for all web apps (Tobias 2026-11-14: "alle Webapps die gleiche Umgebung");
+each repository keeps its own block — the Fragebogen session keeps the frame and its block, this
+project its `E-Rechnung-Pruefer` block: `npm ci --ignore-scripts` and the browsers of the pinned
+Playwright 1.61.0 (Chromium, Firefox, WebKit) into `/opt/pw-browsers`, next to the preinstalled
+Chromium. `PLAYWRIGHT_BROWSERS_PATH` points there already, so the unchanged `npm run test:e2e` runs
+all three engines. To change the block: `get_environment`, edit only this block, send the whole
+script with `update_environment` ("replaces the existing setup script"). Without a fresh container
+(or if the block failed), run the block by hand from the folder above the checkout:
 
 ```bash
-npm ci --ignore-scripts
-PLAYWRIGHT_BROWSERS_PATH=/opt/pw-projekt npx playwright install --with-deps chromium firefox webkit
-PLAYWRIGHT_BROWSERS_PATH=/opt/pw-projekt npm run test:e2e -- --trace off
+cd E-Rechnung-Pruefer && npm ci --ignore-scripts && npx playwright install --with-deps chromium firefox webkit
 ```
 
 The FeRD samples are not in the repo: Tobias uploads `ZUGFeRD_2.5.2_DE.zip` into the session
