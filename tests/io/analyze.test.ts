@@ -1,3 +1,4 @@
+import { readdirSync } from 'node:fs';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { MAX_FILE_BYTES, analyzeFile, fileKindOf, tooLargeFile } from '../../src/io/analyze';
 import type { PdfJsLike } from '../../src/io/pdf';
@@ -308,5 +309,74 @@ describe('other files', () => {
     expect((await check('leer.pdf', new Uint8Array())).verdict.headline).toBe('Die Datei ist leer');
     const png = await check('bild.png', new Uint8Array([0x89, 0x50, 0x4e, 0x47]));
     expect(png.verdict.headline).toBe('Diese Dateiart prüft das Tool nicht');
+  });
+});
+
+describe('schema check (step 2b)', () => {
+  const COMMA = (text: string) =>
+    text.replace(
+      '<cbc:PayableAmount currencyID="EUR">336.9</cbc:PayableAmount>',
+      '<cbc:PayableAmount currencyID="EUR">336,90</cbc:PayableAmount>',
+    );
+
+  it('finds no schema problem in any official invoice file', async () => {
+    const dirs = ['cen', 'kosit', 'kosit/paare'];
+    const failed: string[] = [];
+    let checked = 0;
+    for (const dir of dirs) {
+      for (const name of readdirSync(new URL(`../fixtures/offiziell/${dir}/`, import.meta.url))) {
+        if (!name.endsWith('.xml')) continue;
+        const { analysis } = await check(name, official(`${dir}/${name}`));
+        for (const part of analysis.invoices) {
+          if (part.schema?.checked) checked += 1;
+          if ((part.schema?.count ?? 0) > 0) failed.push(`${dir}/${name}`);
+        }
+      }
+    }
+    expect(failed).toEqual([]);
+    expect(checked).toBeGreaterThan(100);
+  });
+
+  it('reports a schema problem with its line and the statement of F4', async () => {
+    const { analysis, verdict } = await check('r.xml', encode(COMMA(officialText(XR_UBL))));
+    expect(analysis.invoices[0]?.schema).toMatchObject({
+      schema: 'UBL 2.1 (Invoice)',
+      checked: true,
+    });
+    expect(verdict.tone).toBe('bad');
+    expect(verdict.headline).toBe('Rechnungsdaten mit Formatfehler (XRechnung 3.0)');
+    expect(verdict.explanation.join(' ')).toMatch(/Technische Meldung \(Zeile \d+\):.*336,90/);
+    expect(verdict.explanation.at(-1)).toBe('Formatfehler, gem. Rn. 6a ggf. keine E-Rechnung.');
+  });
+
+  it('names the attachment and judges several XML whatever their order', async () => {
+    const bad = xml('b-xrechnung.xml', COMMA(officialText(XR_UBL)));
+    const good = xml('a-xrechnung.xml', officialText(XR_UBL));
+    for (const attachments of [
+      [good, bad],
+      [bad, good],
+    ]) {
+      const { verdict } = await check('r.pdf', miniPdf({ attachments }));
+      expect(verdict.tone).toBe('bad');
+      expect(verdict.headline).toBe('Rechnungsdaten mit Formatfehler (XRechnung 3.0)');
+      expect(verdict.explanation.join(' ')).toContain('Der Anhang „b-xrechnung.xml“ weicht');
+    }
+  });
+
+  it('leaves out EXTENDED (FeRD schema of its own) instead of risking a false error', async () => {
+    const extended = withSpecId(
+      CII,
+      'urn:cen.eu:en16931:2017#conformant#urn:factur-x.eu:1p0:extended',
+    );
+    const { analysis, verdict } = await check('r.xml', encode(extended));
+    expect(analysis.invoices[0]?.schema).toMatchObject({ checked: false, count: 0 });
+    expect(verdict.headline).toBe('E-Rechnung erkannt (ZUGFeRD/Factur-X, Profil EXTENDED)');
+  });
+
+  it('does not judge the schema of "keine E-Rechnung" (F19)', async () => {
+    const minimum = COMMA(withSpecId(officialText(XR_UBL), 'urn:factur-x.eu:1p0:minimum'));
+    const { verdict } = await check('r.xml', encode(minimum));
+    expect(verdict.headline).toMatch(/Profil MINIMUM: keine E-Rechnung/);
+    expect(verdict.explanation.join(' ')).not.toContain('Schema');
   });
 });

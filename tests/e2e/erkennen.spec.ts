@@ -195,3 +195,30 @@ test('takes a file dropped anywhere on the page', async ({ page }) => {
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);
 });
+
+// Step 2b: a well-formed XRechnung that breaks the official schema (amount with a comma)
+test('reports a schema problem with its line and lists the technical messages', async ({
+  page,
+}) => {
+  const problems = await openApp(page);
+  const text = officialText('kosit/01.01a-INVOICE_ubl.xml').replace(
+    '<cbc:PayableAmount currencyID="EUR">336.9</cbc:PayableAmount>',
+    '<cbc:PayableAmount currencyID="EUR">336,90</cbc:PayableAmount>',
+  );
+  await upload(page, 'komma.xml', encode(text), 'application/xml');
+  await expect(page.getByTestId('headline')).toHaveText(
+    'Rechnungsdaten mit Formatfehler (XRechnung 3.0)',
+  );
+  await expect(page.getByTestId('verdict')).toHaveClass(/tone-bad/);
+  await expect(page.getByTestId('verdict')).toContainText(
+    'Formatfehler, gem. Rn. 6a ggf. keine E-Rechnung.',
+  );
+  await expect(page.getByRole('row', { name: /Schema \(XSD\)/ })).toContainText(
+    'Abweichungen vom Schema UBL 2.1 (Invoice): ',
+  );
+  const list = page.getByTestId('schema-problems');
+  await list.locator('summary').click();
+  await expect(list.locator('li').first()).toContainText('336,90');
+  expect(problems).toEqual([]);
+  expect(await sideEffects(page)).toEqual([]);
+});

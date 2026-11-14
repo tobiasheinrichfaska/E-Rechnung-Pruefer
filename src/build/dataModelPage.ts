@@ -88,6 +88,35 @@ export const ENTITIES: EntityDoc[] = [
         required: false,
         meaning: 'Das ganze EN-16931-Modell; fehlt bei ZUGFeRD 1.0',
       },
+      {
+        name: 'schema',
+        type: 'SchemaResult',
+        required: false,
+        meaning: 'Prüfung gegen das offizielle Schema (Schritt 2b); fehlt bei ZUGFeRD 1.0',
+      },
+    ],
+  },
+  {
+    name: 'SchemaResult',
+    file: 'src/logic/analysis.ts',
+    purpose:
+      'Ergebnis der Schemaprüfung einer Rechnungs-XML: dasselbe XSD wie im KoSIT-Validator (UBL 2.1, CII D16B).',
+    fields: [
+      { name: 'schema', type: 'string', required: true, meaning: 'z. B. „UN/CEFACT CII D16B“' },
+      {
+        name: 'checked',
+        type: 'boolean',
+        required: true,
+        meaning: 'false: nicht geprüft (Profil mit eigenem Schema, z. B. FeRD EXTENDED)',
+      },
+      { name: 'reason', type: 'string', required: false, meaning: 'Warum nicht geprüft' },
+      {
+        name: 'problems',
+        type: 'Problem[]',
+        required: true,
+        meaning: 'Die ersten technischen Meldungen (höchstens 20), mit Zeile',
+      },
+      { name: 'count', type: 'number', required: true, meaning: 'Alle Meldungen' },
     ],
   },
   {
@@ -401,6 +430,8 @@ export const RELATIONS: [string, string, string, string][] = [
   ['OtherPart', 'problems', 'Problem', '0..n'],
   ['InvoicePart', 'syntax', 'SyntaxEntry (SYNTAXES)', '1'],
   ['InvoicePart', 'model', 'ModelGroup', '0..1'],
+  ['InvoicePart', 'schema', 'SchemaResult', '0..1'],
+  ['SchemaResult', 'problems', 'Problem', '0..n'],
   ['ModelGroup', 'groups', 'ModelGroup', '0..n'],
   ['ModelGroup', 'terms', 'TermValue', '0..n'],
   ['ModelGroup', 'bg', 'GroupDef (binding)', '1'],

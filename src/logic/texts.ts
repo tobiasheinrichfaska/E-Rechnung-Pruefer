@@ -56,6 +56,20 @@ export const TEXTS = {
   attachmentsTruncated: 'Das PDF hat sehr viele Anhänge. Das Tool hat nur die ersten 50 gelesen.',
   notJudged: 'Ob das PDF eine E-Rechnung ist, kann das Tool deshalb nicht sagen.',
   formatError: 'Formatfehler, gem. Rn. 6a ggf. keine E-Rechnung.',
+
+  // Step 2b: the official schema (F4 for the statement)
+  schemaErrorHeadline: 'Rechnungsdaten mit Formatfehler ({spec})',
+  schemaMismatch:
+    'Die XML weicht vom offiziellen Schema {schema} ab (technische Meldungen: {count}).',
+  schemaMismatchIn:
+    'Der Anhang „{name}“ weicht vom offiziellen Schema {schema} ab (technische Meldungen: {count}).',
+  schemaMore: 'Weitere technische Meldungen: {count} (siehe unten).',
+  schemaOwnProfile:
+    'Für das Profil EXTENDED gilt ein eigenes Schema von FeRD, das das Tool noch nicht enthält.',
+  schemaNone: 'keine Abweichung vom Schema {schema}',
+  schemaDetail: 'Abweichungen vom Schema {schema}: {count}',
+  schemaNotChecked: 'nicht geprüft – {reason}',
+  schemaProblemsTitle: 'Technische Meldungen der Schemaprüfung ({count})',
   // The parser's own message (English) marked as such (audit 2026-11-14, U-07)
   problemAtLine: 'Technische Meldung (Zeile {line}): {message}',
   problemMessage: 'Technische Meldung: {message}',

@@ -91,7 +91,7 @@ describe('beispiele/', () => {
     const toCheck: { name: string; bytes: Uint8Array }[] = [];
     for (const file of built) {
       const b = BEISPIELE.find((x) => x.datei === file.name);
-      if (b?.quelle.art === 'kosit') toCheck.push(file);
+      if (b?.quelle.art === 'kosit' && !b.quelle.xml.schemafehler) toCheck.push(file);
       if (b?.quelle.art !== 'pdf') continue;
       const meant = new Set(
         b.quelle.xml.filter((part) => typeof part.xml !== 'string').map((part) => part.name),
@@ -141,6 +141,7 @@ describe('coverage: every text of the tool appears in a sample', () => {
     TEXTS.pdfWithoutInvoiceData,
     TEXTS.pdfBrokenXml,
     TEXTS.pdfNotChecked,
+    TEXTS.schemaErrorHeadline,
     ...Object.values(TEXTS.fileProblems).map((p) => p.headline),
   ];
 

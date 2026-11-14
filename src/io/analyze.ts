@@ -1,14 +1,54 @@
 // One file → what is in it (logic/analysis.ts). The file type is taken from the content, never
 // from the name; XML among PDF attachments as well. Every XML document is disposed right after
 // its values are read.
-import type { Analysis, FileKind, InvoicePart, OtherPart, Problem } from '../logic/analysis';
-import { coreValues, normalize } from '../logic/model';
+import type { XmlDocument } from 'libxml2-wasm';
+import type {
+  Analysis,
+  FileKind,
+  InvoicePart,
+  OtherPart,
+  Problem,
+  SchemaResult,
+} from '../logic/analysis';
+import { coreValues, first, normalize } from '../logic/model';
+import { profileOf } from '../logic/profiles';
 import { looksLikeXml } from '../logic/prolog';
 import { syntaxOf } from '../logic/syntax';
+import type { SyntaxEntry } from '../logic/syntax';
+import { TEXTS } from '../logic/texts';
+import { SCHEMA_ENTRIES, SCHEMA_FILES } from './schemas';
 import { extractModel } from './extract';
 import { MAX_PDF_BYTES, readPdfAttachments } from './pdf';
 import type { PdfJsLike } from './pdf';
-import { MAX_XML_BYTES, readXml, rootOf, valuesAt } from './xml';
+import { MAX_XML_BYTES, readXml, rootOf, schemaProblems, valuesAt, xsdValidator } from './xml';
+
+/** How many schema problems are kept for the display (all are counted). */
+export const MAX_SCHEMA_PROBLEMS = 20;
+
+/**
+ * Step 2b: the invoice XML against the official schema of its syntax — the same XSD the KoSIT
+ * validator uses. A profile with a schema of its own (FeRD EXTENDED) is left out until that schema
+ * is bundled, so a valid file never gets a false "Formatfehler".
+ */
+function schemaCheck(
+  doc: XmlDocument,
+  syntax: SyntaxEntry,
+  specId: string | undefined,
+): SchemaResult | undefined {
+  if (!syntax.schema) return undefined;
+  const schema = syntax.schema.label;
+  if (profileOf(specId).entry?.ownSchema) {
+    return { schema, checked: false, reason: TEXTS.schemaOwnProfile, problems: [], count: 0 };
+  }
+  const validator = xsdValidator(SCHEMA_ENTRIES[syntax.schema.entry], SCHEMA_FILES);
+  const problems = schemaProblems(doc, validator);
+  return {
+    schema,
+    checked: true,
+    problems: problems.slice(0, MAX_SCHEMA_PROBLEMS),
+    count: problems.length,
+  };
+}
 
 /** Above this size a file is not even read into memory (the larger of the two limits). */
 export const MAX_FILE_BYTES = Math.max(MAX_PDF_BYTES, MAX_XML_BYTES);
@@ -60,9 +100,11 @@ function readInvoiceXml(origin: string, bytes: Uint8Array): XmlOutcome {
       return { kind: 'invoice', part: { origin, syntax: syntax.id, header: { 'BT-24': specId } } };
     }
     const model = normalize(raw, { ubl: syntax.id !== 'cii' });
+    const header = coreValues(model);
+    const schema = schemaCheck(doc, syntax, first(header, 'BT-24'));
     return {
       kind: 'invoice',
-      part: { origin, syntax: syntax.id, header: coreValues(model), model },
+      part: { origin, syntax: syntax.id, header, model, ...(schema ? { schema } : {}) },
     };
   } finally {
     doc.dispose();

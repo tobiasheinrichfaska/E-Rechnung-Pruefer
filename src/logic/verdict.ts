@@ -70,31 +70,69 @@ export function differingTerms(parts: readonly InvoicePart[]): BtId[] {
   });
 }
 
+/** "Technische Meldung (Zeile 4): …" — the parser's or the schema's own (English) message. */
+export function technicalLine(problem: Problem): string {
+  return problem.line
+    ? fill(TEXTS.problemAtLine, { line: problem.line, message: problem.message })
+    : fill(TEXTS.problemMessage, { message: problem.message });
+}
+
 function problemLine(problem: Problem | undefined): string[] {
-  if (!problem) return [];
+  return problem ? [technicalLine(problem)] : [];
+}
+
+/** Schema problems count only where the XML is what counts (not for "keine E-Rechnung", F19). */
+function schemaFailed(invoice: InvoiceVerdict): boolean {
+  return invoice.einordnung !== 'keineERechnung' && (invoice.part.schema?.count ?? 0) > 0;
+}
+
+/** How many technical schema messages the result itself shows (all are listed below it). */
+const SCHEMA_LINES = 3;
+
+function schemaLines(invoice: InvoiceVerdict, inPdf: boolean): string[] {
+  const schema = invoice.part.schema;
+  if (!schema || !schemaFailed(invoice)) return [];
+  const shown = schema.problems.slice(0, SCHEMA_LINES);
   return [
-    problem.line
-      ? fill(TEXTS.problemAtLine, { line: problem.line, message: problem.message })
-      : fill(TEXTS.problemMessage, { message: problem.message }),
+    fill(inPdf ? TEXTS.schemaMismatchIn : TEXTS.schemaMismatch, {
+      name: invoice.part.origin,
+      schema: schema.schema,
+      count: schema.count,
+    }),
+    ...shown.map(technicalLine),
+    ...(schema.count > shown.length
+      ? [fill(TEXTS.schemaMore, { count: schema.count - shown.length })]
+      : []),
   ];
 }
 
-function singleVerdict(analysis: Analysis, invoice: InvoiceVerdict): Verdict {
+function singleVerdict(analysis: Analysis, invoice: InvoiceVerdict, withSchema = true): Verdict {
   const inPdf = analysis.kind === 'pdf';
   const profileName = invoice.profile.entry?.profile ?? invoice.specLabel;
+  const schema = withSchema ? schemaLines(invoice, inPdf) : [];
   switch (invoice.einordnung) {
-    case 'eRechnung':
+    case 'eRechnung': {
+      const source = inPdf
+        ? [fill(TEXTS.hybridSource, { name: invoice.part.origin }), TEXTS.xmlCounts]
+        : [TEXTS.xmlFile];
+      const hint = invoice.profile.entry?.hint ? [invoice.profile.entry.hint] : [];
+      if (schema.length > 0) {
+        // Step 2b: the XML does not match the official schema — F4: "Formatfehler, gem. Rn. 6a
+        // ggf. keine E-Rechnung"
+        return {
+          tone: 'bad',
+          headline: fill(TEXTS.schemaErrorHeadline, { spec: invoice.specLabel }),
+          explanation: [...source, ...hint, ...schema, TEXTS.formatError],
+          invoices: [invoice],
+        };
+      }
       return {
         tone: 'ok',
         headline: fill(TEXTS.eRechnung, { spec: invoice.specLabel }),
-        explanation: [
-          ...(inPdf
-            ? [fill(TEXTS.hybridSource, { name: invoice.part.origin }), TEXTS.xmlCounts]
-            : [TEXTS.xmlFile]),
-          ...(invoice.profile.entry?.hint ? [invoice.profile.entry.hint] : []),
-        ],
+        explanation: [...source, ...hint],
         invoices: [invoice],
       };
+    }
     case 'keineERechnung':
       return {
         tone: 'bad',
@@ -117,6 +155,7 @@ function singleVerdict(analysis: Analysis, invoice: InvoiceVerdict): Verdict {
             ? fill(TEXTS.unknownSpec, { id: invoice.profile.id })
             : TEXTS.missingSpec,
           TEXTS.shownAnyway,
+          ...(schema.length > 0 ? [...schema, TEXTS.formatError] : []),
         ],
         invoices: [invoice],
       };
@@ -164,25 +203,35 @@ export function verdictOf(analysis: Analysis): Verdict {
   if (invoices.length > 1) {
     const differing = differingTerms(analysis.invoices);
     const names = analysis.invoices.map((p) => p.origin).join(', ');
+    // the schema result of every part, never only of the first (cf. L-03)
+    const failed = invoices.filter(schemaFailed);
+    const schema =
+      failed.length > 0 ? [...failed.flatMap((i) => schemaLines(i, true)), TEXTS.formatError] : [];
     if (differing.length === 0 && only) {
-      const base = singleVerdict(analysis, only);
+      const base = singleVerdict(analysis, only, false);
+      const [firstFailed] = failed;
       return {
         ...base,
-        tone: base.tone === 'ok' ? 'warn' : base.tone,
+        tone: failed.length > 0 ? 'bad' : base.tone === 'ok' ? 'warn' : base.tone,
+        headline: firstFailed
+          ? fill(TEXTS.schemaErrorHeadline, { spec: firstFailed.specLabel })
+          : base.headline,
         explanation: [
           ...base.explanation,
           fill(TEXTS.sameSeveral, { count: invoices.length, names }),
+          ...schema,
         ],
         invoices,
         comparison: { same: true, differing },
       };
     }
     return {
-      tone: 'warn',
+      tone: failed.length > 0 ? 'bad' : 'warn',
       headline: TEXTS.contradicting,
       explanation: [
         fill(TEXTS.contradictingWhy, { count: invoices.length, names }),
         TEXTS.askSupplier,
+        ...schema,
       ],
       invoices,
       comparison: { same: false, differing },

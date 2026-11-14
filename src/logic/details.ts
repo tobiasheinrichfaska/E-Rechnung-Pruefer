@@ -3,7 +3,7 @@
 import { germanDate, isoDate } from './dates';
 import { formatAmount, parseDecimal } from './decimal';
 import { first } from './model';
-import { TYPE_CODES } from './texts';
+import { TEXTS, TYPE_CODES, fill } from './texts';
 import type { InvoiceVerdict } from './verdict';
 
 export interface DetailRow {
@@ -12,6 +12,16 @@ export interface DetailRow {
 }
 
 const MISSING = '– (fehlt)';
+const MISSING_SCHEMA = '– (kein Schema für dieses Format)';
+
+function schemaDetail(invoice: InvoiceVerdict): string {
+  const schema = invoice.part.schema;
+  if (!schema) return MISSING_SCHEMA;
+  if (!schema.checked) return fill(TEXTS.schemaNotChecked, { reason: schema.reason ?? '' });
+  return schema.count === 0
+    ? fill(TEXTS.schemaNone, { schema: schema.schema })
+    : fill(TEXTS.schemaDetail, { schema: schema.schema, count: schema.count });
+}
 
 export function invoiceDetails(invoice: InvoiceVerdict, inPdf: boolean): DetailRow[] {
   const h = invoice.part.header;
@@ -41,6 +51,7 @@ export function invoiceDetails(invoice: InvoiceVerdict, inPdf: boolean): DetailR
       value: iso ? germanDate(iso) : (date ?? MISSING),
     },
     { label: 'Lieferant (BT-27)', value: first(h, 'BT-27') ?? MISSING },
+    { label: 'Schema (XSD)', value: schemaDetail(invoice) },
     {
       label: 'Betrag brutto (BT-112)',
       value: parsed

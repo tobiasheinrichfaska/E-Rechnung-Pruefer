@@ -3,8 +3,8 @@ import type { Analysis } from '../logic/analysis';
 import { termLabel } from '../logic/binding';
 import { checkPflichtangaben } from '../logic/check';
 import { invoiceDetails } from '../logic/details';
-import { TEXTS } from '../logic/texts';
-import { pflichtModel } from '../logic/verdict';
+import { TEXTS, fill } from '../logic/texts';
+import { pflichtModel, technicalLine } from '../logic/verdict';
 import type { InvoiceVerdict, Verdict } from '../logic/verdict';
 import { PflichtangabenView } from './PflichtangabenView';
 
@@ -36,6 +36,27 @@ function Pflichtangaben({
     <p className="muted" data-testid="no-pflicht">
       {invoice.einordnung === 'keineERechnung' ? TEXTS.noPflichtNoEInvoice : TEXTS.noModel}
     </p>
+  );
+}
+
+/** The technical messages of the schema check, on demand (step 2b). */
+function SchemaProblems({ invoice }: { invoice: InvoiceVerdict }) {
+  const schema = invoice.part.schema;
+  if (!schema || schema.count === 0 || invoice.einordnung === 'keineERechnung') return null;
+  return (
+    <details className="schema-problems" data-testid="schema-problems">
+      <summary>{fill(TEXTS.schemaProblemsTitle, { count: schema.count })}</summary>
+      <ol>
+        {schema.problems.map((problem, index) => (
+          <li key={index}>{technicalLine(problem)}</li>
+        ))}
+      </ol>
+      {schema.count > schema.problems.length && (
+        <p className="muted">
+          {fill(TEXTS.schemaMore, { count: schema.count - schema.problems.length })}
+        </p>
+      )}
+    </details>
   );
 }
 
@@ -80,6 +101,7 @@ export function ResultView({ analysis, verdict }: Props) {
                 ))}
               </tbody>
             </table>
+            <SchemaProblems invoice={invoice} />
             <Pflichtangaben invoice={invoice} contextId={contextId} />
           </div>
         );

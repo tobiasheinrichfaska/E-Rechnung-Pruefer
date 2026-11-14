@@ -32,6 +32,7 @@ echter Lieferanten, echte Mailprogramme, echte Handys. Was eine Maschine prüfen
   - XML-E-Rechnung, Hybrid-PDF, einfaches PDF, Profil MINIMUM, widersprüchliche Rechnungsdaten,
     geschütztes PDF, Ablegen einer Datei (auch neben das Feld), feste Hinweiszeile, CSP.
   - Hybrid-PDF in einem Browser ohne die neuesten JavaScript-Funktionen (ältere Browser).
+  - Schemafehler: Betrag mit Komma, Zeile und technische Meldung, Liste aufklappbar.
   - Pflichtangaben vollständig, mit Lücken und Hinweisen, Kleinbetrag; Positionen aufklappen.
   - Handybreite (375 px und 320 px, auch mit langem Dateinamen): nichts verschiebt sich seitlich, die
     Werte stehen unter Bezeichnung und Marke.
@@ -40,7 +41,7 @@ echter Lieferanten, echte Mailprogramme, echte Handys. Was eine Maschine prüfen
     Screenreader vorliest, prüft das nicht.
   - Bei jedem Test: keine Netzwerkanfrage, kein Speicher- oder Cookie-Zugriff, kein Popup, kein
     Konsolenfehler.
-- **Beispielrechnungen** (`tests/beispiele/beispiele.test.ts`): jede der 28 Dateien zeigt ihr
+- **Beispielrechnungen** (`tests/beispiele/beispiele.test.ts`): jede der 29 Dateien zeigt ihr
   erwartetes Ergebnis; zusammen zeigen sie jede Überschrift (außer leerer Datei, anderer Dateiart und
   zu großer Datei), jede Fallart und jeden Hinweis. Nicht abgedeckt sind die Begründungen „nur im
   Einzelfall nötig“ und die Meldung „Die Prüfung ist abgebrochen“ (unerwarteter Fehler).

@@ -27,6 +27,8 @@ export interface Aenderung {
 export interface KositXml {
   basis: string;
   aenderungen?: Aenderung[];
+  /** The change breaks the official schema on purpose (sample for the schema check, step 2b) */
+  schemafehler?: boolean;
   /** Short German note of the changes for the comment in the file */
   geaendert?: string;
 }
@@ -531,6 +533,31 @@ export const BEISPIELE: readonly Beispiel[] = [
     erwartet: {
       ton: 'ok',
       ueberschrift: 'E-Rechnung erkannt (XRechnung 3.0)',
+      pflicht:
+        'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
+    },
+  },
+  {
+    datei: '29_XRechnung_mit_Formatfehler.xml',
+    zeigt:
+      'Eine XRechnung, die nicht zum offiziellen Schema passt: ein Betrag mit Komma statt Punkt („336,90“). Formatfehler, gem. Rn. 6a ggf. keine E-Rechnung.',
+    quelle: {
+      art: 'kosit',
+      xml: {
+        basis: 'paare/01.01a-INVOICE_ubl.xml',
+        geaendert: 'Zahlbetrag mit Komma statt Punkt (Schemafehler)',
+        schemafehler: true,
+        aenderungen: [
+          {
+            ersetze: '<cbc:PayableAmount currencyID="EUR">336.9</cbc:PayableAmount>',
+            durch: '<cbc:PayableAmount currencyID="EUR">336,90</cbc:PayableAmount>',
+          },
+        ],
+      },
+    },
+    erwartet: {
+      ton: 'bad',
+      ueberschrift: 'Rechnungsdaten mit Formatfehler (XRechnung 3.0)',
       pflicht:
         'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
     },

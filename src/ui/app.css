@@ -281,6 +281,11 @@ button.primary:disabled {
   padding-left: 18px;
 }
 
+.schema-problems {
+  margin: 8px 0 12px;
+}
+
+.schema-problems summary,
 .positions summary {
   cursor: pointer;
   color: var(--accent);

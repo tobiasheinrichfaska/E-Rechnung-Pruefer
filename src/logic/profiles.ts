@@ -21,6 +21,11 @@ export interface ProfileEntry {
   note?: string;
   /** A sentence added to the explanation of the result */
   hint?: string;
+  /**
+   * The profile has a schema of its own that the tool does not bundle yet (FeRD EXTENDED may go
+   * beyond CII D16B): the schema check is left out instead of risking a false "Formatfehler".
+   */
+  ownSchema?: boolean;
   source: string;
   checked: boolean;
 }
@@ -85,6 +90,7 @@ export const PROFILES: readonly ProfileEntry[] = [
     hint: TEXTS.zugferd20Hint,
     source:
       'FeRD ZUGFeRD 2.0 und 2.0.1 Musterrechnungen; ZUGFeRD 2.5.2 / Factur-X 1.09.2, Codeliste 1 (F17)',
+    ownSchema: true,
     checked: false,
   },
   {
@@ -112,6 +118,7 @@ export const PROFILES: readonly ProfileEntry[] = [
     profile: 'EXTENDED',
     einordnung: 'eRechnung',
     source: 'FeRD ZUGFeRD 2.5.2 Musterrechnungen (Infopaket vom 04.08.2026)',
+    ownSchema: true,
     checked: true,
   },
   {

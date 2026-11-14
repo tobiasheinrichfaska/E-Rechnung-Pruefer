@@ -34,6 +34,16 @@ describe.skipIf(!present)('FeRD ZUGFeRD 2.5.2 sample invoices (local only)', () 
     const verdict = verdictOf(analysis);
     expect(analysis.problem).toBeUndefined();
     expect(analysis.invoices).toHaveLength(1);
+    // Step 2b: valid against CII D16B, as KoSIT checks it; EXTENDED has a FeRD schema of its own
+    // that the tool does not bundle yet — left out, never a false "Formatfehler"
+    const schema = analysis.invoices[0]?.schema;
+    const specId = analysis.invoices[0]?.header['BT-24']?.[0] ?? '';
+    if (/extended/i.test(specId)) expect(schema?.checked).toBe(false);
+    else
+      expect({ file, problems: schema?.problems.slice(0, 3) ?? [] }).toEqual({
+        file,
+        problems: [],
+      });
     if (/^[01]\. /.test(file)) {
       // MINIMUM and BASIC WL: no e-invoice (BMF 15.10.2024 Rn. 25, 30)
       expect(verdict.tone).toBe('bad');
