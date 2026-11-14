@@ -51,6 +51,11 @@ export function RulesView({ result }: { result: RulesResult }) {
       >
         {result.summary}
       </p>
+      {result.note && (
+        <p className="muted" data-testid="rules-note">
+          {result.note}
+        </p>
+      )}
       {irregular.length > 0 && (
         <ul className="rule-list">
           {irregular.map((rule, index) => (

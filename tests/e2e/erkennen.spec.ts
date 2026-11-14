@@ -249,3 +249,22 @@ test('names a calculation irregularity with its rule and values', async ({ page 
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);
 });
+
+// FeRD EXTENDED has its own forms of the calculation rules (BR-FXEXT-…): only BR-CO-14, with a note
+test('says that only BR-CO-14 is checked for EXTENDED', async ({ page }) => {
+  const problems = await openApp(page);
+  const extended = withSpecId(
+    CII,
+    'urn:cen.eu:en16931:2017#conformant#urn:factur-x.eu:1p0:extended',
+  );
+  await upload(page, 'extended.xml', encode(extended), 'application/xml');
+  await expect(page.getByTestId('headline')).toHaveText(/Profil EXTENDED/);
+  await expect(page.getByTestId('rules-note')).toHaveText(
+    'Für das Profil EXTENDED gelten eigene Rechenregeln von FeRD. Diese werden hier nicht geprüft, nur die Regel BR-CO-14.',
+  );
+  await page.locator('.rules-all summary').click();
+  await expect(page.locator('.rules-all .rule')).toHaveCount(1);
+  await expect(page.getByTestId('rule-BR-CO-14')).toBeVisible();
+  expect(problems).toEqual([]);
+  expect(await sideEffects(page)).toEqual([]);
+});

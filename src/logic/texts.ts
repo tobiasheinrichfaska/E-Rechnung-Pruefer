@@ -81,6 +81,8 @@ export const TEXTS = {
   // Step 3a: calculation rules of EN 16931 (a selection)
   rulesHeading: 'Rechnerische Prüfung (Auswahl von Regeln der EN 16931)',
   rulesOk: 'Die geprüften Beträge passen zusammen.',
+  rulesOwnRules:
+    'Für das Profil EXTENDED gelten eigene Rechenregeln von FeRD. Diese werden hier nicht geprüft, nur die Regel BR-CO-14.',
   rulesAuffaellig: 'Mögliche Auffälligkeit: {ids}. Bitte prüfen Sie die Beträge.',
   rulesHint: 'Mögliche Auffälligkeit bei den Beträgen: {ids} (siehe „Rechnerische Prüfung“).',
   rulesHintIn:

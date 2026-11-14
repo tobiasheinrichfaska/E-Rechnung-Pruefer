@@ -1,7 +1,8 @@
 // Step 3a: a selection of the EN 16931 calculation rules — the totals (BR-CO-10 … BR-CO-17) and the
 // VAT breakdown per category and rate (BR-S-08 …). Computed exactly as the CEN Schematron 1.3.17
 // does (EN16931-UBL-model.sch): sums rounded with round(x * 100) div 100, a tolerance of 1 for
-// BR-CO-17 and for the breakdown of S, L and M. Hints only ("mögliche Auffälligkeit"), never an
+// BR-CO-17 and for the breakdown of S, L and M. FeRD EXTENDED has its own forms of these rules
+// (BR-FXEXT-…); for it only BR-CO-14 is checked. Hints only ("mögliche Auffälligkeit"), never an
 // approval; no full validator (non-goal).
 import {
   ZERO,
@@ -47,6 +48,8 @@ export interface RulesResult {
   /** Ids of the rules with a possible irregularity */
   auffaellig: string[];
   summary: string;
+  /** Why only some rules are checked (FeRD EXTENDED) */
+  note?: string;
 }
 
 /** What each rule checks (German, shown with the rule id). */
@@ -102,14 +105,16 @@ const code = (source: Source, path: string) =>
 
 export interface RulesOptions {
   /**
-   * false for profiles with hierarchical lines (FeRD EXTENDED: GROUP lines carry subtotals that the
-   * tool reads as positions, audit B-02b) — the rules that sum the lines are then not checked.
+   * true for FeRD EXTENDED (Profile.ownRules): its Schematron has its own forms of the totals and
+   * breakdown rules and no BR-CO-17, so only the rules it takes over unchanged are checked.
    */
-  lineSums?: boolean;
+  ownRules?: boolean;
 }
 
+/** The rules of this selection that the FeRD EXTENDED Schematron (Factur-X 1.09.2) keeps unchanged. */
+const UNCHANGED_IN_EXTENDED: ReadonlySet<string> = new Set(['BR-CO-14']);
+
 export function checkRules(model: InvoiceModel, options: RulesOptions = {}): RulesResult {
-  const lineSums = options.lineSums ?? true;
   const currency = valuesOf(model, 'BT-5')[0]?.value;
   const money = (value: Decimal | null | undefined) =>
     value === null
@@ -153,9 +158,7 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
     : undefined;
   add_(
     'BR-CO-10',
-    lineSums && lines.length > 0 && lineSum && bt106
-      ? decimalEquals(bt106, round2(lineSum))
-      : undefined,
+    lines.length > 0 && lineSum && bt106 ? decimalEquals(bt106, round2(lineSum)) : undefined,
     [
       { label: TEXTS.ruleLineSum, value: lineSum ? money(lineSum) : TEXTS.ruleNoNumber },
       { label: 'BT-106', value: money(bt106) },
@@ -300,7 +303,7 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
         ? subtract(add(lineSum, chargeSum), allowanceSum)
         : undefined;
     let ok: boolean | undefined;
-    if (lineSums && expected && base) {
+    if (expected && base) {
       ok = rule.perRate
         ? theLines.length + theCharges.length > 0 && within(base, expected, ONE)
         : decimalEquals(base, expected);
@@ -319,12 +322,16 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
     );
   }
 
+  const checked = options.ownRules
+    ? results.filter((r) => UNCHANGED_IN_EXTENDED.has(r.id))
+    : results;
   const auffaellig = [
-    ...new Set(results.filter((r) => r.status === 'auffaellig').map((r) => r.id)),
+    ...new Set(checked.filter((r) => r.status === 'auffaellig').map((r) => r.id)),
   ];
   return {
-    results,
+    results: checked,
     auffaellig,
+    ...(options.ownRules ? { note: TEXTS.rulesOwnRules } : {}),
     summary:
       auffaellig.length === 0
         ? TEXTS.rulesOk

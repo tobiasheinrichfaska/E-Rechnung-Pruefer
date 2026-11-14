@@ -1,5 +1,6 @@
 import type { InvoiceModel, ModelGroup } from './model';
 import { checkRules } from './rules';
+import { TEXTS } from './texts';
 
 type Spec = { [key: string]: string | Spec[] };
 
@@ -131,13 +132,32 @@ describe('calculation rules (step 3a)', () => {
   });
 });
 
-describe('profiles with hierarchical lines (EXTENDED, B-02b)', () => {
-  it('leaves out the rules that sum the lines', () => {
-    const base = BASE['BG-22'] as Spec[];
-    const model = group('INVOICE', { ...BASE, 'BG-22': [{ ...base[0], 'BT-106': '999.00' }] });
-    const result = checkRules(model as InvoiceModel, { lineSums: false });
-    expect(status(result, 'BR-CO-10')).toEqual(['nichtPruefbar']);
-    expect(status(result, 'BR-S-08')).toEqual(['nichtPruefbar']);
-    expect(status(result, 'BR-CO-15')).toEqual(['passt']);
+describe('FeRD EXTENDED (own forms of the rules)', () => {
+  // FeRD samples X11/X19: a logistics charge counts into BT-108 (BR-FXEXT-CO-12), not into Σ BT-99
+  const base = BASE['BG-22'] as Spec[];
+  const logistics = group('INVOICE', {
+    ...BASE,
+    'BG-22': [{ ...base[0], 'BT-106': '999.00', 'BT-108': '25.00' }],
+  }) as InvoiceModel;
+
+  it('checks only BR-CO-14, which the EXTENDED Schematron takes over unchanged', () => {
+    const result = checkRules(logistics, { ownRules: true });
+    expect(result.results.map((r) => r.id)).toEqual(['BR-CO-14']);
+    expect(result.auffaellig).toEqual([]);
+    expect(result.note).toBe(TEXTS.rulesOwnRules);
+  });
+
+  it('still names a VAT sum that does not add up', () => {
+    const wrongTax = group('INVOICE', {
+      ...BASE,
+      'BG-22': [{ ...base[0], 'BT-110': '30.00' }],
+    }) as InvoiceModel;
+    expect(checkRules(wrongTax, { ownRules: true }).auffaellig).toEqual(['BR-CO-14']);
+  });
+
+  it('applies all rules and no note for the other profiles', () => {
+    const result = checkRules(logistics);
+    expect(result.auffaellig).toEqual(expect.arrayContaining(['BR-CO-10', 'BR-CO-12']));
+    expect(result.note).toBeUndefined();
   });
 });

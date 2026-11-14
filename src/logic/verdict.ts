@@ -93,7 +93,7 @@ function schemaFailed(invoice: InvoiceVerdict): boolean {
 export function rulesOf(invoice: InvoiceVerdict): RulesResult | undefined {
   const model = pflichtModel(invoice);
   return model
-    ? checkRules(model, { lineSums: !invoice.profile.entry?.hierarchicalLines })
+    ? checkRules(model, { ownRules: invoice.profile.entry?.ownRules ?? false })
     : undefined;
 }
 

@@ -406,9 +406,9 @@ export const FUNCTIONS: { layer: string; signature: string; purpose: string }[] 
   },
   {
     layer: 'logic',
-    signature: 'checkRules(model): RulesResult',
+    signature: 'checkRules(model, { ownRules }): RulesResult',
     purpose:
-      'Rechenregeln der EN 16931 (BR-CO-10 bis -17, Aufschlüsselung je Kategorie und Satz) wie im CEN-Schematron',
+      'Rechenregeln der EN 16931 (BR-CO-10 bis -17, Aufschlüsselung je Kategorie und Satz) wie im CEN-Schematron; für FeRD EXTENDED (eigene Regeln BR-FXEXT-…) nur BR-CO-14',
   },
   {
     layer: 'logic',

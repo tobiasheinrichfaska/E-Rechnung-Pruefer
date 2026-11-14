@@ -50,8 +50,12 @@ describe.skipIf(!present)('FeRD ZUGFeRD 2.5.2 sample invoices (local only)', () 
       const model = analysis.invoices[0]?.model;
       expect(model).toBeDefined();
       if (model) checkPflichtangaben(model);
-      // Step 3a: no possible irregularity in the official samples (EXTENDED without line sums)
+      // Step 3a: no possible irregularity in the official samples; EXTENDED has its own forms of the
+      // rules (BR-FXEXT-…, logistics charges in X11/X19), so only BR-CO-14 is checked there
       const first = verdict.invoices[0];
+      if (file.startsWith('4. ') && first) {
+        expect(rulesOf(first)?.results.map((r) => r.id)).toEqual(['BR-CO-14']);
+      }
       expect({ file, auffaellig: first ? (rulesOf(first)?.auffaellig ?? []) : [] }).toEqual({
         file,
         auffaellig: [],

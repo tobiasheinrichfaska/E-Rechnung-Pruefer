@@ -27,8 +27,13 @@ export interface ProfileEntry {
    * the tool does not have, and the check is left out instead of risking a false "Formatfehler".
    */
   ownSchema?: { entry?: 'facturxExtended'; label: string };
-  /** Lines may form a hierarchy with group subtotals (EXTENDED, audit B-02b): no sums over lines */
-  hierarchicalLines?: boolean;
+  /**
+   * FeRD EXTENDED: its Schematron replaces the EN 16931 totals and breakdown rules by its own forms
+   * (BR-FXEXT-CO-10 … -16 and BR-FXEXT-…-08: logistics charges, amounts of third parties, small
+   * tolerances, only DETAIL lines of a hierarchy) and has no BR-CO-17 — only BR-CO-14, taken over
+   * unchanged, is checked (FeRD samples X11 and X19 carry logistics charges).
+   */
+  ownRules?: boolean;
   source: string;
   checked: boolean;
 }
@@ -95,7 +100,7 @@ export const PROFILES: readonly ProfileEntry[] = [
       'FeRD ZUGFeRD 2.0 und 2.0.1 Musterrechnungen; ZUGFeRD 2.5.2 / Factur-X 1.09.2, Codeliste 1 (F17)',
     // the EXTENDED schema of ZUGFeRD 2.0 is not bundled; 2.5.2 is not checked against older files
     ownSchema: { label: 'ZUGFeRD 2.0 EXTENDED (FeRD)' },
-    hierarchicalLines: true,
+    ownRules: true,
     checked: false,
   },
   {
@@ -125,7 +130,7 @@ export const PROFILES: readonly ProfileEntry[] = [
     source: 'FeRD ZUGFeRD 2.5.2 Musterrechnungen (Infopaket vom 04.08.2026)',
     // Step 2a: the EXTENDED schema of Factur-X 1.09.2 / ZUGFeRD 2.5.2 (FeRD, Apache-2.0)
     ownSchema: { entry: 'facturxExtended', label: 'Factur-X 1.09.2 EXTENDED (FeRD)' },
-    hierarchicalLines: true,
+    ownRules: true,
     checked: true,
   },
   {
