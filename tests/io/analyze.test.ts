@@ -3,6 +3,7 @@ import { MAX_FILE_BYTES, analyzeFile, fileKindOf, tooLargeFile } from '../../src
 import type { PdfJsLike } from '../../src/io/pdf';
 import { verdictOf } from '../../src/logic/verdict';
 import { encode, official, officialText, withInvoiceNumber, withSpecId } from '../support/fixtures';
+import { compressedPdf } from '../../src/build/compressedPdf';
 import { miniPdf } from '../../src/build/minipdf';
 import type { Attachment } from '../../src/build/minipdf';
 
@@ -111,7 +112,11 @@ describe('XML files', () => {
     const broken = await check('b.xml', encode('<?xml version="1.0"?>\n<a>\n<b></a>'));
     expect(broken.verdict.headline).toBe('Die XML-Datei ist fehlerhaft');
     expect(broken.verdict.explanation.join(' ')).toMatch(/Rn\. 6a/);
-    expect(broken.verdict.explanation.join(' ')).toMatch(/Zeile \d+:/);
+    expect(broken.verdict.explanation.join(' ')).toMatch(/Technische Meldung \(Zeile \d+\):/);
+    // the technical message first, then the consequence — as for a broken XML in a PDF (U-07)
+    expect(broken.verdict.explanation.at(-1)).toBe(
+      'Formatfehler, gem. Rn. 6a ggf. keine E-Rechnung.',
+    );
   });
 });
 
@@ -129,6 +134,19 @@ describe('PDF files', () => {
     expect(analysis.invoices[0]?.origin).toBe('irgendwas.dat');
     expect(verdict.tone).toBe('ok');
     expect(verdict.explanation[0]).toContain('irgendwas.dat');
+  });
+
+  // Built like real Factur-X files (compressed object and xref streams, FlateDecode attachment,
+  // name tree with Kids), also with the attachment added in an incremental update (T-02)
+  it.each([
+    ['compressed', {}],
+    ['compressed with an incremental update', { incremental: true }],
+  ] as const)('reads a hybrid PDF %s', async (_, options) => {
+    const pdf = compressedPdf(encode(officialText(XR_CII)), 'factur-x.xml', options);
+    expect(new TextDecoder('latin1').decode(pdf)).toContain('/ObjStm');
+    const { analysis, verdict } = await check('r.pdf', pdf);
+    expect(verdict.headline).toBe('E-Rechnung erkannt (XRechnung 3.0)');
+    expect(analysis.invoices[0]?.origin).toBe('factur-x.xml');
   });
 
   it('names MINIMUM inside a PDF as in the hand-over', async () => {

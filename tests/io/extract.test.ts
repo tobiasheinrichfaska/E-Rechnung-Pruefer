@@ -1,12 +1,13 @@
 import { readdirSync } from 'node:fs';
 import { XmlXPath } from 'libxml2-wasm';
 import { extractModel } from '../../src/io/extract';
-import { readXml, rootOf } from '../../src/io/xml';
+import { readXml, rootOf, schemaProblems, xsdValidator } from '../../src/io/xml';
+import { SCHEMA_ENTRIES, SCHEMA_FILES } from '../../src/io/schemas';
 import { allDefinitions, pathFor } from '../../src/logic/binding';
 import type { GroupDef, SyntaxFamily, TermDef } from '../../src/logic/binding';
 import { decimalText, normalize as normalizeDecimal, parseDecimal } from '../../src/logic/decimal';
 import { groupsOf, normalize, valuesOf } from '../../src/logic/model';
-import type { InvoiceModel, ModelGroup } from '../../src/logic/model';
+import type { InvoiceModel, ModelGroup, RawGroup } from '../../src/logic/model';
 import { SYNTAXES, syntaxOf } from '../../src/logic/syntax';
 import type { SyntaxId } from '../../src/logic/syntax';
 import { official } from '../support/fixtures';
@@ -81,12 +82,12 @@ describe('UBL and CII of the same invoice give the same model (KoSIT testsuite p
     .filter((name) => name.endsWith('_ubl.xml'))
     .map((name) => name.replace('_ubl.xml', ''));
 
-  it('has the pairs', () => {
-    expect(pairs.length).toBe(21);
+  it('has every pair of instances/standard in the testsuite', () => {
+    expect(pairs.length).toBe(33);
   });
 
   // The two files of a pair are not always identical. Each difference below was checked in the
-  // files by hand (2026-11-13); anything else is a mapping error.
+  // files by hand (2026-11-13; 03.01a and 03.07a on 2026-11-14); anything else is a mapping error.
   const DUMMY_ORDER = { onlyUbl: ['BT-13=Dummywert'], onlyCii: [] };
   const KNOWN: Record<string, { onlyUbl: string[]; onlyCii: string[] }> = {
     // UBL needs cac:OrderReference/cbc:ID when only the sales order (BT-14) is given
@@ -110,6 +111,13 @@ describe('UBL and CII of the same invoice give the same model (KoSIT testsuite p
       ],
       onlyCii: ['BG-23[1]/BT-120=als gemeinnützig anerkannt', 'BG-4[1]/BT-31=DE152338654'],
     },
+    // only the UBL file gives the buyer a trading name (cac:PartyName) — checked 2026-11-14
+    '03.01a-INVOICE': { onlyUbl: ['BG-7[1]/BT-45=[Buyer name]'], onlyCii: [] },
+    // only the CII file has two more seller identifiers (ram:ID) — checked 2026-11-14
+    '03.07a-INVOICE': {
+      onlyUbl: [],
+      onlyCii: ['BG-4[1]/BT-29=748387437438', 'BG-4[1]/BT-29=9876543217894897438'],
+    },
     // the UBL file has city and postcode swapped
     '03.06a-INVOICE': {
       onlyUbl: [
@@ -127,17 +135,128 @@ describe('UBL and CII of the same invoice give the same model (KoSIT testsuite p
     },
   };
 
+  /** What `a` holds more often than `b` — a multiset, so a doubled value is a difference (T-06). */
+  const minus = (a: string[], b: string[]) => {
+    const left = new Map<string, number>();
+    for (const line of b) left.set(line, (left.get(line) ?? 0) + 1);
+    return a.filter((line) => {
+      const n = left.get(line) ?? 0;
+      if (n === 0) return true;
+      left.set(line, n - 1);
+      return false;
+    });
+  };
+
   it.each(pairs)('%s', (name) => {
     const ubl = flatten(modelOf(`kosit/paare/${name}_ubl.xml`));
     const cii = flatten(modelOf(`kosit/paare/${name}_uncefact.xml`));
-    const onlyUbl = ubl.filter((line) => !cii.includes(line));
-    const onlyCii = cii.filter((line) => !ubl.includes(line));
+    const onlyUbl = minus(ubl, cii);
+    const onlyCii = minus(cii, ubl);
     expect({ onlyUbl, onlyCii }).toEqual(KNOWN[name] ?? { onlyUbl: [], onlyCii: [] });
   });
 
   it('compares a substantial part of each model', () => {
     const lines = pairs.map((name) => flatten(modelOf(`kosit/paare/${name}_ubl.xml`)).length);
     expect(Math.min(...lines)).toBeGreaterThan(30);
+  });
+});
+
+describe('every path finds a value in an official file (audit 2026-11-14, T-06)', () => {
+  const FILES = ['cen', 'kosit', 'kosit/paare'].flatMap((dir) =>
+    readdirSync(new URL(`../fixtures/offiziell/${dir}/`, import.meta.url))
+      .filter((name) => name.endsWith('.xml'))
+      .map((name) => `${dir}/${name}`),
+  );
+  const FAMILY: Partial<Record<SyntaxId, SyntaxFamily>> = {
+    'ubl-invoice': 'ubl',
+    'ubl-creditnote': 'ublCreditNote',
+    cii: 'cii',
+  };
+  const found: Record<SyntaxFamily, Set<string>> = {
+    ubl: new Set(),
+    ublCreditNote: new Set(),
+    cii: new Set(),
+  };
+  const collect = (family: SyntaxFamily, group: RawGroup) => {
+    found[family].add(group.bg);
+    for (const [bt, values] of Object.entries(group.terms)) {
+      if ((values ?? []).length > 0) found[family].add(bt);
+    }
+    for (const children of Object.values(group.groups)) {
+      for (const child of children ?? []) collect(family, child);
+    }
+  };
+  beforeAll(() => {
+    for (const path of FILES) {
+      const read = readXml(official(path));
+      if (!read.ok) continue;
+      try {
+        const syntax = syntaxOf(rootOf(read.doc));
+        const family = syntax ? FAMILY[syntax.id] : undefined;
+        const raw = syntax && family ? extractModel(read.doc, syntax) : undefined;
+        if (family && raw) collect(family, raw);
+      } finally {
+        read.doc.dispose();
+      }
+    }
+  });
+
+  /** Paths no official file fills; each is shown working on a derived file below. */
+  const NOT_IN_FILES: Record<SyntaxFamily, string[]> = {
+    ubl: [],
+    cii: ['BT-8'],
+    // one official credit note: only the paths of its own are checked here
+    ublCreditNote: ['BT-9'],
+  };
+
+  it.each(['ubl', 'cii', 'ublCreditNote'] as const)('%s', (family) => {
+    const { terms, groups } = allDefinitions();
+    const defs: (TermDef | GroupDef)[] = [...terms, ...groups];
+    const own = (def: TermDef | GroupDef) =>
+      family !== 'ublCreditNote' || pathFor(def, 'ublCreditNote') !== pathFor(def, 'ubl');
+    const missing = defs
+      .filter((def) => pathFor(def, family) && own(def))
+      .map((def) => ('bt' in def ? def.bt : def.bg))
+      .filter((id) => !found[family].has(id));
+    expect(missing).toEqual(NOT_IN_FILES[family]);
+  });
+
+  /** An official file with one change, valid against the official schema, read through the binding. */
+  function derived(path: string, from: string, to: string, entry: string): InvoiceModel {
+    const text = new TextDecoder().decode(official(path));
+    if (!text.includes(from)) throw new Error(`${path}: ${from} not found`);
+    const read = readXml(new TextEncoder().encode(text.replace(from, to)));
+    if (!read.ok) throw new Error(`${path}: ${read.issue}`);
+    try {
+      expect(schemaProblems(read.doc, xsdValidator(entry, SCHEMA_FILES))).toEqual([]);
+      const syntax = syntaxOf(rootOf(read.doc));
+      const raw = syntax ? extractModel(read.doc, syntax) : undefined;
+      if (!syntax || !raw) throw new Error(`${path}: no model`);
+      return normalize(raw, { ubl: syntax.id !== 'cii' });
+    } finally {
+      read.doc.dispose();
+    }
+  }
+
+  it('reads BT-8 in CII (KoSIT 01.01a with a DueDateTypeCode)', () => {
+    const model = derived(
+      'kosit/paare/01.01a-INVOICE_uncefact.xml',
+      '<ram:CategoryCode>S</ram:CategoryCode>\r\n                <ram:RateApplicablePercent>',
+      // the file has CRLF line ends (kept byte-identical)
+      '<ram:CategoryCode>S</ram:CategoryCode>\r\n                <ram:DueDateTypeCode>72</ram:DueDateTypeCode>\r\n                <ram:RateApplicablePercent>',
+      SCHEMA_ENTRIES.ciiD16B,
+    );
+    expect(valuesOf(model, 'BT-8').map((v) => v.value)).toEqual(['72']);
+  });
+
+  it('reads BT-9 in a UBL credit note (CEN example with a PaymentDueDate)', () => {
+    const model = derived(
+      'cen/UBL_ubl-tc434-creditnote1.xml',
+      '<cbc:PaymentMeansCode>1</cbc:PaymentMeansCode>',
+      '<cbc:PaymentMeansCode>1</cbc:PaymentMeansCode>\n\t\t<cbc:PaymentDueDate>2026-12-01</cbc:PaymentDueDate>',
+      SCHEMA_ENTRIES.ublCreditNote,
+    );
+    expect(valuesOf(model, 'BT-9').map((v) => v.value)).toEqual(['2026-12-01']);
   });
 });
 

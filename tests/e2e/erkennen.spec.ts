@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { encode, official, officialText, withInvoiceNumber, withSpecId } from '../support/fixtures';
+import { compressedPdf } from '../../src/build/compressedPdf';
 import { miniPdf } from '../../src/build/minipdf';
 import { openApp, sideEffects, upload } from './helpers';
 
@@ -134,6 +135,14 @@ const NEWER_JS = [
   'ArrayBuffer.prototype.transfer',
   'Array.fromAsync',
 ];
+
+test('reads a hybrid PDF built like real Factur-X files (compressed streams)', async ({ page }) => {
+  const problems = await openApp(page);
+  await upload(page, 'echt.pdf', compressedPdf(encode(CII), 'factur-x.xml'), 'application/pdf');
+  await expect(page.getByTestId('headline')).toHaveText(/^E-Rechnung erkannt \(EN 16931/);
+  expect(problems).toEqual([]);
+  expect(await sideEffects(page)).toEqual([]);
+});
 
 test('reads a hybrid PDF in a browser without the newest JS features', async ({ page }) => {
   await page.addInitScript({
