@@ -87,6 +87,17 @@ button.primary:disabled {
   margin: 0 0 8px;
 }
 
+/* Long values without break opportunities (file names with underscores, IBANs, long names) wrap
+   instead of widening the page; labels keep whole words (audit 2026-11-14, U-12). */
+.status,
+.verdict h2,
+.verdict p,
+.details td,
+.pflicht-table td:nth-child(2),
+.card li {
+  overflow-wrap: anywhere;
+}
+
 .verdict {
   border-left: 6px solid var(--line);
   border-radius: 6px;
@@ -304,7 +315,8 @@ button.primary:disabled {
 
   .pflicht-table tr {
     display: grid;
-    grid-template-columns: 1fr auto;
+    /* minmax(0, …): a long label word must not push the status badge out of the screen */
+    grid-template-columns: minmax(0, 1fr) auto;
     column-gap: 8px;
     border-bottom: 1px solid var(--line);
     padding: 8px 0;
