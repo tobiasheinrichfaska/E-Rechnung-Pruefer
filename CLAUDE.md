@@ -195,16 +195,17 @@ Semantic versioning in `package.json`, injected as `__APP_VERSION__`. Workflow: 
 `package.json` → `chore: bump version to X.Y.Z` → after the merge, a row in the table below. **No git
 tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads them).
 
-| Version | Merge commit in `main` | Date       | Content                                                        |
-| ------- | ---------------------- | ---------- | -------------------------------------------------------------- |
-| 0.2.0   | `06e96a0`              | 2026-11-14 | Inventory and audit, F16–F21, schema check (2a/2b), rules (3a) |
-| 0.1.0   | (Fragebogen `76828a3`) | 2026-11-13 | Steps 1a–1c; the copy online in `NebenprojektERechnung/`       |
+| Version | Merge commit in `main` | Date       | Content                                                                                 |
+| ------- | ---------------------- | ---------- | --------------------------------------------------------------------------------------- |
+| 0.3.0   | `c78be21`              | 2026-11-14 | Decisions F22–F29, G-1 … G-10, profile schemas, FeRD EXTENDED rules, ZUGFeRD 1.0 backed |
+| 0.2.0   | `06e96a0`              | 2026-11-14 | Inventory and audit, F16–F21, schema check (2a/2b), rules (3a)                          |
+| 0.1.0   | (Fragebogen `76828a3`) | 2026-11-13 | Steps 1a–1c; the copy online in `NebenprojektERechnung/`                                |
 
 ---
 
 ## Known Limitations
 
-- **In development** — all steps of the plan are built (1a–3a); not online yet in this version.
+- **In development** — all steps of the plan are built (1a–3a); version 0.3.0 not online yet.
 - **Calculation rules (3a)** are a selection (BR-CO-10 … -17, breakdown per category/rate), not a
   validator: no BR-DE/XRechnung rules, no line-level rules (price × quantity), no currency
   conversion (BT-111). For **Factur-X EXTENDED** the FeRD forms are rebuilt (F29,
@@ -254,7 +255,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 - **Password-protected PDF** is tested with a synthetic encryption dictionary (the reader asks for
   a password); a real protected supplier PDF is not in the tests.
 - **E2E runs on file://**; the hosted copy is **older** than the repo (uploaded 2026-11-13 at
-  Fragebogen commit 76828a3, step 1c, version 0.1.0); the repo is at 0.2.0 (merge `06e96a0`, see Versioning) —
+  Fragebogen commit 76828a3, step 1c, version 0.1.0); the repo is at 0.3.0 (merge `c78be21`, see Versioning) —
   upload only after Tobias' OK.
 - **Browsers:** the single inline script needs class static blocks and the CSP
   `'wasm-unsafe-eval'`, so the floor is about Chrome/Edge 98, Firefox 102, Safari 16.4 (derived from
@@ -287,7 +288,8 @@ comparison table), F28 (Factur-X profile schemas), F29 (FeRD rules for EXTENDED,
 `rulesExtended.ts`), G-1 … G-10 (folded rows, jump links, technical details closed, print and
 copy buttons, compact drop zone, start view, wording). Samples 31–35. ZUGFeRD 1.0 backed by the
 FeRD specification and its 12 samples (private repo `zugferd-1.0/`, `zugferd1Lokal.test.ts`). Open:
-F30 (supply before 2025). Next: merge PR #3, then Tobias uploads app and samples (local).
+F30 (supply before 2025). PR #3 merged (`c78be21`), private repo PR #1 (`zugferd-1.0/`) merged.
+Next: Tobias uploads app and samples (local, `npm run hochladen`).
 
 **2026-11-14 — quality audit of the handling (Tobias: "Qualitätsaudit, insbesondere für die
 Handhabung des Nutzers"):** PR #1 merged into `main` (`06e96a0`, 0.2.0); the tag `v0.2.0` could not
