@@ -15,7 +15,7 @@
 
 - [x] **Pflichtangaben in der Reihenfolge des § 14 Abs. 4** — je Zeile Werte und Status
 - [x] **Positionen aufklappbar** — Menge, Art, Betrag je Position
-- [x] **Gesamtsatz nie „ordnungsgemäß“** — „Alle Pflichtfelder belegt. Bitte prüfen Sie die Werte.“ bzw. „Es fehlt: …“
+- [x] **Gesamtsatz nie „ordnungsgemäß“** — „Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall ‚nur im Einzelfall nötig‘ zutrifft.“ bzw. „Es fehlt: …“
 - [x] **Kleinbetrag und Kleinunternehmer** — verringerte Angaben nach § 33 bzw. § 34a UStDV
 
 ## Schema und Plausibilität (Phasen 2, 3)

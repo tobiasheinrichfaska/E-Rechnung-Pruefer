@@ -13,7 +13,7 @@ import { checkPflichtangaben } from '../../src/logic/check';
 import type { PflichtResult } from '../../src/logic/check';
 import { MODES, PFLICHTANGABEN } from '../../src/logic/pflichtangaben';
 import { TEXTS } from '../../src/logic/texts';
-import { verdictOf } from '../../src/logic/verdict';
+import { pflichtModel, verdictOf } from '../../src/logic/verdict';
 import type { Verdict } from '../../src/logic/verdict';
 
 // The samples for testers in beispiele/ are generated (npm run beispiele = this test in mode
@@ -42,10 +42,13 @@ beforeAll(async () => {
       const file = built.find((f) => f.name === b.datei);
       if (!file) throw new Error(`not built: ${b.datei}`);
       const analysis = await analyzeFile(b.datei, file.bytes, load);
-      const model = analysis.invoices[0]?.model;
+      const verdict = verdictOf(analysis);
+      // as the page shows it: no Pflichtangaben for "keine E-Rechnung" (F19)
+      const first = verdict.invoices[0];
+      const model = first ? pflichtModel(first) : undefined;
       return {
         datei: b.datei,
-        verdict: verdictOf(analysis),
+        verdict,
         ...(model ? { pflicht: checkPflichtangaben(model) } : {}),
       };
     }),

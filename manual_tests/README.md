@@ -37,7 +37,7 @@ echter Lieferanten, echte Mailprogramme, echte Handys. Was eine Maschine prüfen
     Werte stehen unter Bezeichnung und Marke.
   - Bei jedem Test: keine Netzwerkanfrage, kein Speicher- oder Cookie-Zugriff, kein Popup, kein
     Konsolenfehler.
-- **Beispielrechnungen** (`tests/beispiele/beispiele.test.ts`): jede der 27 Dateien zeigt ihr
+- **Beispielrechnungen** (`tests/beispiele/beispiele.test.ts`): jede der 28 Dateien zeigt ihr
   erwartetes Ergebnis; zusammen zeigen sie jede Überschrift (außer leerer Datei, anderer Dateiart und
   zu großer Datei), jede Fallart und jeden Hinweis. Nicht abgedeckt sind die Begründungen „nur im
   Einzelfall nötig“ und die Meldung „Die Prüfung ist abgebrochen“ (unerwarteter Fehler).

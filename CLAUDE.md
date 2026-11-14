@@ -92,7 +92,7 @@ keep `main` pushed after his OK so web sessions see the current state).
 | `tests/io/pdf.test.ts`                                     | Plain PDF, PDF with two attachments (names, bytes), damaged PDF                                                                                                                                                                                                                                                                                                                         |
 | `src/build/minipdf.ts`                                     | Tiny PDF writer for own edge cases and the samples: text lines (Helvetica, WinAnsi), embedded files with /AF relationship, password-protected; no PDF/A                                                                                                                                                                                                                                 |
 | `src/build/beispiele.ts`                                   | Catalog of the tester samples (data: one entry per file — KoSIT base + exact changes, own XML, own PDF with a page drawn from the invoice data, expected result), overview page, licence note                                                                                                                                                                                           |
-| `beispiele/`                                               | GENERATED samples for testers (`npm run beispiele`, never edit by hand): 27 files + `index.html` (download links) + `LIZENZEN.txt` + Apache-2.0 text; to be uploaded next to the app (postponed by Tobias, not online yet)                                                                                                                                                              |
+| `beispiele/`                                               | GENERATED samples for testers (`npm run beispiele`, never edit by hand): 28 files + `index.html` (download links) + `LIZENZEN.txt` + Apache-2.0 text; to be uploaded next to the app (postponed by Tobias, not online yet)                                                                                                                                                              |
 | `tests/beispiele/beispiele.test.ts`                        | Folder = fresh build (byte-identical, deterministic), each sample shows its expected result, KoSIT-based XML schema-valid, every result headline / case text / hint appears in a sample                                                                                                                                                                                                 |
 | `tests/support/fixtures.ts`                                | Reads official fixtures; `withSpecId`, `withInvoiceNumber` derive variants (MINIMUM, unknown id, different invoice)                                                                                                                                                                                                                                                                     |
 | `tests/io/extract.test.ts`                                 | Every binding XPath compiles (3 syntaxes); **21 KoSIT invoices in UBL and CII give the same model** (documented differences inside the test files themselves); values of one official invoice; credit-note lines; CII dates                                                                                                                                                             |
@@ -165,7 +165,11 @@ Semantic versioning in `package.json`, injected as `__APP_VERSION__`. Workflow: 
   sources (`docs/offene-fragen.md`): F5, F7 (Nr. 6a only for invoices from 01.01.2028), F10 (any
   reachable address; missing street = hint), F11, F12 (periods on some positions count, hint on
   Nebenleistung), F13, F14, F15 (replaces F3: a note "Leistungsdatum entspricht Rechnungsdatum"
-  is not enough in an e-invoice, UStAE 14.5 Abs. 16 — "fehlt" with a hint).
+  is not enough in an e-invoice, UStAE 14.5 Abs. 16 — "fehlt" with a hint), F16 (Kleinbetrag by
+  the amount |BT-112|), F17 (ZUGFeRD 2.0 BASIC/EXTENDED = e-invoice with a hint: 2.0 and 2.0.1
+  cannot be told apart), F18 (VAT shown excludes the Kleinunternehmer list, hint § 14c), F19 (no
+  Pflichtangaben and no "Maßgeblich ist die XML" for "keine E-Rechnung"), F20 (negated reductions
+  do not count), F21 (summary sentence).
 - **Text detection** (notes, exemption reasons, payment terms) uses German keywords as data
   (`pflichtangaben.ts`, e.g. `REDUCTION_WORDS` for § 14 Abs. 4 Nr. 7, F8); other
   languages or unusual wording are not recognised. A row found by its wording shows the matching
@@ -216,7 +220,8 @@ binding, tests/docs, UI/texts) and five refutation agents; 66 findings, verdicts
 phone layout (320/375 px, long file names), DOCTYPE behind another encoding, text nodes > 10 MB,
 attachments not read are "nicht vollständig geprüft" instead of "Formatfehler", "§ 195 BGB" no
 Kleinunternehmer hint, BT-24 in the comparison of several XML, harder storage/network guards. New
-open tax questions F16–F21 for Tobias. Not pushed (waiting for Tobias' OK).
+open tax questions F16–F21, then decided by Tobias the same day and implemented (sample 28).
+Pushed after Tobias' OK; pull request #1 (`claude/adoring-franklin-b6xgoh` → `main`).
 
 **2026-11-14 — tester samples, F8/F9, GitHub:** manual tests reduced to what automation cannot
 cover (phone width is now an e2e test); `beispiele/` (26 samples, `npm run beispiele`) with

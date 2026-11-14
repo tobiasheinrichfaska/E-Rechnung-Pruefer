@@ -4,7 +4,7 @@ import type { Analysis, InvoicePart, Problem } from './analysis';
 import { isoDate } from './dates';
 import { decimalEquals, parseDecimal } from './decimal';
 import { first } from './model';
-import type { BtId } from './model';
+import type { BtId, InvoiceModel } from './model';
 import { profileOf } from './profiles';
 import type { Einordnung, ProfileMatch } from './profiles';
 import { syntaxById } from './syntax';
@@ -83,9 +83,12 @@ function singleVerdict(analysis: Analysis, invoice: InvoiceVerdict): Verdict {
       return {
         tone: 'ok',
         headline: fill(TEXTS.eRechnung, { spec: invoice.specLabel }),
-        explanation: inPdf
-          ? [fill(TEXTS.hybridSource, { name: invoice.part.origin }), TEXTS.xmlCounts]
-          : [TEXTS.xmlFile],
+        explanation: [
+          ...(inPdf
+            ? [fill(TEXTS.hybridSource, { name: invoice.part.origin }), TEXTS.xmlCounts]
+            : [TEXTS.xmlFile]),
+          ...(invoice.profile.entry?.hint ? [invoice.profile.entry.hint] : []),
+        ],
         invoices: [invoice],
       };
     case 'keineERechnung':
@@ -126,6 +129,19 @@ function fileProblemVerdict(analysis: Analysis): Verdict | undefined {
     explanation: [...text.explanation, ...problemLine(problem.problems[0])],
     invoices: [],
   };
+}
+
+/**
+ * The model whose Pflichtangaben are shown: not for "keine E-Rechnung" — there the readable invoice
+ * counts, not the XML (F19, Tobias 2026-11-14).
+ */
+export function pflichtModel(invoice: InvoiceVerdict): InvoiceModel | undefined {
+  return invoice.einordnung === 'keineERechnung' ? undefined : invoice.part.model;
+}
+
+/** Whether the XML is what counts: at least one invoice XML is an e-invoice (fixed notice, F19). */
+export function xmlCounts(verdict: Verdict): boolean {
+  return verdict.invoices.some((invoice) => invoice.einordnung === 'eRechnung');
 }
 
 export function verdictOf(analysis: Analysis): Verdict {

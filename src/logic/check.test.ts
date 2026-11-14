@@ -726,11 +726,17 @@ describe('conditions', () => {
 describe('audit 2026-11-14', () => {
   const notes = (text: string) => ({ 'BG-1': [{ 'BT-22': text }] });
 
+  /** No VAT shown: exempt, 0 %, no tax amount (else F18 keeps the regular list). */
+  const noTax = {
+    'BG-22': [{ 'BT-106': '500.00', 'BT-109': '500.00', 'BT-112': '500.00', 'BT-115': '500.00' }],
+    'BG-23': [{ 'BT-116': '500.00', 'BT-117': '0', 'BT-118': 'E', 'BT-119': '0' }],
+  };
+
   it('does not take "§ 195 BGB" for the Kleinunternehmer rule (L-02)', () => {
-    expect(modeOf(model(notes('Es gilt die Verjährungsfrist nach § 195 BGB.'))).mode).toBe('regel');
-    expect(modeOf(model(notes('Gemäß §19 UStG wird keine Umsatzsteuer berechnet.'))).mode).toBe(
-      'kleinunternehmer',
-    );
+    const bgb = model({ ...noTax, ...notes('Es gilt die Verjährungsfrist nach § 195 BGB.') });
+    expect(modeOf(bgb).mode).toBe('regel');
+    const ku = model({ ...noTax, ...notes('Gemäß §19 UStG wird keine Umsatzsteuer berechnet.') });
+    expect(modeOf(ku).mode).toBe('kleinunternehmer');
   });
 
   it('gives the street hint only for a complete address and names the party (L-06, U-09)', () => {
@@ -802,5 +808,46 @@ describe('audit 2026-11-14', () => {
       model(notes('Bitte bewahren Sie diese Rechnung zwei Jahre auf (§ 14b Abs. 1 Satz 5 UStG).')),
     );
     expect(row(result, 'aufbewahrung').status).toBe('vorhanden');
+  });
+});
+
+describe('decisions of 2026-11-14 (F16–F21)', () => {
+  const notes = (text: string) => ({ 'BG-1': [{ 'BT-22': text }] });
+  const totals = (amount: string) => ({
+    'BG-22': [
+      { 'BT-106': amount, 'BT-109': amount, 'BT-110': '0', 'BT-112': amount, 'BT-115': amount },
+    ],
+  });
+
+  it('F16: the amount of BT-112 counts for a Kleinbetragsrechnung', () => {
+    expect(modeOf(model(totals('-119.00'))).mode).toBe('kleinbetrag');
+    expect(modeOf(model(totals('-250.00'))).mode).toBe('kleinbetrag');
+    expect(modeOf(model(totals('-250.01'))).mode).toBe('regel');
+    expect(modeOf(model(totals('-10555.30'))).mode).toBe('regel');
+    expect(modeOf(model(totals('250.00'))).mode).toBe('kleinbetrag');
+  });
+
+  it('F18: a Kleinunternehmer note on an invoice with VAT keeps the full list and gives a hint', () => {
+    const result = checkPflichtangaben(model(notes('Kleinunternehmer gemäß § 19 UStG')));
+    expect(result.mode).toBe('regel');
+    expect(row(result, 'steuerbetrag').hints.join(' ')).toContain('§ 14c UStG');
+    const withoutNote = checkPflichtangaben(model());
+    expect(row(withoutNote, 'steuerbetrag').hints).toEqual([]);
+  });
+
+  it('F20: a negated reduction is no hint on a reduction', () => {
+    const status = (text: string) =>
+      row(checkPflichtangaben(model(notes(text))), 'minderungen').status;
+    expect(status('Zahlbar sofort ohne Skonto.')).toBe('einzelfall');
+    expect(status('Kein Abzug von Skonto zulässig.')).toBe('einzelfall');
+    expect(status('2 % Skonto bei Zahlung binnen 10 Tagen, ohne Abzug 30 Tage netto.')).toBe(
+      'vorhanden',
+    );
+  });
+
+  it('F21: the summary of a complete invoice names the cases "nur im Einzelfall nötig"', () => {
+    expect(checkPflichtangaben(model()).summary).toBe(
+      'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
+    );
   });
 });

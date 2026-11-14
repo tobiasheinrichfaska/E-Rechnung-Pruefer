@@ -103,7 +103,8 @@ export const BEISPIELE: readonly Beispiel[] = [
     erwartet: {
       ton: 'ok',
       ueberschrift: 'E-Rechnung erkannt (XRechnung 3.0)',
-      pflicht: 'Alle Pflichtfelder belegt. Bitte prüfen Sie die Werte.',
+      pflicht:
+        'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
     },
   },
   {
@@ -113,7 +114,8 @@ export const BEISPIELE: readonly Beispiel[] = [
     erwartet: {
       ton: 'ok',
       ueberschrift: 'E-Rechnung erkannt (XRechnung 3.0)',
-      pflicht: 'Alle Pflichtfelder belegt. Bitte prüfen Sie die Werte.',
+      pflicht:
+        'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
     },
   },
   {
@@ -124,7 +126,8 @@ export const BEISPIELE: readonly Beispiel[] = [
     erwartet: {
       ton: 'ok',
       ueberschrift: 'E-Rechnung erkannt (XRechnung 3.0)',
-      pflicht: 'Alle Pflichtfelder belegt. Bitte prüfen Sie die Werte.',
+      pflicht:
+        'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
     },
   },
   {
@@ -167,7 +170,8 @@ export const BEISPIELE: readonly Beispiel[] = [
     erwartet: {
       ton: 'ok',
       ueberschrift: 'E-Rechnung erkannt (XRechnung 3.0)',
-      pflicht: 'Alle Pflichtfelder belegt. Bitte prüfen Sie die Werte.',
+      pflicht:
+        'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
     },
   },
   {
@@ -178,7 +182,8 @@ export const BEISPIELE: readonly Beispiel[] = [
     erwartet: {
       ton: 'ok',
       ueberschrift: 'E-Rechnung erkannt (XRechnung 3.0)',
-      pflicht: 'Alle Pflichtfelder belegt. Bitte prüfen Sie die Werte.',
+      pflicht:
+        'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
     },
   },
   {
@@ -224,7 +229,8 @@ export const BEISPIELE: readonly Beispiel[] = [
     erwartet: {
       ton: 'ok',
       ueberschrift: 'E-Rechnung erkannt (XRechnung 3.0)',
-      pflicht: 'Alle Pflichtfelder belegt. Bitte prüfen Sie die Werte.',
+      pflicht:
+        'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
     },
   },
   {
@@ -252,7 +258,8 @@ export const BEISPIELE: readonly Beispiel[] = [
     erwartet: {
       ton: 'ok',
       ueberschrift: 'E-Rechnung erkannt (XRechnung 3.0)',
-      pflicht: 'Alle Pflichtfelder belegt. Bitte prüfen Sie die Werte.',
+      pflicht:
+        'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
     },
   },
   {
@@ -263,7 +270,8 @@ export const BEISPIELE: readonly Beispiel[] = [
     erwartet: {
       ton: 'ok',
       ueberschrift: 'E-Rechnung erkannt (XRechnung 3.0)',
-      pflicht: 'Alle Pflichtfelder belegt. Bitte prüfen Sie die Werte.',
+      pflicht:
+        'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
     },
   },
   {
@@ -286,7 +294,8 @@ export const BEISPIELE: readonly Beispiel[] = [
     erwartet: {
       ton: 'warn',
       ueberschrift: 'Rechnungsdaten erkannt, Spezifikation unbekannt: nicht beurteilt',
-      pflicht: 'Alle Pflichtfelder belegt. Bitte prüfen Sie die Werte.',
+      pflicht:
+        'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
     },
   },
   {
@@ -303,7 +312,6 @@ export const BEISPIELE: readonly Beispiel[] = [
     erwartet: {
       ton: 'bad',
       ueberschrift: 'Rechnungsdaten im Profil ZUGFeRD 1.0: keine E-Rechnung im Sinne des UStG',
-      pflicht: 'Alle Pflichtfelder belegt. Bitte prüfen Sie die Werte.',
     },
   },
   {
@@ -338,7 +346,8 @@ export const BEISPIELE: readonly Beispiel[] = [
     erwartet: {
       ton: 'ok',
       ueberschrift: 'E-Rechnung erkannt (EN 16931)',
-      pflicht: 'Alle Pflichtfelder belegt. Bitte prüfen Sie die Werte.',
+      pflicht:
+        'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
     },
   },
   {
@@ -352,7 +361,8 @@ export const BEISPIELE: readonly Beispiel[] = [
     erwartet: {
       ton: 'ok',
       ueberschrift: 'E-Rechnung erkannt (XRechnung 3.0)',
-      pflicht: 'Alle Pflichtfelder belegt. Bitte prüfen Sie die Werte.',
+      pflicht:
+        'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
     },
   },
   {
@@ -375,7 +385,6 @@ export const BEISPIELE: readonly Beispiel[] = [
     erwartet: {
       ton: 'bad',
       ueberschrift: 'PDF mit Rechnungsdaten, Profil MINIMUM: keine E-Rechnung im Sinne des UStG',
-      pflicht: 'Alle Pflichtfelder belegt. Bitte prüfen Sie die Werte.',
     },
   },
   {
@@ -398,7 +407,6 @@ export const BEISPIELE: readonly Beispiel[] = [
     erwartet: {
       ton: 'bad',
       ueberschrift: 'PDF mit Rechnungsdaten, Profil BASIC WL: keine E-Rechnung im Sinne des UStG',
-      pflicht: 'Alle Pflichtfelder belegt. Bitte prüfen Sie die Werte.',
     },
   },
   {
@@ -442,7 +450,8 @@ export const BEISPIELE: readonly Beispiel[] = [
     erwartet: {
       ton: 'warn',
       ueberschrift: 'Mögliche Auffälligkeit: widersprüchliche Rechnungsdaten im PDF',
-      pflicht: 'Alle Pflichtfelder belegt. Bitte prüfen Sie die Werte.',
+      pflicht:
+        'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
     },
   },
   {
@@ -459,7 +468,8 @@ export const BEISPIELE: readonly Beispiel[] = [
     erwartet: {
       ton: 'warn',
       ueberschrift: 'E-Rechnung erkannt (EN 16931)',
-      pflicht: 'Alle Pflichtfelder belegt. Bitte prüfen Sie die Werte.',
+      pflicht:
+        'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
     },
   },
   {
@@ -499,6 +509,31 @@ export const BEISPIELE: readonly Beispiel[] = [
       xml: [{ name: 'factur-x.xml', xml: DOCTYPE_XML }],
     },
     erwartet: { ton: 'warn', ueberschrift: 'PDF nicht vollständig geprüft' },
+  },
+  {
+    datei: '28_Kleinunternehmer_Vermerk_mit_Steuerausweis.xml',
+    zeigt:
+      'Eine Rechnung mit 19 % Umsatzsteuer, die zugleich „Kleinunternehmer gemäß § 19 UStG“ vermerkt: volle Pflichtangaben und ein Hinweis auf den Widerspruch (§ 14c UStG).',
+    quelle: {
+      art: 'kosit',
+      xml: {
+        basis: 'paare/01.01a-INVOICE_ubl.xml',
+        geaendert: 'zusätzliche Bemerkung „Kleinunternehmer gemäß § 19 UStG“',
+        aenderungen: [
+          {
+            ersetze: '<cbc:DocumentCurrencyCode>EUR</cbc:DocumentCurrencyCode>',
+            durch:
+              '<cbc:Note>Kleinunternehmer gemäß § 19 UStG</cbc:Note>\n    <cbc:DocumentCurrencyCode>EUR</cbc:DocumentCurrencyCode>',
+          },
+        ],
+      },
+    },
+    erwartet: {
+      ton: 'ok',
+      ueberschrift: 'E-Rechnung erkannt (XRechnung 3.0)',
+      pflicht:
+        'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
+    },
   },
 ];
 

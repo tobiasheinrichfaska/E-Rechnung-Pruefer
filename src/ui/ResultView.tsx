@@ -3,7 +3,8 @@ import { termLabel } from '../logic/binding';
 import { checkPflichtangaben } from '../logic/check';
 import { invoiceDetails } from '../logic/details';
 import { TEXTS } from '../logic/texts';
-import type { Verdict } from '../logic/verdict';
+import { pflichtModel } from '../logic/verdict';
+import type { InvoiceVerdict, Verdict } from '../logic/verdict';
 import { PflichtangabenView } from './PflichtangabenView';
 
 interface Props {
@@ -18,6 +19,16 @@ const OTHER_KIND: Readonly<Record<string, string>> = {
   doctypeXml: 'XML mit DOCTYPE, nicht gelesen',
   tooLargeXml: 'XML über 20 MB, nicht gelesen',
 };
+
+function Pflichtangaben({ invoice }: { invoice: InvoiceVerdict }) {
+  const model = pflichtModel(invoice);
+  if (model) return <PflichtangabenView result={checkPflichtangaben(model)} />;
+  return (
+    <p className="muted" data-testid="no-pflicht">
+      {invoice.einordnung === 'keineERechnung' ? TEXTS.noPflichtNoEInvoice : TEXTS.noModel}
+    </p>
+  );
+}
 
 export function ResultView({ analysis, verdict }: Props) {
   const inPdf = analysis.kind === 'pdf';
@@ -53,11 +64,7 @@ export function ResultView({ analysis, verdict }: Props) {
               ))}
             </tbody>
           </table>
-          {invoice.part.model ? (
-            <PflichtangabenView result={checkPflichtangaben(invoice.part.model)} />
-          ) : (
-            <p className="muted">{TEXTS.noModel}</p>
-          )}
+          <Pflichtangaben invoice={invoice} />
         </div>
       ))}
 

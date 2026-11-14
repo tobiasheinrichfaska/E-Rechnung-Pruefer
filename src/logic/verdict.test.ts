@@ -1,7 +1,7 @@
 import type { Analysis, InvoicePart } from './analysis';
 import { invoiceDetails } from './details';
 import { TEXTS, fill } from './texts';
-import { differingTerms, verdictOf } from './verdict';
+import { differingTerms, pflichtModel, verdictOf, xmlCounts } from './verdict';
 
 const part = (overrides: Partial<InvoicePart['header']> = {}, origin = 'a.xml'): InvoicePart => ({
   origin,
@@ -137,3 +137,33 @@ describe('fill (audit 2026-11-14, L-11)', () => {
     expect(fill('{toString} {name}', { name: 'X' })).toBe('{toString} X');
   });
 });
+
+describe('decisions of 2026-11-14 (F17, F19)', () => {
+  it('F17: ZUGFeRD 2.0 BASIC is an e-invoice with the hint on 2.0/2.0.1', () => {
+    const zf2 = part({ 'BT-24': ['urn:cen.eu:en16931:2017#compliant#urn:zugferd.de:2p0:basic'] });
+    const verdict = verdictOf(analysis({ invoices: [zf2] }));
+    expect(verdict.tone).toBe('ok');
+    expect(verdict.explanation).toContain(TEXTS.zugferd20Hint);
+  });
+
+  it('F19: no Pflichtangaben and no "Maßgeblich ist die XML" for "keine E-Rechnung"', () => {
+    const withModel = (p: InvoicePart): InvoicePart => ({ ...p, model: MODEL });
+    const minimum = verdictOf(
+      analysis({ invoices: [withModel(part({ 'BT-24': ['urn:factur-x.eu:1p0:minimum'] }))] }),
+    );
+    const notShown = minimum.invoices[0];
+    if (!notShown) throw new Error('no invoice');
+    expect(pflichtModel(notShown)).toBeUndefined();
+    expect(xmlCounts(minimum)).toBe(false);
+    const ok = verdictOf(analysis({ invoices: [withModel(part())] }));
+    const shown = ok.invoices[0];
+    if (!shown) throw new Error('no invoice');
+    expect(pflichtModel(shown)).toBe(MODEL);
+    expect(xmlCounts(ok)).toBe(true);
+    expect(TEXTS.fixedNoticeGeneral).not.toContain('XML');
+  });
+});
+
+const MODEL = { bg: 'INVOICE', terms: {}, groups: {} } as unknown as NonNullable<
+  InvoicePart['model']
+>;

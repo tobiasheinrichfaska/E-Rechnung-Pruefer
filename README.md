@@ -8,7 +8,7 @@ Ein Werkzeug für den Browser: Sie ziehen eine Rechnung (PDF oder XML) hinein un
 - ob ausgewählte Beträge rechnerisch zusammenpassen (geplant).
 
 Das Ergebnis sind **Hinweise, keine Freigabe**: eine technische Erstprüfung, keine steuerliche Prüfung.
-Maßgeblich sind die Daten in der XML.
+Bei einer E-Rechnung sind die Daten in der XML maßgeblich.
 
 **Ihre Datei verlässt den Rechner nicht.** Das Werkzeug ist eine einzige HTML-Datei; der Browser
 verbietet ihr jede Netzwerkverbindung (Content-Security-Policy). Es speichert nichts.

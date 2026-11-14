@@ -3,6 +3,8 @@
 // Rn. 25, 30; Abschnitt 14.1 Abs. 14 UStAE). Unknown identifiers are not judged (F5, Tobias
 // 2026-11-13). Sources per entry; `checked: false` = not backed by an official sample file.
 
+import { TEXTS } from './texts';
+
 export type Einordnung = 'eRechnung' | 'keineERechnung' | 'nichtBeurteilt';
 
 export interface ProfileEntry {
@@ -17,6 +19,8 @@ export interface ProfileEntry {
   rest?: RegExp;
   /** Added to the label in the details, not in the headline */
   note?: string;
+  /** A sentence added to the explanation of the result */
+  hint?: string;
   source: string;
   checked: boolean;
 }
@@ -49,8 +53,9 @@ export const PROFILES: readonly ProfileEntry[] = [
     checked: true,
   },
   // ZUGFeRD 2.0/2.0.1 identifiers, still allowed by code list 1 of the FeRD package 2.5.2. MINIMUM
-  // and BASIC WL are no e-invoice in any version (F5); BASIC and EXTENDED with these identifiers
-  // stay "nicht beurteilt" until Tobias decides (offene-fragen.md F17). Audit 2026-11-14, B-01.
+  // and BASIC WL are no e-invoice in any version (F5). 2.0 and 2.0.1 cannot be told apart in the
+  // file (same identifiers, byte-identical sample files): BASIC and EXTENDED count as e-invoice with
+  // a hint (F17, Tobias 2026-11-14). The upper-case "EN16931" of the 2.0 appendix stays unknown.
   {
     id: `${ZF2}:minimum`,
     match: 'exact',
@@ -58,6 +63,28 @@ export const PROFILES: readonly ProfileEntry[] = [
     profile: 'MINIMUM',
     einordnung: 'keineERechnung',
     source: 'FeRD ZUGFeRD 2.5.2 / Factur-X 1.09.2, Codeliste 1 (BT-24); BMF 15.10.2024 Rn. 25, 30',
+    checked: false,
+  },
+  {
+    id: `${CEN}#compliant#${ZF2}:basic`,
+    match: 'exact',
+    label: 'ZUGFeRD 2.0, Profil BASIC',
+    profile: 'BASIC',
+    einordnung: 'eRechnung',
+    hint: TEXTS.zugferd20Hint,
+    source:
+      'FeRD ZUGFeRD 2.0 und 2.0.1 Musterrechnungen; ZUGFeRD 2.5.2 / Factur-X 1.09.2, Codeliste 1 (F17)',
+    checked: false,
+  },
+  {
+    id: `${CEN}#conformant#${ZF2}:extended`,
+    match: 'exact',
+    label: 'ZUGFeRD 2.0, Profil EXTENDED',
+    profile: 'EXTENDED',
+    einordnung: 'eRechnung',
+    hint: TEXTS.zugferd20Hint,
+    source:
+      'FeRD ZUGFeRD 2.0 und 2.0.1 Musterrechnungen; ZUGFeRD 2.5.2 / Factur-X 1.09.2, Codeliste 1 (F17)',
     checked: false,
   },
   {

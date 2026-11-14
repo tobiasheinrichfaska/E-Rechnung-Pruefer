@@ -63,10 +63,18 @@ describe('audit 2026-11-14', () => {
     ).toBe('eRechnung');
   });
 
-  it('knows MINIMUM and BASIC WL of ZUGFeRD 2.0 and leaves BASIC/EXTENDED 2.0 to Tobias (B-01)', () => {
+  it('knows the ZUGFeRD 2.0 identifiers (B-01, F17)', () => {
     expect(profileOf('urn:zugferd.de:2p0:minimum').einordnung).toBe('keineERechnung');
     expect(profileOf('urn:zugferd.de:2p0:basicwl').einordnung).toBe('keineERechnung');
-    expect(profileOf('urn:cen.eu:en16931:2017#compliant#urn:zugferd.de:2p0:basic').einordnung).toBe(
+    for (const id of [
+      'urn:cen.eu:en16931:2017#compliant#urn:zugferd.de:2p0:basic',
+      'urn:cen.eu:en16931:2017#conformant#urn:zugferd.de:2p0:extended',
+    ]) {
+      expect(profileOf(id).einordnung).toBe('eRechnung');
+      expect(profileOf(id).entry?.hint).toContain('2.0.1');
+    }
+    // the upper-case spelling of the ZUGFeRD 2.0 appendix stays unknown
+    expect(profileOf('urn:cen.eu:EN16931:2017#compliant#urn:zugferd.de:2p0:basic').einordnung).toBe(
       'nichtBeurteilt',
     );
   });

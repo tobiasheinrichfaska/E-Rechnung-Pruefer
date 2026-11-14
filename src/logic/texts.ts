@@ -6,6 +6,9 @@ import type { Tone } from './verdict';
 export const TEXTS = {
   fixedNotice:
     'Technische Erstprüfung, keine steuerliche Prüfung. Maßgeblich sind die Daten in der XML. Bei Fragen wenden Sie sich an Ihre Kanzlei.',
+  /** Before a result and when no e-invoice was found: the XML is not what counts (F19) */
+  fixedNoticeGeneral:
+    'Technische Erstprüfung, keine steuerliche Prüfung. Bei Fragen wenden Sie sich an Ihre Kanzlei.',
 
   eRechnung: 'E-Rechnung erkannt ({spec})',
   hybridSource: 'Das PDF enthält Rechnungsdaten als XML (Anhang „{name}“).',
@@ -24,6 +27,8 @@ export const TEXTS = {
   unknownSpec: 'Kennung der Spezifikation (BT-24): {id}. Diese Kennung kennt das Tool nicht.',
   missingSpec: 'Die Kennung der Spezifikation (BT-24) fehlt.',
   shownAnyway: 'Die Angaben aus der XML werden trotzdem angezeigt.',
+  zugferd20Hint:
+    'Ob die Datei nach ZUGFeRD 2.0 oder 2.0.1 erstellt ist, lässt sich an ihr nicht erkennen; das BMF erkennt ZUGFeRD erst ab Version 2.0.1 als E-Rechnung an (BMF-Schreiben vom 15.10.2024, Rn. 30).',
 
   sameSeveral:
     'Dieselbe Rechnung ist {count}-mal eingebettet ({names}). Vorgesehen ist nur eine Rechnungs-XML je PDF.',
@@ -55,7 +60,9 @@ export const TEXTS = {
 
   pflichtHeading: 'Pflichtangaben nach § 14 Abs. 4 UStG',
   besondereHeading: 'Angaben in besonderen Fällen (§ 14 Abs. 5, § 14a, § 22c UStG)',
-  allPresent: 'Alle Pflichtfelder belegt. Bitte prüfen Sie die Werte.',
+  // F21 (Tobias 2026-11-14)
+  allPresent:
+    'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
   missingList: 'Es fehlt: {list}.',
   missingOnly: 'nur',
   addressCity: 'Ort',
@@ -68,6 +75,8 @@ export const TEXTS = {
   notInXml: '– nicht in der XML',
   noModel:
     'Für diese Rechnungsdaten zeigt das Tool keine Pflichtangaben (kein Format nach EN 16931).',
+  noPflichtNoEInvoice:
+    'Für Rechnungsdaten, die keine E-Rechnung sind, zeigt das Tool keine Pflichtangaben. Maßgeblich ist dann die lesbare Rechnung, nicht die XML.',
 
   fileProblems: {
     empty: { tone: 'bad', headline: 'Die Datei ist leer', explanation: [] },

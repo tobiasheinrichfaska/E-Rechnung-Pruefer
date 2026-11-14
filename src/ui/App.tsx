@@ -4,7 +4,7 @@ import { MAX_FILE_BYTES, analyzeFile, tooLargeFile } from '../io/analyze';
 import { loadPdfJs } from '../io/pdfjs';
 import type { Analysis } from '../logic/analysis';
 import { TEXTS } from '../logic/texts';
-import { verdictOf } from '../logic/verdict';
+import { verdictOf, xmlCounts } from '../logic/verdict';
 import type { Verdict } from '../logic/verdict';
 import { DropZone } from './DropZone';
 import { ResultView } from './ResultView';
@@ -94,7 +94,9 @@ export function App() {
       )}
 
       <p className="notice" data-testid="fixed-notice">
-        {TEXTS.fixedNotice}
+        {state.step === 'done' && xmlCounts(state.verdict)
+          ? TEXTS.fixedNotice
+          : TEXTS.fixedNoticeGeneral}
       </p>
       <p className="version">Version {APP_VERSION} · in Entwicklung</p>
     </main>

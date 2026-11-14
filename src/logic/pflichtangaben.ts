@@ -40,7 +40,10 @@ export type Condition =
   | { kind: 'equals'; path: string; values: string[] }
   | { kind: 'present'; path: string }
   | { kind: 'differ'; a: string; b: string }
-  | { kind: 'atMost'; path: string; limit: string }
+  /** the first value at `path` is at most `limit`; `absolute`: its amount, sign ignored (F16) */
+  | { kind: 'atMost'; path: string; limit: string; absolute?: boolean }
+  /** a value at `path` is greater than 0 — in the occurrences of `group` matching `where` */
+  | { kind: 'positive'; path: string; group?: string; where?: OccurrenceFilter }
   | { kind: 'text'; paths: string[]; pattern: string }
   /** some occurrences of `group` have a value at one of the paths, others have none */
   | { kind: 'partial'; group: string; paths: string[] }
@@ -99,9 +102,25 @@ const EXEMPTION_WORDS =
   'steuerfrei|steuerbefrei|befreit|befreiung|§\\s*4\\s*nr|nicht steuerbar|nicht im inland steuerbar|innergemeinschaftlich|ausfuhr|vatex';
 /** § 19 UStG or the word Kleinunternehmer — "§ 195 BGB" is no hint (audit 2026-11-14, L-02). */
 const SECTION_19 = '§\\s*19(?!\\d)|kleinunternehmer';
+/** The invoice shows VAT: category S with a rate above 0 or a VAT total above 0. */
+const TAX_SHOWN: Condition = {
+  kind: 'any',
+  of: [
+    { kind: 'positive', path: 'BG-22/BT-110' },
+    { kind: 'positive', group: 'BG-23', path: 'BT-119', where: { path: 'BT-118', values: ['S'] } },
+  ],
+};
+/** F18 (Tobias 2026-11-14): a Kleinunternehmer note on an invoice that shows VAT. */
+const KU_WITH_TAX_HINT =
+  'Die Rechnung nennt die Kleinunternehmerregelung (§ 19 UStG), weist aber Umsatzsteuer aus. Das passt nicht zusammen (unberechtigter Steuerausweis, § 14c UStG). Das Tool prüft deshalb die vollen Pflichtangaben. Bitte klären Sie das mit dem Lieferanten.';
 /** Words of a hint on an agreed reduction (Abschnitt 14.5 Abs. 19 UStAE: Boni, Skonti, Rabatte). */
 const REDUCTION_WORDS =
   'skonto|rabatt|bonus|boni\\b|entgeltminderung|nachlass|rückvergütung|konditionsvereinbarung';
+/**
+ * F20 (Tobias 2026-11-14): a negated mention ("ohne Skonto", "Kein Abzug von Skonto") is no hint on
+ * a reduction — "ohne", "kein…" or "nicht" up to two words before the keyword.
+ */
+const REDUCTION_HINT = `(?<!\\b(?:ohne|kein\\w*|nicht)\\s+(?:\\S+\\s+){0,2})(?:${REDUCTION_WORDS})`;
 const IMMER: Need = { kind: 'immer' };
 const NICHT_KB: Need = {
   kind: 'nicht',
@@ -434,7 +453,7 @@ export const PFLICHTANGABEN: readonly Pflichtangabe[] = [
     presence: {
       kind: 'anyOf',
       of: [
-        { kind: 'text', paths: ['BT-20', ...NOTES], pattern: REDUCTION_WORDS },
+        { kind: 'text', paths: ['BT-20', ...NOTES], pattern: REDUCTION_HINT },
         {
           kind: 'any',
           paths: ['BG-20/BT-92', 'BG-20/BT-97', 'BG-25/BG-27/BT-136', 'BG-25/BG-27/BT-139'],
@@ -481,6 +500,15 @@ export const PFLICHTANGABEN: readonly Pflichtangabe[] = [
     label: 'Auf das Entgelt entfallender Steuerbetrag',
     section: 'paragraph14',
     show: ['BG-22/BT-110'],
+    hints: [
+      {
+        when: {
+          kind: 'all',
+          of: [{ kind: 'text', paths: EXEMPTION_TEXT, pattern: SECTION_19 }, TAX_SHOWN],
+        },
+        text: KU_WITH_TAX_HINT,
+      },
+    ],
     each: [{ group: 'BG-23', paths: ['BT-118', 'BT-119', 'BT-117'] }],
     presence: {
       kind: 'allOf',
@@ -777,7 +805,14 @@ export const PFLICHTANGABEN: readonly Pflichtangabe[] = [
 export const MODES: readonly { mode: Exclude<Mode, 'regel'>; when: Condition; text: string }[] = [
   {
     mode: 'kleinunternehmer',
-    when: { kind: 'text', paths: EXEMPTION_TEXT, pattern: SECTION_19 },
+    // F18: not when the invoice shows VAT — then the regular list and a hint on the row Steuerbetrag
+    when: {
+      kind: 'all',
+      of: [
+        { kind: 'text', paths: EXEMPTION_TEXT, pattern: SECTION_19 },
+        { kind: 'not', of: TAX_SHOWN },
+      ],
+    },
     text: 'Hinweis auf die Kleinunternehmerregelung gefunden: Es gelten die verringerten Angaben nach § 34a UStDV.',
   },
   {
@@ -786,7 +821,9 @@ export const MODES: readonly { mode: Exclude<Mode, 'regel'>; when: Condition; te
       kind: 'all',
       of: [
         { kind: 'equals', path: 'BT-5', values: ['EUR'] },
-        { kind: 'atMost', path: 'BG-22/BT-112', limit: SMALL_AMOUNT_LIMIT },
+        // F16 (Tobias 2026-11-14): the amount counts, so a cancellation of a small invoice
+        // (−119,00) stays small, one over −250,00 does not
+        { kind: 'atMost', path: 'BG-22/BT-112', limit: SMALL_AMOUNT_LIMIT, absolute: true },
         // § 33 Satz 3 UStDV: not for §§ 6a (intra-Community supply) and 13b UStG
         { kind: 'not', of: { kind: 'categoryIn', codes: ['K', 'AE'] } },
       ],

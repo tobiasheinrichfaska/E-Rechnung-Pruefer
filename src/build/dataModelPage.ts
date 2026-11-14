@@ -243,7 +243,7 @@ export const ENTITIES: EntityDoc[] = [
         name: 'summary',
         type: 'string',
         required: true,
-        meaning: '„Alle Pflichtfelder belegt …“ oder „Es fehlt: …“',
+        meaning: '„Alle stets nötigen Pflichtangaben sind vorhanden …“ oder „Es fehlt: …“',
       },
     ],
   },

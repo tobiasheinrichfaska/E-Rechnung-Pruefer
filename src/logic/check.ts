@@ -149,7 +149,22 @@ export function holds(model: InvoiceModel, condition: Condition): boolean {
     case 'atMost': {
       const value = parseDecimal(firstValue(model, condition.path));
       const limit = parseDecimal(condition.limit);
-      return value !== undefined && limit !== undefined && compareDecimal(value, limit) <= 0;
+      if (value === undefined || limit === undefined) return false;
+      const compared =
+        condition.absolute && value.units < 0n ? { ...value, units: -value.units } : value;
+      return compareDecimal(compared, limit) <= 0;
+    }
+    case 'positive': {
+      const zero = { units: 0n, scale: 0 };
+      const above = (group: ModelGroup | InvoiceModel, path: string) =>
+        valuesOf(group, path).some((v) => {
+          const value = parseDecimal(v.value);
+          return value !== undefined && compareDecimal(value, zero) > 0;
+        });
+      if (!condition.group) return above(model, condition.path);
+      return groupsOf(model, condition.group)
+        .filter((g) => matchesFilter(g, condition.where))
+        .some((g) => above(g, condition.path));
     }
     case 'text':
       return matches(model, condition.paths, condition.pattern);

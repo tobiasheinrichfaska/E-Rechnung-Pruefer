@@ -47,8 +47,12 @@ test('recognises an XML e-invoice, a hybrid PDF and a plain PDF without storing 
 }) => {
   const problems = await openApp(page);
 
+  await expect(page.getByTestId('fixed-notice')).not.toContainText('Maßgeblich');
   await upload(page, 'rechnung.xml', official('cen/CII_example1.xml'), 'application/xml');
   await expect(page.getByTestId('headline')).toHaveText(/^E-Rechnung erkannt \(EN 16931/);
+  await expect(page.getByTestId('fixed-notice')).toContainText(
+    'Maßgeblich sind die Daten in der XML',
+  );
   await expect(page.getByRole('row', { name: /Syntax/ })).toContainText('UN/CEFACT CII');
 
   const hybrid = miniPdf({
@@ -81,6 +85,10 @@ test('names MINIMUM, contradicting invoice data and a protected PDF', async ({ p
   await expect(page.getByTestId('headline')).toHaveText(
     'PDF mit Rechnungsdaten, Profil MINIMUM: keine E-Rechnung im Sinne des UStG',
   );
+  // F19: no Pflichtangaben from the XML and no "Maßgeblich ist die XML" for "keine E-Rechnung"
+  await expect(page.getByTestId('no-pflicht')).toBeVisible();
+  await expect(page.getByTestId('pflicht-summary')).toHaveCount(0);
+  await expect(page.getByTestId('fixed-notice')).not.toContainText('Maßgeblich');
 
   await upload(
     page,
