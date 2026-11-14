@@ -28,8 +28,8 @@
 - [x] **Keine Netzwerkanfrage, kein Speicherzugriff** — E2E zählt beides: null (Spion mit Selbsttest, Nachprüfung der Speicher nach jedem Test)
 - [x] **Keine Konsolenfehler beim Laden**
 
-| Path                               | Impact                                   | Audit Check                                                        |
-| ---------------------------------- | ---------------------------------------- | ------------------------------------------------------------------ |
-| Hybrid-PDF wird erkannt            | Kernfrage der Mandanten                  | E2E mit offizieller XML in eigenem PDF (echte FeRD-PDFs nur lokal) |
-| Nichts verlässt den Rechner        | Vertraulichkeit der Rechnung             | CSP-Test + E2E-Zähler                                              |
-| Pflichtangaben vollständig gezeigt | Grundlage der Rückfrage beim Lieferanten | Unit-Tests je Angabe, E2E für ausgewählte Zeilen                   |
+| Path                               | Impact                                   | Audit Check                                                                                                     |
+| ---------------------------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Hybrid-PDF wird erkannt            | Kernfrage der Mandanten                  | E2E mit offizieller XML in eigenem PDF, auch komprimiert wie echte Factur-X-Dateien (echte FeRD-PDFs nur lokal) |
+| Nichts verlässt den Rechner        | Vertraulichkeit der Rechnung             | CSP-Test + E2E-Zähler                                                                                           |
+| Pflichtangaben vollständig gezeigt | Grundlage der Rückfrage beim Lieferanten | Unit-Tests je Angabe, E2E für ausgewählte Zeilen                                                                |

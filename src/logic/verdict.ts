@@ -50,10 +50,14 @@ function comparable(part: InvoicePart, bt: BtId): string {
   return value.trim();
 }
 
-/** Which compared terms differ between the parts (amounts compared as decimals). */
+/**
+ * Which compared terms differ between the parts (amounts compared as decimals). A part without a
+ * model (ZUGFeRD 1.0) holds only BT-24: its other values were never read, so they are not
+ * compared (audit 2026-11-14, L-04).
+ */
 export function differingTerms(parts: readonly InvoicePart[]): BtId[] {
   return COMPARED.filter((bt) => {
-    const [head, ...rest] = parts;
+    const [head, ...rest] = bt === 'BT-24' ? parts : parts.filter((p) => p.model !== undefined);
     if (!head) return false;
     return rest.some((part) => {
       if (bt === 'BT-112') {
@@ -71,7 +75,7 @@ function problemLine(problem: Problem | undefined): string[] {
   return [
     problem.line
       ? fill(TEXTS.problemAtLine, { line: problem.line, message: problem.message })
-      : problem.message,
+      : fill(TEXTS.problemMessage, { message: problem.message }),
   ];
 }
 
@@ -123,10 +127,15 @@ function fileProblemVerdict(analysis: Analysis): Verdict | undefined {
   const problem = analysis.problem;
   if (!problem) return undefined;
   const text = TEXTS.fileProblems[problem.kind];
+  const technical = problemLine(problem.problems[0]);
   return {
     tone: text.tone,
     headline: text.headline,
-    explanation: [...text.explanation, ...problemLine(problem.problems[0])],
+    // the technical message before "Formatfehler …", as for a broken XML inside a PDF (U-07)
+    explanation:
+      problem.kind === 'xmlBroken'
+        ? [...technical, ...text.explanation]
+        : [...text.explanation, ...technical],
     invoices: [],
   };
 }

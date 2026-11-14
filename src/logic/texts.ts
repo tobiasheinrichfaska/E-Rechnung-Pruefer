@@ -56,7 +56,9 @@ export const TEXTS = {
   attachmentsTruncated: 'Das PDF hat sehr viele Anhänge. Das Tool hat nur die ersten 50 gelesen.',
   notJudged: 'Ob das PDF eine E-Rechnung ist, kann das Tool deshalb nicht sagen.',
   formatError: 'Formatfehler, gem. Rn. 6a ggf. keine E-Rechnung.',
-  problemAtLine: 'Zeile {line}: {message}',
+  // The parser's own message (English) marked as such (audit 2026-11-14, U-07)
+  problemAtLine: 'Technische Meldung (Zeile {line}): {message}',
+  problemMessage: 'Technische Meldung: {message}',
 
   announceChecking: '„{name}“ wird geprüft.',
   announceResult: 'Ergebnis: {headline}.',

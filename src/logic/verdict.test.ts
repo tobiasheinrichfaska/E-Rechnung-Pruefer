@@ -3,9 +3,15 @@ import { invoiceDetails } from './details';
 import { TEXTS, fill } from './texts';
 import { differingTerms, pflichtModel, verdictOf, xmlCounts } from './verdict';
 
+/** Stands for a read EN 16931 model (only its presence matters here). */
+const MODEL = { bg: 'INVOICE', terms: {}, groups: {} } as unknown as NonNullable<
+  InvoicePart['model']
+>;
+
 const part = (overrides: Partial<InvoicePart['header']> = {}, origin = 'a.xml'): InvoicePart => ({
   origin,
   syntax: 'cii',
+  model: MODEL,
   header: {
     'BT-1': ['R-1'],
     'BT-2': ['20261113'],
@@ -53,7 +59,7 @@ describe('verdictOf', () => {
         problem: { kind: 'xmlBroken', problems: [{ message: 'Ende fehlt', line: 7 }] },
       }),
     );
-    expect(verdict.explanation).toContain('Zeile 7: Ende fehlt');
+    expect(verdict.explanation).toContain('Technische Meldung (Zeile 7): Ende fehlt');
   });
 
   it('uses the attachment name for a hybrid PDF and XML wording for an XML file', () => {
@@ -164,6 +170,15 @@ describe('decisions of 2026-11-14 (F17, F19)', () => {
   });
 });
 
-const MODEL = { bg: 'INVOICE', terms: {}, groups: {} } as unknown as NonNullable<
-  InvoicePart['model']
->;
+describe('a ZUGFeRD 1.0 part next to an EN 16931 part (audit 2026-11-14, L-04)', () => {
+  it('compares only the specification, not values that were never read', () => {
+    const zf1: InvoicePart = {
+      origin: 'ZUGFeRD-invoice.xml',
+      syntax: 'zugferd1',
+      header: { 'BT-24': ['urn:ferd:CrossIndustryDocument:invoice:1p0:comfort'] },
+    };
+    const en = part({}, 'factur-x.xml');
+    expect(differingTerms([zf1, en])).toEqual(['BT-24']);
+    expect(differingTerms([en, zf1])).toEqual(['BT-24']);
+  });
+});

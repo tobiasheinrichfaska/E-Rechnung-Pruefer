@@ -80,7 +80,7 @@ Texte), `293b32c` (Wächter), dazu der Doku-Commit mit diesem Bericht.
 | L-01 | Negative Summe (Storno) gilt als Kleinbetragsrechnung                       | teilweise (mittel), Steuerfrage | entschieden **F16**: Betrag \|BT-112\| ≤ 250 – umgesetzt                                            |
 | L-02 | „§ 195 BGB“, „kein Kleinunternehmer“ schalten auf § 34a UStDV               | teilweise (mittel)              | „§ 19x“ behoben (`a9bbcf4`); **F18**: ausgewiesene Steuer schließt Kleinunternehmer aus – umgesetzt |
 | L-03 | Mehrere XML: Einordnung hängt von der Reihenfolge der Anhänge ab            | bestätigt (mittel)              | behoben: BT-24 wird mitverglichen                                                                   |
-| L-04 | ZUGFeRD-1.0-XML neben 2.x-XML gilt als „unterschiedliche Daten“             | bestätigt (niedrig)             | offen (kein realer Fall belegt)                                                                     |
+| L-04 | ZUGFeRD-1.0-XML neben 2.x-XML gilt als „unterschiedliche Daten“             | bestätigt (niedrig)             | behoben: Werte ohne Modell werden nicht verglichen, nur BT-24                                       |
 | L-05 | xs:date mit Zeitzone wird nicht erkannt                                     | teilweise (niedrig)             | behoben; „20280230 vorhanden“ widerlegt (kein Validator)                                            |
 | L-06 | Hinweise widersprechen dem Status (Anschrift ohne PLZ, F15 bei Kleinbetrag) | bestätigt (niedrig)             | behoben                                                                                             |
 | L-07 | Nur Kategorie O → „Steuersatz vorhanden“                                    | widerlegt                       | so gewollt und getestet                                                                             |
@@ -120,22 +120,22 @@ Texte), `293b32c` (Wächter), dazu der Doku-Commit mit diesem Bericht.
 
 ### Tests und Doku
 
-| ID   | Befund                                                              | Urteil (Schwere)    | Stand                                                         |
-| ---- | ------------------------------------------------------------------- | ------------------- | ------------------------------------------------------------- |
-| T-02 | Kein Test liest ein echtes (komprimiertes) Hybrid-PDF               | teilweise (mittel)  | Tabellentext korrigiert; Mini-PDF mit Kompression offen       |
-| T-03 | Spion übersieht Speicherwege                                        | teilweise (niedrig) | behoben (mit S-07)                                            |
-| T-04 | Handytest misst nur einen Zustand; langer Dateiname 185 px seitlich | bestätigt (mittel)  | behoben: 320 px, langer Name                                  |
-| T-05 | Ungetestete Urteilspfade, Anhang > 20 MB = „Formatfehler“           | teilweise (niedrig) | behoben: Tests + „PDF nicht vollständig geprüft“, Beispiel 27 |
-| T-06 | Pfade ohne Testdatei; 12 Paare der Testsuite nicht genutzt          | teilweise (niedrig) | offen                                                         |
-| T-08 | „Gehostete Kopie identisch“ veraltet, Version 0.1.0 ohne Tag        | bestätigt (mittel)  | Doku korrigiert; Version 0.2.0 (Tag `v0.2.0` nach dem Merge)  |
-| T-09 | Eingebettete Beispiel-XML nicht gegen das Schema geprüft            | bestätigt (niedrig) | behoben                                                       |
-| T-10 | `plan.md`, `quellen.md` veraltet                                    | bestätigt (niedrig) | behoben                                                       |
-| T-11 | `FEATURES_REQUIRED.md` Häkchen und Texte                            | bestätigt (niedrig) | behoben                                                       |
-| T-12 | Verzeichnistabelle in `CLAUDE.md` unvollständig                     | teilweise (niedrig) | behoben                                                       |
-| T-13 | Prüfung unsichtbarer Zeichen zu eng                                 | bestätigt (niedrig) | behoben                                                       |
-| T-14 | Handtest-Übersicht: „jedes Ergebnis“                                | bestätigt (niedrig) | behoben (Ausnahmen genannt)                                   |
-| T-15 | README verspricht Schema- und Rechenprüfung                         | bestätigt (niedrig) | behoben („geplant“)                                           |
-| T-16 | Datenmodell-Test besteht mit leerem Beispielobjekt                  | teilweise (niedrig) | behoben                                                       |
+| ID   | Befund                                                              | Urteil (Schwere)    | Stand                                                                                                                       |
+| ---- | ------------------------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| T-02 | Kein Test liest ein echtes (komprimiertes) Hybrid-PDF               | teilweise (mittel)  | behoben: `src/build/compressedPdf.ts` (Objekt- und Xref-Stream, FlateDecode, inkrementelle Änderung) in Node- und E2E-Tests |
+| T-03 | Spion übersieht Speicherwege                                        | teilweise (niedrig) | behoben (mit S-07)                                                                                                          |
+| T-04 | Handytest misst nur einen Zustand; langer Dateiname 185 px seitlich | bestätigt (mittel)  | behoben: 320 px, langer Name                                                                                                |
+| T-05 | Ungetestete Urteilspfade, Anhang > 20 MB = „Formatfehler“           | teilweise (niedrig) | behoben: Tests + „PDF nicht vollständig geprüft“, Beispiel 27                                                               |
+| T-06 | Pfade ohne Testdatei; 12 Paare der Testsuite nicht genutzt          | teilweise (niedrig) | behoben: alle 33 Paare, Vergleich als Mehrfachmenge, Abdeckungstest je Pfad (BT-8/BT-9 an abgeleiteten Dateien)             |
+| T-08 | „Gehostete Kopie identisch“ veraltet, Version 0.1.0 ohne Tag        | bestätigt (mittel)  | Doku korrigiert; Version 0.2.0 (Tag `v0.2.0` nach dem Merge)                                                                |
+| T-09 | Eingebettete Beispiel-XML nicht gegen das Schema geprüft            | bestätigt (niedrig) | behoben                                                                                                                     |
+| T-10 | `plan.md`, `quellen.md` veraltet                                    | bestätigt (niedrig) | behoben                                                                                                                     |
+| T-11 | `FEATURES_REQUIRED.md` Häkchen und Texte                            | bestätigt (niedrig) | behoben                                                                                                                     |
+| T-12 | Verzeichnistabelle in `CLAUDE.md` unvollständig                     | teilweise (niedrig) | behoben                                                                                                                     |
+| T-13 | Prüfung unsichtbarer Zeichen zu eng                                 | bestätigt (niedrig) | behoben                                                                                                                     |
+| T-14 | Handtest-Übersicht: „jedes Ergebnis“                                | bestätigt (niedrig) | behoben (Ausnahmen genannt)                                                                                                 |
+| T-15 | README verspricht Schema- und Rechenprüfung                         | bestätigt (niedrig) | behoben („geplant“)                                                                                                         |
+| T-16 | Datenmodell-Test besteht mit leerem Beispielobjekt                  | teilweise (niedrig) | behoben                                                                                                                     |
 
 ### Oberfläche und Texte
 
@@ -148,7 +148,7 @@ Texte), `293b32c` (Wächter), dazu der Doku-Commit mit diesem Bericht.
 | U-04 | Keine dauerhafte Live-Region; Fokus fällt auf `body`                             | teilweise (niedrig)    | behoben (Statuszeile von Anfang an, nur ein kurzer Satz; Fokus auf die Überschrift)                      |
 | U-05 | Datei neben der Fläche abgelegt → Browser öffnet sie                             | teilweise (niedrig)    | behoben: die ganze Seite nimmt die Datei                                                                 |
 | U-06 | DOCTYPE-Anhang = „Formatfehler“, DOCTYPE-Datei = „nicht geprüft“                 | bestätigt (niedrig)    | behoben                                                                                                  |
-| U-07 | Parser-Meldungen englisch, Reihenfolge XML/PDF verschieden                       | bestätigt (niedrig)    | offen                                                                                                    |
+| U-07 | Parser-Meldungen englisch, Reihenfolge XML/PDF verschieden                       | bestätigt (niedrig)    | behoben: „Technische Meldung (Zeile n): …“, gleiche Reihenfolge bei XML und PDF                          |
 | U-08 | Verschachtelte Klammern in der Überschrift                                       | bestätigt (niedrig)    | behoben (auch CVD und ältere XRechnung)                                                                  |
 | U-09 | Straßenhinweis sagt beim Empfänger „der Unternehmer“                             | bestätigt (niedrig)    | behoben                                                                                                  |
 | U-10 | „Alle Pflichtfelder belegt“ trotz Einzelfall-Zeilen                              | widerlegt (festgelegt) | **F21**: neuer Satz – umgesetzt                                                                          |
@@ -171,8 +171,7 @@ der Hinweis zum Zitat in F15 (U-14).
   hochladen? (Push erfolgt am 14.11.2026, Pull Request #1.)
 - **Mindest-Browser** festlegen (heute etwa Chrome/Edge 98, Firefox 102, Safari 16.4, abgeleitet).
 - **Server-Kopfzeile** `frame-ancestors 'none'` für `NebenprojektERechnung/` (`deploy/README.md`).
-- **Testabdeckung** T-02 (Mini-PDF mit Kompression) und T-06 (12 weitere KoSIT-Paare).
-- Kleinere offene Punkte: L-04, S-08, S-09, B-03, B-04, B-07, U-07.
+- Kleinere offene Punkte (sehr selten): S-08, S-09, B-03 (Peppol-Umschlag), B-04, B-07.
 
 ## 6. Prüfungen nach der Behebung (beobachtet)
 

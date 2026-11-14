@@ -46,5 +46,5 @@ echter Lieferanten, echte Mailprogramme, echte Handys. Was eine Maschine prüfen
   Einzelfall nötig“ und die Meldung „Die Prüfung ist abgebrochen“ (unerwarteter Fehler).
 - **Vitest** (`npm test`): alle Regeln der Pflichtangaben einschließlich Kleinunternehmer,
   Gutschrift, Leistungszeitpunkt und Anschrift (`src/logic/check.test.ts`); Erkennung und Lesen der
-  Musterdateien von KoSIT und CEN; 21 Rechnungen jeweils als UBL und CII im Gegencheck; die 61
+  Musterdateien von KoSIT und CEN; alle 33 Rechnungen der KoSIT-Testsuite jeweils als UBL und CII im Gegencheck; Hybrid-PDF auch komprimiert wie echte Factur-X-Dateien; die 61
   FeRD-Musterrechnungen (nur lokal, nicht im Repo).
