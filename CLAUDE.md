@@ -197,6 +197,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 
 | Version | Merge commit in `main` | Date       | Content                                                                                 |
 | ------- | ---------------------- | ---------- | --------------------------------------------------------------------------------------- |
+| 0.3.1   | `a3cf751`              | 2026-11-14 | F30: supply before 2025 needs no E-Rechnung (BMF 15.10.2024 Rn. 50)                     |
 | 0.3.0   | `c78be21`              | 2026-11-14 | Decisions F22–F29, G-1 … G-10, profile schemas, FeRD EXTENDED rules, ZUGFeRD 1.0 backed |
 | 0.2.0   | `06e96a0`              | 2026-11-14 | Inventory and audit, F16–F21, schema check (2a/2b), rules (3a)                          |
 | 0.1.0   | (Fragebogen `76828a3`) | 2026-11-13 | Steps 1a–1c; the copy online in `NebenprojektERechnung/`                                |
@@ -205,7 +206,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 
 ## Known Limitations
 
-- **In development** — all steps of the plan are built (1a–3a); version 0.3.0 not online yet.
+- **In development** — all steps of the plan are built (1a–3a); version 0.3.1 not online yet.
 - **Calculation rules (3a)** are a selection (BR-CO-10 … -17, breakdown per category/rate), not a
   validator: no BR-DE/XRechnung rules, no line-level rules (price × quantity), no currency
   conversion (BT-111). For **Factur-X EXTENDED** the FeRD forms are rebuilt (F29,
@@ -256,7 +257,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 - **Password-protected PDF** is tested with a synthetic encryption dictionary (the reader asks for
   a password); a real protected supplier PDF is not in the tests.
 - **E2E runs on file://**; the hosted copy is **older** than the repo (uploaded 2026-11-13 at
-  Fragebogen commit 76828a3, step 1c, version 0.1.0); the repo is at 0.3.0 (merge `c78be21`, see Versioning) —
+  Fragebogen commit 76828a3, step 1c, version 0.1.0); the repo is at 0.3.1 (merge `a3cf751`, see Versioning) —
   upload only after Tobias' OK.
 - **Browsers:** the single inline script needs class static blocks and the CSP
   `'wasm-unsafe-eval'`, so the floor is about Chrome/Edge 98, Firefox 102, Safari 16.4 (derived from
@@ -291,7 +292,8 @@ copy buttons, compact drop zone, start view, wording). Samples 31–35. ZUGFeRD 
 FeRD specification and its 12 samples (private repo `zugferd-1.0/`, `zugferd1Lokal.test.ts`). PR #3
 merged (`c78be21`), private repo PR #1 (`zugferd-1.0/`) merged. **0.3.1:** F30 decided by Tobias
 (supply before 2025: no E-Rechnung needed, whatever the invoice date — § 27 Abs. 1 Satz 1 UStG,
-BMF 15.10.2024 Rn. 50; regime `vor2025`, `TEXTS.regimeBefore2025`). No open question left. Next:
+BMF 15.10.2024 Rn. 50; regime `vor2025`, `TEXTS.regimeBefore2025`), PR #5 merged (`a3cf751`). No
+open question left. Next:
 Tobias uploads app and samples (local, `npm run hochladen`).
 
 **2026-11-14 — quality audit of the handling (Tobias: "Qualitätsaudit, insbesondere für die
