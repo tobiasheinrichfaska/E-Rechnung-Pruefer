@@ -35,6 +35,9 @@ echter Lieferanten, echte Mailprogramme, echte Handys. Was eine Maschine prüfen
   - Pflichtangaben vollständig, mit Lücken und Hinweisen, Kleinbetrag; Positionen aufklappen.
   - Handybreite (375 px und 320 px, auch mit langem Dateinamen): nichts verschiebt sich seitlich, die
     Werte stehen unter Bezeichnung und Marke.
+  - Screenreader: Statuszeile mit kurzem Ergebnissatz, Fokus auf dem Ergebnis, Zeilen- und
+    Spaltenköpfe der Pflichtangaben, benannte Tabellen (`zugang.spec.ts`). Wie ein echter
+    Screenreader vorliest, prüft das nicht.
   - Bei jedem Test: keine Netzwerkanfrage, kein Speicher- oder Cookie-Zugriff, kein Popup, kein
     Konsolenfehler.
 - **Beispielrechnungen** (`tests/beispiele/beispiele.test.ts`): jede der 28 Dateien zeigt ihr

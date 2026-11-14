@@ -120,43 +120,43 @@ Texte), `293b32c` (Wächter), dazu der Doku-Commit mit diesem Bericht.
 
 ### Tests und Doku
 
-| ID   | Befund                                                              | Urteil (Schwere)    | Stand                                                            |
-| ---- | ------------------------------------------------------------------- | ------------------- | ---------------------------------------------------------------- |
-| T-02 | Kein Test liest ein echtes (komprimiertes) Hybrid-PDF               | teilweise (mittel)  | Tabellentext korrigiert; Mini-PDF mit Kompression offen          |
-| T-03 | Spion übersieht Speicherwege                                        | teilweise (niedrig) | behoben (mit S-07)                                               |
-| T-04 | Handytest misst nur einen Zustand; langer Dateiname 185 px seitlich | bestätigt (mittel)  | behoben: 320 px, langer Name                                     |
-| T-05 | Ungetestete Urteilspfade, Anhang > 20 MB = „Formatfehler“           | teilweise (niedrig) | behoben: Tests + „PDF nicht vollständig geprüft“, Beispiel 27    |
-| T-06 | Pfade ohne Testdatei; 12 Paare der Testsuite nicht genutzt          | teilweise (niedrig) | offen                                                            |
-| T-08 | „Gehostete Kopie identisch“ veraltet, Version 0.1.0 ohne Tag        | bestätigt (mittel)  | Doku korrigiert; Versionssprung vor dem nächsten Upload (Tobias) |
-| T-09 | Eingebettete Beispiel-XML nicht gegen das Schema geprüft            | bestätigt (niedrig) | behoben                                                          |
-| T-10 | `plan.md`, `quellen.md` veraltet                                    | bestätigt (niedrig) | behoben                                                          |
-| T-11 | `FEATURES_REQUIRED.md` Häkchen und Texte                            | bestätigt (niedrig) | behoben                                                          |
-| T-12 | Verzeichnistabelle in `CLAUDE.md` unvollständig                     | teilweise (niedrig) | behoben                                                          |
-| T-13 | Prüfung unsichtbarer Zeichen zu eng                                 | bestätigt (niedrig) | behoben                                                          |
-| T-14 | Handtest-Übersicht: „jedes Ergebnis“                                | bestätigt (niedrig) | behoben (Ausnahmen genannt)                                      |
-| T-15 | README verspricht Schema- und Rechenprüfung                         | bestätigt (niedrig) | behoben („geplant“)                                              |
-| T-16 | Datenmodell-Test besteht mit leerem Beispielobjekt                  | teilweise (niedrig) | behoben                                                          |
+| ID   | Befund                                                              | Urteil (Schwere)    | Stand                                                         |
+| ---- | ------------------------------------------------------------------- | ------------------- | ------------------------------------------------------------- |
+| T-02 | Kein Test liest ein echtes (komprimiertes) Hybrid-PDF               | teilweise (mittel)  | Tabellentext korrigiert; Mini-PDF mit Kompression offen       |
+| T-03 | Spion übersieht Speicherwege                                        | teilweise (niedrig) | behoben (mit S-07)                                            |
+| T-04 | Handytest misst nur einen Zustand; langer Dateiname 185 px seitlich | bestätigt (mittel)  | behoben: 320 px, langer Name                                  |
+| T-05 | Ungetestete Urteilspfade, Anhang > 20 MB = „Formatfehler“           | teilweise (niedrig) | behoben: Tests + „PDF nicht vollständig geprüft“, Beispiel 27 |
+| T-06 | Pfade ohne Testdatei; 12 Paare der Testsuite nicht genutzt          | teilweise (niedrig) | offen                                                         |
+| T-08 | „Gehostete Kopie identisch“ veraltet, Version 0.1.0 ohne Tag        | bestätigt (mittel)  | Doku korrigiert; Version 0.2.0 (Tag `v0.2.0` nach dem Merge)  |
+| T-09 | Eingebettete Beispiel-XML nicht gegen das Schema geprüft            | bestätigt (niedrig) | behoben                                                       |
+| T-10 | `plan.md`, `quellen.md` veraltet                                    | bestätigt (niedrig) | behoben                                                       |
+| T-11 | `FEATURES_REQUIRED.md` Häkchen und Texte                            | bestätigt (niedrig) | behoben                                                       |
+| T-12 | Verzeichnistabelle in `CLAUDE.md` unvollständig                     | teilweise (niedrig) | behoben                                                       |
+| T-13 | Prüfung unsichtbarer Zeichen zu eng                                 | bestätigt (niedrig) | behoben                                                       |
+| T-14 | Handtest-Übersicht: „jedes Ergebnis“                                | bestätigt (niedrig) | behoben (Ausnahmen genannt)                                   |
+| T-15 | README verspricht Schema- und Rechenprüfung                         | bestätigt (niedrig) | behoben („geplant“)                                           |
+| T-16 | Datenmodell-Test besteht mit leerem Beispielobjekt                  | teilweise (niedrig) | behoben                                                       |
 
 ### Oberfläche und Texte
 
-| ID   | Befund                                                                           | Urteil (Schwere)       | Stand                                                                    |
-| ---- | -------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------ |
-| U-00 | Handy: Zeilen „nur im Einzelfall nötig“ ragen über (375 px: 2 px, 320 px: 57 px) | bestätigt (mittel)     | behoben: `minmax(0, 1fr)`                                                |
-| U-01 | „Keine E-Rechnung“ zeigt trotzdem Pflichtangaben und „Maßgeblich ist die XML“    | teilweise, Steuerfrage | **F19**: keine Tabelle, fester Satz nur bei E-Rechnung – umgesetzt       |
-| U-02 | Zusammenfassung nennt die ganze Zeile statt der fehlenden Teile                  | bestätigt (mittel)     | behoben („… (nur Ort; …)“); Platz unter der § 14-Überschrift offen       |
-| U-03 | Kaputter Namensbaum → rohe englische Absturzmeldung                              | bestätigt (mittel)     | behoben: „Das PDF lässt sich nicht lesen“                                |
-| U-04 | Keine dauerhafte Live-Region; Fokus fällt auf `body`                             | teilweise (niedrig)    | offen                                                                    |
-| U-05 | Datei neben der Fläche abgelegt → Browser öffnet sie                             | teilweise (niedrig)    | behoben: die ganze Seite nimmt die Datei                                 |
-| U-06 | DOCTYPE-Anhang = „Formatfehler“, DOCTYPE-Datei = „nicht geprüft“                 | bestätigt (niedrig)    | behoben                                                                  |
-| U-07 | Parser-Meldungen englisch, Reihenfolge XML/PDF verschieden                       | bestätigt (niedrig)    | offen                                                                    |
-| U-08 | Verschachtelte Klammern in der Überschrift                                       | bestätigt (niedrig)    | behoben (auch CVD und ältere XRechnung)                                  |
-| U-09 | Straßenhinweis sagt beim Empfänger „der Unternehmer“                             | bestätigt (niedrig)    | behoben                                                                  |
-| U-10 | „Alle Pflichtfelder belegt“ trotz Einzelfall-Zeilen                              | widerlegt (festgelegt) | **F21**: neuer Satz – umgesetzt                                          |
-| U-11 | Typcode in der Pflichtangaben-Tabelle ohne Bezeichnung                           | teilweise (niedrig)    | behoben; „(Credit Note)“ bleibt (F2)                                     |
-| U-12 | Lange Werte ohne Umbruchstelle sprengen die Breite                               | teilweise (niedrig)    | behoben                                                                  |
-| U-13 | Tabellen: erste Spalte `td`, Kopf auf dem Handy versteckt, keine `caption`       | bestätigt (niedrig)    | offen                                                                    |
-| U-14 | Zitat Abschnitt 14.5 Abs. 16 UStAE: Code „Sätze 3–4“, F15 „Sätze 2–4“            | teilweise              | Code zitiert genau (BMF 15.10.2025, Nr. 12 g); F15-Wortlaut prüft Tobias |
-| U-15 | Kleinigkeiten im Wortlaut                                                        | teilweise (niedrig)    | „Dieselbe Rechnung“, „Gerät“, „nur eine Rechnungs-XML“ behoben           |
+| ID   | Befund                                                                           | Urteil (Schwere)       | Stand                                                                                                    |
+| ---- | -------------------------------------------------------------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------- |
+| U-00 | Handy: Zeilen „nur im Einzelfall nötig“ ragen über (375 px: 2 px, 320 px: 57 px) | bestätigt (mittel)     | behoben: `minmax(0, 1fr)`                                                                                |
+| U-01 | „Keine E-Rechnung“ zeigt trotzdem Pflichtangaben und „Maßgeblich ist die XML“    | teilweise, Steuerfrage | **F19**: keine Tabelle, fester Satz nur bei E-Rechnung – umgesetzt                                       |
+| U-02 | Zusammenfassung nennt die ganze Zeile statt der fehlenden Teile                  | bestätigt (mittel)     | behoben („… (nur Ort; …)“); Platz unter der § 14-Überschrift offen                                       |
+| U-03 | Kaputter Namensbaum → rohe englische Absturzmeldung                              | bestätigt (mittel)     | behoben: „Das PDF lässt sich nicht lesen“                                                                |
+| U-04 | Keine dauerhafte Live-Region; Fokus fällt auf `body`                             | teilweise (niedrig)    | behoben (Statuszeile von Anfang an, nur ein kurzer Satz; Fokus auf die Überschrift)                      |
+| U-05 | Datei neben der Fläche abgelegt → Browser öffnet sie                             | teilweise (niedrig)    | behoben: die ganze Seite nimmt die Datei                                                                 |
+| U-06 | DOCTYPE-Anhang = „Formatfehler“, DOCTYPE-Datei = „nicht geprüft“                 | bestätigt (niedrig)    | behoben                                                                                                  |
+| U-07 | Parser-Meldungen englisch, Reihenfolge XML/PDF verschieden                       | bestätigt (niedrig)    | offen                                                                                                    |
+| U-08 | Verschachtelte Klammern in der Überschrift                                       | bestätigt (niedrig)    | behoben (auch CVD und ältere XRechnung)                                                                  |
+| U-09 | Straßenhinweis sagt beim Empfänger „der Unternehmer“                             | bestätigt (niedrig)    | behoben                                                                                                  |
+| U-10 | „Alle Pflichtfelder belegt“ trotz Einzelfall-Zeilen                              | widerlegt (festgelegt) | **F21**: neuer Satz – umgesetzt                                                                          |
+| U-11 | Typcode in der Pflichtangaben-Tabelle ohne Bezeichnung                           | teilweise (niedrig)    | behoben; „(Credit Note)“ bleibt (F2)                                                                     |
+| U-12 | Lange Werte ohne Umbruchstelle sprengen die Breite                               | teilweise (niedrig)    | behoben                                                                                                  |
+| U-13 | Tabellen: erste Spalte `td`, Kopf auf dem Handy versteckt, keine `caption`       | bestätigt (niedrig)    | behoben (Zeilenköpfe, Tabellen und Abschnitte benannt, Spaltenköpfe auf dem Handy nur optisch versteckt) |
+| U-14 | Zitat Abschnitt 14.5 Abs. 16 UStAE: Code „Sätze 3–4“, F15 „Sätze 2–4“            | teilweise              | Code zitiert genau (BMF 15.10.2025, Nr. 12 g); F15-Wortlaut prüft Tobias                                 |
+| U-15 | Kleinigkeiten im Wortlaut                                                        | teilweise (niedrig)    | „Dieselbe Rechnung“, „Gerät“, „nur eine Rechnungs-XML“ behoben                                           |
 
 ## 5. Offen für Tobias
 
@@ -167,11 +167,10 @@ der Hinweis zum Zitat in F15 (U-14).
 
 **Ohne Steuerbezug, zur Entscheidung:**
 
-- **Upload:** Vor dem nächsten Upload Version erhöhen (Vorschlag 0.2.0) und taggen; Beispiele mit
+- **Upload:** Version ist 0.2.0; nach dem Merge Tag `v0.2.0` setzen und hochladen – Beispiele mit
   hochladen? (Push erfolgt am 14.11.2026, Pull Request #1.)
 - **Mindest-Browser** festlegen (heute etwa Chrome/Edge 98, Firefox 102, Safari 16.4, abgeleitet).
 - **Server-Kopfzeile** `frame-ancestors 'none'` für `NebenprojektERechnung/` (`deploy/README.md`).
-- **Barrierefreiheit** U-04 (Live-Region, Fokus) und U-13 (Tabellenköpfe) – kleiner Aufwand.
 - **Testabdeckung** T-02 (Mini-PDF mit Kompression) und T-06 (12 weitere KoSIT-Paare).
 - Kleinere offene Punkte: L-04, S-08, S-09, B-03, B-04, B-07, U-07.
 

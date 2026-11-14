@@ -58,6 +58,10 @@ export const TEXTS = {
   formatError: 'Formatfehler, gem. Rn. 6a ggf. keine E-Rechnung.',
   problemAtLine: 'Zeile {line}: {message}',
 
+  announceChecking: '„{name}“ wird geprüft.',
+  announceResult: 'Ergebnis: {headline}.',
+  announceFailed: 'Die Prüfung ist abgebrochen.',
+
   pflichtHeading: 'Pflichtangaben nach § 14 Abs. 4 UStG',
   besondereHeading: 'Angaben in besonderen Fällen (§ 14 Abs. 5, § 14a, § 22c UStG)',
   // F21 (Tobias 2026-11-14)

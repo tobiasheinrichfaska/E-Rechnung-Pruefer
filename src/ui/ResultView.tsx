@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import type { Analysis } from '../logic/analysis';
 import { termLabel } from '../logic/binding';
 import { checkPflichtangaben } from '../logic/check';
@@ -20,9 +21,17 @@ const OTHER_KIND: Readonly<Record<string, string>> = {
   tooLargeXml: 'XML über 20 MB, nicht gelesen',
 };
 
-function Pflichtangaben({ invoice }: { invoice: InvoiceVerdict }) {
+function Pflichtangaben({
+  invoice,
+  contextId,
+}: {
+  invoice: InvoiceVerdict;
+  contextId: string | undefined;
+}) {
   const model = pflichtModel(invoice);
-  if (model) return <PflichtangabenView result={checkPflichtangaben(model)} />;
+  if (model) {
+    return <PflichtangabenView result={checkPflichtangaben(model)} contextId={contextId} />;
+  }
   return (
     <p className="muted" data-testid="no-pflicht">
       {invoice.einordnung === 'keineERechnung' ? TEXTS.noPflichtNoEInvoice : TEXTS.noModel}
@@ -32,11 +41,15 @@ function Pflichtangaben({ invoice }: { invoice: InvoiceVerdict }) {
 
 export function ResultView({ analysis, verdict }: Props) {
   const inPdf = analysis.kind === 'pdf';
+  const baseId = useId();
 
   return (
-    <section className="result" aria-live="polite">
+    <section className="result">
       <div className={`verdict tone-${verdict.tone}`} data-testid="verdict">
-        <h2 data-testid="headline">{verdict.headline}</h2>
+        {/* focused when the result appears (App); the short announcement is App's status line */}
+        <h2 data-testid="headline" tabIndex={-1}>
+          {verdict.headline}
+        </h2>
         {verdict.explanation.map((line) => (
           <p key={line}>{line}</p>
         ))}
@@ -47,26 +60,30 @@ export function ResultView({ analysis, verdict }: Props) {
         )}
       </div>
 
-      {verdict.invoices.map((invoice, index) => (
-        <div className="card" key={`${invoice.part.origin}-${index}`}>
-          {verdict.invoices.length > 1 && (
-            <h3>
-              Rechnungsdaten {index + 1} von {verdict.invoices.length}
-            </h3>
-          )}
-          <table className="details">
-            <tbody>
-              {invoiceDetails(invoice, inPdf).map((row) => (
-                <tr key={row.label}>
-                  <th scope="row">{row.label}</th>
-                  <td>{row.value}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <Pflichtangaben invoice={invoice} />
-        </div>
-      ))}
+      {verdict.invoices.map((invoice, index) => {
+        const several = verdict.invoices.length > 1;
+        const contextId = several ? `${baseId}-rechnungsdaten-${index + 1}` : undefined;
+        return (
+          <div className="card" key={`${invoice.part.origin}-${index}`}>
+            {several && (
+              <h3 id={contextId}>
+                Rechnungsdaten {index + 1} von {verdict.invoices.length}
+              </h3>
+            )}
+            <table className="details">
+              <tbody>
+                {invoiceDetails(invoice, inPdf).map((row) => (
+                  <tr key={row.label}>
+                    <th scope="row">{row.label}</th>
+                    <td>{row.value}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <Pflichtangaben invoice={invoice} contextId={contextId} />
+          </div>
+        );
+      })}
 
       {inPdf && analysis.others.length > 0 && (
         <div className="card">

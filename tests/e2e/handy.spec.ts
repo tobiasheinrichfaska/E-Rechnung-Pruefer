@@ -23,7 +23,7 @@ test('fits a phone screen: no sideways scrolling, values below label and status'
   );
   expect(sideways).toBeLessThanOrEqual(0);
 
-  const cells = page.getByTestId('pflicht-name-leistender').locator('td');
+  const cells = page.getByTestId('pflicht-name-leistender').locator('th, td');
   const box = async (i: number) => {
     const found = await cells.nth(i).boundingBox();
     if (!found) throw new Error(`cell ${i} has no box`);
