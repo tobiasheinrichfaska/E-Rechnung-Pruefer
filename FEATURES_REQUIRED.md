@@ -15,21 +15,21 @@
 
 - [x] **Pflichtangaben in der Reihenfolge des § 14 Abs. 4** — je Zeile Werte und Status
 - [x] **Positionen aufklappbar** — Menge, Art, Betrag je Position
-- [x] **Gesamtsatz nie „ordnungsgemäß“** — „Alle Pflichtfelder belegt. Bitte prüfen Sie die Werte.“ bzw. „Es fehlt: …“
+- [x] **Gesamtsatz nie „ordnungsgemäß“** — „Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall ‚nur im Einzelfall nötig‘ zutrifft.“ bzw. „Es fehlt: …“
 - [x] **Kleinbetrag und Kleinunternehmer** — verringerte Angaben nach § 33 bzw. § 34a UStDV
 
 ## Schema und Plausibilität (Phasen 2, 3)
 
-- [ ] **Schemafehler** — „Formatfehler, gem. Rn. 6a ggf. keine E-Rechnung“ mit Fundstelle
-- [ ] **Rechenfehler** — „mögliche Auffälligkeit: …“ mit Regel-ID und belegenden Werten
+- [x] **Schemafehler** — „Formatfehler, gem. Rn. 6a ggf. keine E-Rechnung“ mit Fundstelle (Zeile und technische Meldung; EXTENDED gegen das FeRD-Schema)
+- [x] **Rechenfehler** — „mögliche Auffälligkeit: …“ mit Regel-ID und belegenden Werten
 
 ## Rahmen
 
-- [ ] **Keine Netzwerkanfrage, kein Speicherzugriff** — E2E zählt beides: null
-- [ ] **Keine Konsolenfehler beim Laden**
+- [x] **Keine Netzwerkanfrage, kein Speicherzugriff** — E2E zählt beides: null (Spion mit Selbsttest, Nachprüfung der Speicher nach jedem Test)
+- [x] **Keine Konsolenfehler beim Laden**
 
-| Path                               | Impact                                   | Audit Check                   |
-| ---------------------------------- | ---------------------------------------- | ----------------------------- |
-| Hybrid-PDF wird erkannt            | Kernfrage der Mandanten                  | E2E mit offiziellem Beispiel  |
-| Nichts verlässt den Rechner        | Vertraulichkeit der Rechnung             | CSP-Test + E2E-Zähler         |
-| Pflichtangaben vollständig gezeigt | Grundlage der Rückfrage beim Lieferanten | Unit- und E2E-Tests je Angabe |
+| Path                               | Impact                                   | Audit Check                                                                                                     |
+| ---------------------------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Hybrid-PDF wird erkannt            | Kernfrage der Mandanten                  | E2E mit offizieller XML in eigenem PDF, auch komprimiert wie echte Factur-X-Dateien (echte FeRD-PDFs nur lokal) |
+| Nichts verlässt den Rechner        | Vertraulichkeit der Rechnung             | CSP-Test + E2E-Zähler                                                                                           |
+| Pflichtangaben vollständig gezeigt | Grundlage der Rückfrage beim Lieferanten | Unit-Tests je Angabe, E2E für ausgewählte Zeilen                                                                |

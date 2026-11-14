@@ -692,9 +692,18 @@ describe('agreed reductions of the price (§ 14 Abs. 4 Nr. 7 UStG, F8)', () => {
 
 describe('wording of the result (screenshot review 2026-11-13)', () => {
   it('ends the summary with one full stop when the last label ends with "USt-IdNr."', () => {
-    const result = checkPflichtangaben(model({ 'BG-11': [{ 'BT-62': 'Vertreter GmbH' }] }));
-    expect(result.summary).toBe('Es fehlt: Fiskalvertreter: Name, Anschrift und USt-IdNr.');
+    expect(sentence('Es fehlt: Fiskalvertreter: Name, Anschrift und USt-IdNr..')).toBe(
+      'Es fehlt: Fiskalvertreter: Name, Anschrift und USt-IdNr.',
+    );
     expect(sentence('a.')).toBe('a.');
+  });
+
+  it('names only the missing parts of a partly present row (audit 2026-11-14, U-02)', () => {
+    const result = checkPflichtangaben(model({ 'BG-11': [{ 'BT-62': 'Vertreter GmbH' }] }));
+    expect(result.summary).toBe(
+      'Es fehlt: Fiskalvertreter: Name, Anschrift und USt-IdNr. (nur USt-IdNr. des Fiskalvertreters; Anschrift).',
+    );
+    expect(result.missingLabels).toEqual(['Fiskalvertreter: Name, Anschrift und USt-IdNr.']);
   });
 
   it('leaves out positions that would only show their number', () => {
@@ -711,5 +720,134 @@ describe('conditions', () => {
     const m = model();
     expect(holds(m, { kind: 'differ', a: 'BG-4/BG-5/BT-40', b: 'BG-7/BG-8/BT-55' })).toBe(false);
     expect(holds(m, { kind: 'differ', a: 'BG-4/BG-5/BT-40', b: 'BG-11/BT-62' })).toBe(false);
+  });
+});
+
+describe('audit 2026-11-14', () => {
+  const notes = (text: string) => ({ 'BG-1': [{ 'BT-22': text }] });
+
+  /** No VAT shown: exempt, 0 %, no tax amount (else F18 keeps the regular list). */
+  const noTax = {
+    'BG-22': [{ 'BT-106': '500.00', 'BT-109': '500.00', 'BT-112': '500.00', 'BT-115': '500.00' }],
+    'BG-23': [{ 'BT-116': '500.00', 'BT-117': '0', 'BT-118': 'E', 'BT-119': '0' }],
+  };
+
+  it('does not take "§ 195 BGB" for the Kleinunternehmer rule (L-02)', () => {
+    const bgb = model({ ...noTax, ...notes('Es gilt die Verjährungsfrist nach § 195 BGB.') });
+    expect(modeOf(bgb).mode).toBe('regel');
+    const ku = model({ ...noTax, ...notes('Gemäß §19 UStG wird keine Umsatzsteuer berechnet.') });
+    expect(modeOf(ku).mode).toBe('kleinunternehmer');
+  });
+
+  it('gives the street hint only for a complete address and names the party (L-06, U-09)', () => {
+    const cityOnly = checkPflichtangaben(
+      model({
+        'BG-7': [{ 'BT-44': 'Käufer AG', 'BG-8': [{ 'BT-52': 'Karlsruhe', 'BT-55': 'DE' }] }],
+      }),
+    );
+    expect(row(cityOnly, 'anschrift-empfaenger').status).toBe('fehlt');
+    expect(row(cityOnly, 'anschrift-empfaenger').hints).toEqual([]);
+    const noStreet = checkPflichtangaben(
+      model({
+        'BG-7': [
+          {
+            'BT-44': 'Käufer AG',
+            'BG-8': [{ 'BT-52': 'Karlsruhe', 'BT-53': '76131', 'BT-55': 'DE' }],
+          },
+        ],
+      }),
+    );
+    expect(row(noStreet, 'anschrift-empfaenger').hints.join(' ')).toContain(
+      'wenn der Leistungsempfänger unter dieser Anschrift erreichbar ist',
+    );
+  });
+
+  it('gives the F15 hint only where the date is required (L-06)', () => {
+    const small = checkPflichtangaben(
+      model({
+        ...notes('Leistungsdatum entspricht Rechnungsdatum'),
+        'BG-13': [],
+        'BG-22': [
+          {
+            'BT-106': '100.00',
+            'BT-109': '100.00',
+            'BT-110': '19.00',
+            'BT-112': '119.00',
+            'BT-115': '119.00',
+          },
+        ],
+      }),
+    );
+    expect(small.mode).toBe('kleinbetrag');
+    expect(row(small, 'leistungszeitpunkt').hints).toEqual([]);
+  });
+
+  it('shows the type code with its label and the whole address of the tax representative (U-11, B-08)', () => {
+    expect(displayValue('BT-3', '389', undefined)).toBe(
+      '389 – Gutschrift (vom Leistungsempfänger ausgestellt)',
+    );
+    const result = checkPflichtangaben(
+      model({
+        'BG-11': [
+          {
+            'BT-62': 'Vertreter GmbH',
+            'BT-63': 'DE111111111',
+            'BG-12': [
+              { 'BT-64': 'Hauptstr. 1', 'BT-67': '10115', 'BT-66': 'Berlin', 'BT-69': 'DE' },
+            ],
+          },
+        ],
+      }),
+    );
+    const shown = row(result, 'fiskalvertreter').values.map((v) => v.value);
+    expect(shown).toEqual(expect.arrayContaining(['Hauptstr. 1', '10115', 'Berlin']));
+  });
+
+  it('recognises "§ 14b" and "vereinnahmte Entgelte" in notes (L-09)', () => {
+    const result = checkPflichtangaben(
+      model(notes('Bitte bewahren Sie diese Rechnung zwei Jahre auf (§ 14b Abs. 1 Satz 5 UStG).')),
+    );
+    expect(row(result, 'aufbewahrung').status).toBe('vorhanden');
+  });
+});
+
+describe('decisions of 2026-11-14 (F16–F21)', () => {
+  const notes = (text: string) => ({ 'BG-1': [{ 'BT-22': text }] });
+  const totals = (amount: string) => ({
+    'BG-22': [
+      { 'BT-106': amount, 'BT-109': amount, 'BT-110': '0', 'BT-112': amount, 'BT-115': amount },
+    ],
+  });
+
+  it('F16: the amount of BT-112 counts for a Kleinbetragsrechnung', () => {
+    expect(modeOf(model(totals('-119.00'))).mode).toBe('kleinbetrag');
+    expect(modeOf(model(totals('-250.00'))).mode).toBe('kleinbetrag');
+    expect(modeOf(model(totals('-250.01'))).mode).toBe('regel');
+    expect(modeOf(model(totals('-10555.30'))).mode).toBe('regel');
+    expect(modeOf(model(totals('250.00'))).mode).toBe('kleinbetrag');
+  });
+
+  it('F18: a Kleinunternehmer note on an invoice with VAT keeps the full list and gives a hint', () => {
+    const result = checkPflichtangaben(model(notes('Kleinunternehmer gemäß § 19 UStG')));
+    expect(result.mode).toBe('regel');
+    expect(row(result, 'steuerbetrag').hints.join(' ')).toContain('§ 14c UStG');
+    const withoutNote = checkPflichtangaben(model());
+    expect(row(withoutNote, 'steuerbetrag').hints).toEqual([]);
+  });
+
+  it('F20: a negated reduction is no hint on a reduction', () => {
+    const status = (text: string) =>
+      row(checkPflichtangaben(model(notes(text))), 'minderungen').status;
+    expect(status('Zahlbar sofort ohne Skonto.')).toBe('einzelfall');
+    expect(status('Kein Abzug von Skonto zulässig.')).toBe('einzelfall');
+    expect(status('2 % Skonto bei Zahlung binnen 10 Tagen, ohne Abzug 30 Tage netto.')).toBe(
+      'vorhanden',
+    );
+  });
+
+  it('F21: the summary of a complete invoice names the cases "nur im Einzelfall nötig"', () => {
+    expect(checkPflichtangaben(model()).summary).toBe(
+      'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
+    );
   });
 });

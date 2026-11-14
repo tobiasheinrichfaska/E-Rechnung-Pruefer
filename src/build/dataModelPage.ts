@@ -88,6 +88,35 @@ export const ENTITIES: EntityDoc[] = [
         required: false,
         meaning: 'Das ganze EN-16931-Modell; fehlt bei ZUGFeRD 1.0',
       },
+      {
+        name: 'schema',
+        type: 'SchemaResult',
+        required: false,
+        meaning: 'Prüfung gegen das offizielle Schema (Schritt 2b); fehlt bei ZUGFeRD 1.0',
+      },
+    ],
+  },
+  {
+    name: 'SchemaResult',
+    file: 'src/logic/analysis.ts',
+    purpose:
+      'Ergebnis der Schemaprüfung einer Rechnungs-XML: dasselbe XSD wie im KoSIT-Validator (UBL 2.1, CII D16B).',
+    fields: [
+      { name: 'schema', type: 'string', required: true, meaning: 'z. B. „UN/CEFACT CII D16B“' },
+      {
+        name: 'checked',
+        type: 'boolean',
+        required: true,
+        meaning: 'false: nicht geprüft (Profil mit eigenem Schema, z. B. FeRD EXTENDED)',
+      },
+      { name: 'reason', type: 'string', required: false, meaning: 'Warum nicht geprüft' },
+      {
+        name: 'problems',
+        type: 'Problem[]',
+        required: true,
+        meaning: 'Die ersten technischen Meldungen (höchstens 20), mit Zeile',
+      },
+      { name: 'count', type: 'number', required: true, meaning: 'Alle Meldungen' },
     ],
   },
   {
@@ -98,7 +127,7 @@ export const ENTITIES: EntityDoc[] = [
       { name: 'origin', type: 'string', required: true, meaning: 'Name des Anhangs' },
       {
         name: 'kind',
-        type: "'otherXml' | 'brokenXml' | 'doctypeXml' | 'notXml'",
+        type: "'otherXml' | 'brokenXml' | 'doctypeXml' | 'tooLargeXml' | 'notXml'",
         required: true,
         meaning: 'Warum keine Rechnung',
       },
@@ -243,7 +272,7 @@ export const ENTITIES: EntityDoc[] = [
         name: 'summary',
         type: 'string',
         required: true,
-        meaning: '„Alle Pflichtfelder belegt …“ oder „Es fehlt: …“',
+        meaning: '„Alle stets nötigen Pflichtangaben sind vorhanden …“ oder „Es fehlt: …“',
       },
     ],
   },
@@ -377,6 +406,12 @@ export const FUNCTIONS: { layer: string; signature: string; purpose: string }[] 
   },
   {
     layer: 'logic',
+    signature: 'checkRules(model, { ownRules }): RulesResult',
+    purpose:
+      'Rechenregeln der EN 16931 (BR-CO-10 bis -17, Aufschlüsselung je Kategorie und Satz) wie im CEN-Schematron; für FeRD EXTENDED (eigene Regeln BR-FXEXT-…) nur BR-CO-14',
+  },
+  {
+    layer: 'logic',
     signature: 'modeOf(model): { mode; text? }',
     purpose: 'Kleinunternehmer (§ 34a UStDV) vor Kleinbetrag (§ 33 UStDV) vor Regelfall',
   },
@@ -401,6 +436,8 @@ export const RELATIONS: [string, string, string, string][] = [
   ['OtherPart', 'problems', 'Problem', '0..n'],
   ['InvoicePart', 'syntax', 'SyntaxEntry (SYNTAXES)', '1'],
   ['InvoicePart', 'model', 'ModelGroup', '0..1'],
+  ['InvoicePart', 'schema', 'SchemaResult', '0..1'],
+  ['SchemaResult', 'problems', 'Problem', '0..n'],
   ['ModelGroup', 'groups', 'ModelGroup', '0..n'],
   ['ModelGroup', 'terms', 'TermValue', '0..n'],
   ['ModelGroup', 'bg', 'GroupDef (binding)', '1'],
@@ -573,7 +610,7 @@ ${entityTables}
 </ul>
 <table><thead><tr><th>Kennung (BT-24)</th><th>Vergleich</th><th>Bezeichnung</th><th>Einordnung</th><th>Quelle</th><th>geprüft</th></tr></thead><tbody>${PROFILES.map(
     (p) =>
-      `<tr><td><code>${esc(p.id)}</code></td><td>${p.match === 'exact' ? 'genau' : 'Anfang'}</td><td>${esc(p.label)}</td><td>${p.einordnung}</td><td>${esc(p.source)}</td><td>${p.checked ? 'ja' : 'nein'}</td></tr>`,
+      `<tr><td><code>${esc(p.id)}</code></td><td>${p.match === 'exact' ? 'genau' : p.rest ? 'Anfang + Versionsnummer' : 'Anfang'}</td><td>${esc(p.label)}${p.note ? ` (${esc(p.note)})` : ''}</td><td>${p.einordnung}</td><td>${esc(p.source)}</td><td>${p.checked ? 'ja' : 'nein'}</td></tr>`,
   ).join('')}</tbody></table>
 </main></body></html>
 `;

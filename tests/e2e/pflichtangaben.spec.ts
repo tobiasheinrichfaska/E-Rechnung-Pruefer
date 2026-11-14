@@ -10,7 +10,7 @@ test('shows every Pflichtangabe of a complete invoice with its values', async ({
     page.getByRole('heading', { name: 'Pflichtangaben nach § 14 Abs. 4 UStG' }),
   ).toBeVisible();
   await expect(page.getByTestId('pflicht-summary')).toHaveText(
-    'Alle Pflichtfelder belegt. Bitte prüfen Sie die Werte.',
+    'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
   );
   const number = page.getByTestId('pflicht-rechnungsnummer');
   await expect(number.getByTestId('status')).toHaveText('vorhanden');
@@ -38,7 +38,7 @@ test('names what is missing, with the missing parts, and shows hints', async ({ 
   );
 
   await expect(page.getByTestId('pflicht-summary')).toHaveText(
-    'Es fehlt: Fiskalvertreter: Name, Anschrift und USt-IdNr.',
+    'Es fehlt: Fiskalvertreter: Name, Anschrift und USt-IdNr. (nur Ort; Postleitzahl oder Straße/Postfach).',
   );
   const address = page.getByTestId('pflicht-anschrift-leistender');
   await expect(address.getByTestId('status')).toHaveText('vorhanden');

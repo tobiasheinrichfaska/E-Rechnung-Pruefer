@@ -17,16 +17,16 @@ Ergebnis sind **Hinweise, keine Freigabe**.
 
 ## Entscheidungen
 
-| Nr. | Entscheidung                                                                                                                                                                                         |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| E1  | Eigener Unterordner `e-rechnung/` im Fragebogen-Repo mit eigener `package.json`, eigenem Build und eigenen Tests. Im Hauptordner nur: `eslint.config.js` (Ordner ausgenommen) und `.prettierignore`. |
-| E2  | Server: `NebenprojektERechnung/` auf der Fragebogen-Subdomain, Zugriff IP-Adressen der Kanzlei oder Tester-Anmeldung (`deploy/upload.json`, Ziel `test`), nicht verlinkt.                            |
-| E3  | Commits ohne Rückfrage, nur gemeldet. Push (öffentliches GitHub) und Upload (Server) nur nach Tobias' Freigabe.                                                                                      |
-| T1  | Ein XML-Werkzeug für alles: libxml2-wasm (Einlesen, XPath, XSD). XML mit DOCTYPE wird abgewiesen.                                                                                                    |
-| T2  | Eine HTML-Datei (vite-plugin-singlefile), CSP mit `connect-src 'none'` und `'wasm-unsafe-eval'`.                                                                                                     |
-| T3  | Keine Speicherung: ESLint verbietet Speicher- und Netz-APIs; ein E2E-Test zählt Speicherzugriffe und Netzwerkanfragen (beide null).                                                                  |
-| T4  | Dezimalrechnung auf BigInt, keine Gleitkommazahlen.                                                                                                                                                  |
-| T5  | Zuordnung Pflichtangabe → BT nach der KoSIT/FeRD-Empfehlung, Stand 25.07.2025 (siehe `quellen.md`).                                                                                                  |
+| Nr. | Entscheidung                                                                                                                                                                            |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E1  | **Abgelöst am 13.11.2026:** eigenes Projekt (eigenes Repo, mit Historie aus `Fragebogen/e-rechnung/` herausgelöst). Ursprünglich: eigener Unterordner `e-rechnung/` im Fragebogen-Repo. |
+| E2  | Server: `NebenprojektERechnung/` auf der Fragebogen-Subdomain, Zugriff IP-Adressen der Kanzlei oder Tester-Anmeldung (`deploy/upload.json`, Ziel `test`), nicht verlinkt.               |
+| E3  | Commits ohne Rückfrage, nur gemeldet. Push (öffentliches GitHub) und Upload (Server) nur nach Tobias' Freigabe.                                                                         |
+| T1  | Ein XML-Werkzeug für alles: libxml2-wasm (Einlesen, XPath, XSD). XML mit DOCTYPE wird abgewiesen.                                                                                       |
+| T2  | Eine HTML-Datei (vite-plugin-singlefile), CSP mit `connect-src 'none'` und `'wasm-unsafe-eval'`.                                                                                        |
+| T3  | Keine Speicherung: ESLint verbietet Speicher- und Netz-APIs; ein E2E-Test zählt Speicherzugriffe und Netzwerkanfragen (beide null).                                                     |
+| T4  | Dezimalrechnung auf BigInt, keine Gleitkommazahlen.                                                                                                                                     |
+| T5  | Zuordnung Pflichtangabe → BT nach der KoSIT/FeRD-Empfehlung, Stand 25.07.2025 (siehe `quellen.md`).                                                                                     |
 
 ## Aufbau
 
@@ -42,19 +42,19 @@ Ergebnis sind **Hinweise, keine Freigabe**.
 
 ## Schritte
 
-| Schritt | Inhalt                                                                                             | Stand                                         |
-| ------- | -------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| 0.1     | Offizielle Artefakte laden, Lizenzen prüfen, `quellen.md`                                          | erledigt bis auf das FeRD-Paket (lädt Tobias) |
-| 0.2     | Gerüst `e-rechnung/`, dieser Plan, zwei Zeilen im Hauptordner                                      | erledigt                                      |
-| 0.3     | `npm install --ignore-scripts`                                                                     | erledigt                                      |
-| 0.4     | Spike: libxml2-wasm + pdf.js in der einen Datei unter der CSP; XSD-Imports aus dem Speicher        | bestanden (Chromium, Firefox, WebKit)         |
-| 0.5     | Zuordnung gegen die KoSIT/FeRD-Empfehlung abgleichen → `offene-fragen.md` F9                       | erledigt                                      |
-| 1a      | Einlesen + Erkennen (PDF/XML, Anhänge am Inhalt, Syntax, Profil, Ergebnisarten, mehrere XML)       | erledigt                                      |
-| 1b      | Normalisieren (Zuordnung als Daten, BT-Modell, Positionen)                                         | erledigt                                      |
-| 1c      | Pflichtangaben-Ansicht (§ 14 Abs. 4 in Reihenfolge, Status, Gesamtsatz, fester Hinweis)            | erledigt (Fragen F7, F10–F14 offen)           |
-| 2a      | XSDs übernehmen (nur weitergebbare), Profil → XSD                                                  | UBL 2.1 + CII D16B übernommen; FeRD offen     |
-| 2b      | Schema-Prüfung + Anzeige                                                                           | offen                                         |
-| 3a      | Plausibilitätsregeln (BR-CO-10, -13, -14, -15, -16, -17, Aufschlüsselung je Satz, Befreiungsgrund) | offen                                         |
+| Schritt | Inhalt                                                                                             | Stand                                                                                                                                                                                                                                                 |
+| ------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0.1     | Offizielle Artefakte laden, Lizenzen prüfen, `quellen.md`                                          | erledigt (FeRD-Paket von Tobias geladen, `quellen.md`)                                                                                                                                                                                                |
+| 0.2     | Gerüst `e-rechnung/`, dieser Plan, zwei Zeilen im Hauptordner                                      | erledigt                                                                                                                                                                                                                                              |
+| 0.3     | `npm install --ignore-scripts`                                                                     | erledigt                                                                                                                                                                                                                                              |
+| 0.4     | Spike: libxml2-wasm + pdf.js in der einen Datei unter der CSP; XSD-Imports aus dem Speicher        | bestanden (Chromium, Firefox, WebKit)                                                                                                                                                                                                                 |
+| 0.5     | Zuordnung gegen die KoSIT/FeRD-Empfehlung abgleichen → `offene-fragen.md` F9                       | erledigt                                                                                                                                                                                                                                              |
+| 1a      | Einlesen + Erkennen (PDF/XML, Anhänge am Inhalt, Syntax, Profil, Ergebnisarten, mehrere XML)       | erledigt                                                                                                                                                                                                                                              |
+| 1b      | Normalisieren (Zuordnung als Daten, BT-Modell, Positionen)                                         | erledigt                                                                                                                                                                                                                                              |
+| 1c      | Pflichtangaben-Ansicht (§ 14 Abs. 4 in Reihenfolge, Status, Gesamtsatz, fester Hinweis)            | erledigt (F7, F10–F21 entschieden, F16–F21 am 14.11.2026)                                                                                                                                                                                             |
+| 2a      | XSDs übernehmen (nur weitergebbare), Profil → XSD                                                  | erledigt 14.11.2026: UBL 2.1 + CII D16B (KoSIT), Factur-X 1.09.2 EXTENDED (FeRD, Apache-2.0)                                                                                                                                                          |
+| 2b      | Schema-Prüfung + Anzeige                                                                           | erledigt 14.11.2026 (Beispiel 29)                                                                                                                                                                                                                     |
+| 3a      | Plausibilitätsregeln (BR-CO-10, -13, -14, -15, -16, -17, Aufschlüsselung je Satz, Befreiungsgrund) | erledigt 14.11.2026 (BR-CO-10–17, je Kategorie/Satz; Befreiungsgrund in den Pflichtangaben; Beispiel 30); für FeRD EXTENDED nur BR-CO-14 mit Hinweis — dessen Schematron hat eigene Fassungen (BR-FXEXT-…, Logistikkosten; Musterrechnungen X11, X19) |
 
 Nach jeder Phase: kurzer Stand mit beobachtetem Testergebnis, Push und Upload nur nach Freigabe.
 

@@ -6,6 +6,9 @@ import type { Tone } from './verdict';
 export const TEXTS = {
   fixedNotice:
     'Technische Erstprüfung, keine steuerliche Prüfung. Maßgeblich sind die Daten in der XML. Bei Fragen wenden Sie sich an Ihre Kanzlei.',
+  /** Before a result and when no e-invoice was found: the XML is not what counts (F19) */
+  fixedNoticeGeneral:
+    'Technische Erstprüfung, keine steuerliche Prüfung. Bei Fragen wenden Sie sich an Ihre Kanzlei.',
 
   eRechnung: 'E-Rechnung erkannt ({spec})',
   hybridSource: 'Das PDF enthält Rechnungsdaten als XML (Anhang „{name}“).',
@@ -24,9 +27,11 @@ export const TEXTS = {
   unknownSpec: 'Kennung der Spezifikation (BT-24): {id}. Diese Kennung kennt das Tool nicht.',
   missingSpec: 'Die Kennung der Spezifikation (BT-24) fehlt.',
   shownAnyway: 'Die Angaben aus der XML werden trotzdem angezeigt.',
+  zugferd20Hint:
+    'Ob die Datei nach ZUGFeRD 2.0 oder 2.0.1 erstellt ist, lässt sich an ihr nicht erkennen; das BMF erkennt ZUGFeRD erst ab Version 2.0.1 als E-Rechnung an (BMF-Schreiben vom 15.10.2024, Rn. 30).',
 
   sameSeveral:
-    'Die gleiche Rechnung ist {count}-mal eingebettet ({names}). Der Standard sieht eine Rechnungs-XML vor.',
+    'Dieselbe Rechnung ist {count}-mal eingebettet ({names}). Vorgesehen ist nur eine Rechnungs-XML je PDF.',
   contradicting: 'Mögliche Auffälligkeit: widersprüchliche Rechnungsdaten im PDF',
   contradictingWhy:
     'Das PDF enthält {count} Rechnungs-XML mit unterschiedlichen Daten ({names}). Unklar ist, welche gilt.',
@@ -45,13 +50,60 @@ export const TEXTS = {
   attachmentBroken: 'Der Anhang „{name}“ ist XML, lässt sich aber nicht lesen.',
   attachmentDoctype:
     'Der Anhang „{name}“ enthält eine Dokumenttyp-Angabe (DOCTYPE). Aus Sicherheitsgründen liest das Tool ihn nicht.',
+  pdfNotChecked: 'PDF nicht vollständig geprüft',
+  attachmentTooLarge:
+    'Der Anhang „{name}“ ist größer als 20 MB. So große XML-Dateien liest das Tool nicht.',
+  attachmentsTruncated: 'Das PDF hat sehr viele Anhänge. Das Tool hat nur die ersten 50 gelesen.',
+  notJudged: 'Ob das PDF eine E-Rechnung ist, kann das Tool deshalb nicht sagen.',
   formatError: 'Formatfehler, gem. Rn. 6a ggf. keine E-Rechnung.',
-  problemAtLine: 'Zeile {line}: {message}',
+
+  // Step 2b: the official schema (F4 for the statement)
+  schemaErrorHeadline: 'Rechnungsdaten mit Formatfehler ({spec})',
+  schemaMismatch:
+    'Die XML weicht vom offiziellen Schema {schema} ab (technische Meldungen: {count}).',
+  schemaMismatchIn:
+    'Der Anhang „{name}“ weicht vom offiziellen Schema {schema} ab (technische Meldungen: {count}).',
+  schemaMore: 'Weitere technische Meldungen: {count} (siehe unten).',
+  schemaOwnProfile:
+    'Für ZUGFeRD 2.0 im Profil EXTENDED gilt ein eigenes Schema von FeRD, das das Tool nicht enthält.',
+  schemaNone: 'keine Abweichung vom Schema {schema}',
+  schemaDetail: 'Abweichungen vom Schema {schema}: {count}',
+  schemaNotChecked: 'nicht geprüft – {reason}',
+  schemaProblemsTitle: 'Technische Meldungen der Schemaprüfung ({count})',
+  // The parser's own message (English) marked as such (audit 2026-11-14, U-07)
+  problemAtLine: 'Technische Meldung (Zeile {line}): {message}',
+  problemMessage: 'Technische Meldung: {message}',
+
+  announceChecking: '„{name}“ wird geprüft.',
+  announceResult: 'Ergebnis: {headline}.',
+  announceFailed: 'Die Prüfung ist abgebrochen.',
+
+  // Step 3a: calculation rules of EN 16931 (a selection)
+  rulesHeading: 'Rechnerische Prüfung (Auswahl von Regeln der EN 16931)',
+  rulesOk: 'Die geprüften Beträge passen zusammen.',
+  rulesOwnRules:
+    'Für das Profil EXTENDED gelten eigene Rechenregeln von FeRD. Diese werden hier nicht geprüft, nur die Regel BR-CO-14.',
+  rulesAuffaellig: 'Mögliche Auffälligkeit: {ids}. Bitte prüfen Sie die Beträge.',
+  rulesHint: 'Mögliche Auffälligkeit bei den Beträgen: {ids} (siehe „Rechnerische Prüfung“).',
+  rulesHintIn:
+    'Mögliche Auffälligkeit bei den Beträgen im Anhang „{name}“: {ids} (siehe „Rechnerische Prüfung“).',
+  rulesShowAll: 'Alle geprüften Regeln anzeigen',
+  rulesShowOthers: 'Weitere geprüfte Regeln anzeigen',
+  ruleStatusPasst: 'passt',
+  ruleStatusAuffaellig: 'mögliche Auffälligkeit',
+  ruleStatusNichtPruefbar: 'nicht prüfbar',
+  ruleOccurrence: 'Kategorie {category}, {rate}',
+  ruleLineSum: 'Summe der Positionen (BT-131)',
+  ruleMissing: '– nicht angegeben',
+  ruleNoNumber: '– keine Zahl',
 
   pflichtHeading: 'Pflichtangaben nach § 14 Abs. 4 UStG',
   besondereHeading: 'Angaben in besonderen Fällen (§ 14 Abs. 5, § 14a, § 22c UStG)',
-  allPresent: 'Alle Pflichtfelder belegt. Bitte prüfen Sie die Werte.',
+  // F21 (Tobias 2026-11-14)
+  allPresent:
+    'Alle stets nötigen Pflichtangaben sind vorhanden. Bitte prüfen Sie die Werte und ob ein Fall „nur im Einzelfall nötig“ zutrifft.',
   missingList: 'Es fehlt: {list}.',
+  missingOnly: 'nur',
   addressCity: 'Ort',
   addressPostcodeOrStreet: 'Postleitzahl oder Straße/Postfach',
   noGroup: 'keine Angabe „{group}“',
@@ -62,6 +114,8 @@ export const TEXTS = {
   notInXml: '– nicht in der XML',
   noModel:
     'Für diese Rechnungsdaten zeigt das Tool keine Pflichtangaben (kein Format nach EN 16931).',
+  noPflichtNoEInvoice:
+    'Für Rechnungsdaten, die keine E-Rechnung sind, zeigt das Tool keine Pflichtangaben. Maßgeblich ist dann die lesbare Rechnung, nicht die XML.',
 
   fileProblems: {
     empty: { tone: 'bad', headline: 'Die Datei ist leer', explanation: [] },
@@ -105,7 +159,7 @@ export const TEXTS = {
 /** Replaces {name} placeholders. */
 export function fill(text: string, values: Readonly<Record<string, string | number>>): string {
   return text.replace(/\{(\w+)\}/g, (whole, key: string) =>
-    key in values ? String(values[key]) : whole,
+    Object.hasOwn(values, key) ? String(values[key]) : whole,
   );
 }
 

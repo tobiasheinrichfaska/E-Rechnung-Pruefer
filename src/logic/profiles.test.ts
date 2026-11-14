@@ -1,4 +1,5 @@
 import { PROFILES, profileOf } from './profiles';
+import { TEXTS, fill } from './texts';
 
 describe('profileOf', () => {
   it.each([
@@ -19,7 +20,7 @@ describe('profileOf', () => {
     expect(profileOf(base).entry?.label).toBe('XRechnung 3.0');
     expect(
       profileOf(`${base}#compliant#urn:xeinkauf.de:kosit:xrechnung:cvd_1.0`).entry?.label,
-    ).toBe('XRechnung 3.0 (CVD)');
+    ).toBe('XRechnung 3.0, CVD');
     expect(
       profileOf('urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.1').entry
         ?.label,
@@ -44,5 +45,45 @@ describe('profileOf', () => {
     const ids = PROFILES.map((p) => `${p.match}:${p.id}`);
     expect(new Set(ids).size).toBe(ids.length);
     expect(PROFILES.every((p) => p.source.length > 0)).toBe(true);
+  });
+});
+
+describe('audit 2026-11-14', () => {
+  const XR = 'urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_';
+  it('takes only a version number after an XRechnung prefix (L-08)', () => {
+    expect(profileOf(`${XR}3.1`).einordnung).toBe('eRechnung');
+    expect(profileOf(`${XR}3.0.2`).einordnung).toBe('eRechnung');
+    expect(profileOf(`${XR}3.0#conformant#urn:example.com:my-extension`).einordnung).toBe(
+      'nichtBeurteilt',
+    );
+    expect(profileOf(`${XR}irgendwas`).einordnung).toBe('nichtBeurteilt');
+    expect(
+      profileOf('urn:cen.eu:en16931:2017#compliant#urn:xoev-de:kosit:standard:xrechnung_2.3')
+        .einordnung,
+    ).toBe('eRechnung');
+  });
+
+  it('knows the ZUGFeRD 2.0 identifiers (B-01, F17)', () => {
+    expect(profileOf('urn:zugferd.de:2p0:minimum').einordnung).toBe('keineERechnung');
+    expect(profileOf('urn:zugferd.de:2p0:basicwl').einordnung).toBe('keineERechnung');
+    for (const id of [
+      'urn:cen.eu:en16931:2017#compliant#urn:zugferd.de:2p0:basic',
+      'urn:cen.eu:en16931:2017#conformant#urn:zugferd.de:2p0:extended',
+    ]) {
+      expect(profileOf(id).einordnung).toBe('eRechnung');
+      expect(profileOf(id).entry?.hint).toContain('2.0.1');
+    }
+    // the upper-case spelling of the ZUGFeRD 2.0 appendix stays unknown
+    expect(profileOf('urn:cen.eu:EN16931:2017#compliant#urn:zugferd.de:2p0:basic').einordnung).toBe(
+      'nichtBeurteilt',
+    );
+  });
+
+  it('keeps the headline label free of brackets (U-08)', () => {
+    const nested = PROFILES.map((p) => fill(TEXTS.eRechnung, { spec: p.label })).filter((h) =>
+      h.includes('))'),
+    );
+    expect(nested).toEqual([]);
+    expect(profileOf('urn:cen.eu:en16931:2017').entry?.label).toBe('EN 16931');
   });
 });

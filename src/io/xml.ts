@@ -14,8 +14,13 @@ import { scanProlog, textOf } from '../logic/prolog';
 
 export const MAX_XML_BYTES = 20 * 1024 * 1024;
 
-/** No network, no external entities, no entity substitution — untrusted input. */
-const SAFE_PARSE = ParseOption.XML_PARSE_NONET | ParseOption.XML_PARSE_NO_XXE;
+/**
+ * No network, no external entities, no entity substitution — untrusted input. HUGE lifts libxml2's
+ * limit of 10 MB per text node: an XRechnung may embed an attachment (BG-24) of that size as base64
+ * (audit 2026-11-14, S-02). The file limit MAX_XML_BYTES and the entity amplification limit stay.
+ */
+const SAFE_PARSE =
+  ParseOption.XML_PARSE_NONET | ParseOption.XML_PARSE_NO_XXE | ParseOption.XML_PARSE_HUGE;
 
 export interface XmlProblem {
   message: string;
@@ -46,7 +51,14 @@ export function readXml(bytes: Uint8Array): XmlRead {
   if (prolog.kind === 'doctype') return { ok: false, issue: 'doctype', problems: [] };
   if (prolog.kind === 'noRoot') return { ok: false, issue: 'noXml', problems: [] };
   try {
-    return { ok: true, doc: XmlDocument.fromBuffer(bytes, { option: SAFE_PARSE }) };
+    const doc = XmlDocument.fromBuffer(bytes, { option: SAFE_PARSE });
+    // The prolog scan reads the start as UTF-8, libxml2 the declared encoding (e.g. ISO-2022-JP):
+    // a DOCTYPE can hide from the scan (audit 2026-11-14, S-03). The parsed document tells surely.
+    if (doc.dtd) {
+      doc.dispose();
+      return { ok: false, issue: 'doctype', problems: [] };
+    }
+    return { ok: true, doc };
   } catch (error) {
     if (error instanceof XmlLibError) {
       return { ok: false, issue: 'notWellFormed', problems: problemsOf(error.details) };

@@ -23,7 +23,7 @@ test('fits a phone screen: no sideways scrolling, values below label and status'
   );
   expect(sideways).toBeLessThanOrEqual(0);
 
-  const cells = page.getByTestId('pflicht-name-leistender').locator('td');
+  const cells = page.getByTestId('pflicht-name-leistender').locator('th, td');
   const box = async (i: number) => {
     const found = await cells.nth(i).boundingBox();
     if (!found) throw new Error(`cell ${i} has no box`);
@@ -37,6 +37,27 @@ test('fits a phone screen: no sideways scrolling, values below label and status'
   expect(values.y).toBeGreaterThanOrEqual(label.y + label.height - 1);
   expect(values.width).toBeGreaterThan(label.width);
 
+  expect(problems).toEqual([]);
+  expect(await sideEffects(page)).toEqual([]);
+});
+
+// A small Android phone (320 px) and a supplier file name with underscores only: before the audit
+// 2026-11-14 the rows "nur im Einzelfall nötig" overflowed by up to 57 px and such a name by 185 px.
+test('fits a small phone with a long file name', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 700 });
+  const problems = await openApp(page);
+  const name = 'Rechnung_2026-11-14_Mustermann_Lieferant_GmbH_Nummer_1234567890123456789.xml';
+  await upload(page, name, official('kosit/paare/01.14a-INVOICE_ubl.xml'), 'application/xml');
+  await expect(page.getByTestId('pflicht-summary')).toBeVisible();
+  await page
+    .getByText(/^Positionen anzeigen/)
+    .first()
+    .click();
+
+  const sideways = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(sideways).toBeLessThanOrEqual(0);
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);
 });

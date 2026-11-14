@@ -68,3 +68,56 @@ export function formatAmount(value: Decimal): string {
   const grouped = digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   return `${negative ? '-' : ''}${grouped},${fraction}`;
 }
+
+// --- arithmetic (step 3a) — exact, no floating point ----------------------------------------
+
+export const ZERO: Decimal = { units: 0n, scale: 0 };
+
+function aligned(a: Decimal, b: Decimal): [bigint, bigint, number] {
+  const scale = Math.max(a.scale, b.scale);
+  return [rescale(a, scale), rescale(b, scale), scale];
+}
+
+export function add(a: Decimal, b: Decimal): Decimal {
+  const [x, y, scale] = aligned(a, b);
+  return { units: x + y, scale };
+}
+
+export function subtract(a: Decimal, b: Decimal): Decimal {
+  const [x, y, scale] = aligned(a, b);
+  return { units: x - y, scale };
+}
+
+export function multiply(a: Decimal, b: Decimal): Decimal {
+  return { units: a.units * b.units, scale: a.scale + b.scale };
+}
+
+export function abs(a: Decimal): Decimal {
+  return a.units < 0n ? { units: -a.units, scale: a.scale } : a;
+}
+
+export function sum(values: readonly Decimal[]): Decimal {
+  return values.reduce(add, ZERO);
+}
+
+/** floor(a / b) for BigInt (BigInt division truncates toward zero). */
+function floorDiv(a: bigint, b: bigint): bigint {
+  const q = a / b;
+  return a % b !== 0n && a < 0n !== b < 0n ? q - 1n : q;
+}
+
+/**
+ * Rounded to `digits` decimals the way the EN 16931 Schematron does it: XPath
+ * `round(x * 100) div 100`, where round() is floor(x + 0.5) — halves go up (toward +∞).
+ */
+export function roundTo(value: Decimal, digits: number): Decimal {
+  if (value.scale <= digits) return value;
+  const factor = 10n ** BigInt(value.scale - digits);
+  // floor(units / factor + 1/2) = floor((2 * units + factor) / (2 * factor))
+  return { units: floorDiv(2n * value.units + factor, 2n * factor), scale: digits };
+}
+
+/** a lies strictly within b ± tolerance (the EN 16931 checks with a tolerance of 1). */
+export function within(a: Decimal, b: Decimal, tolerance: Decimal): boolean {
+  return compareDecimal(subtract(a, tolerance), b) < 0 && compareDecimal(add(a, tolerance), b) > 0;
+}

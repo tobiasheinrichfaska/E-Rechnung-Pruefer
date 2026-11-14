@@ -46,6 +46,21 @@ describe('readXml', () => {
     expect(readXml(encode(external))).toMatchObject({ ok: false, issue: 'doctype' });
   });
 
+  it('refuses a DOCTYPE that hides from the prolog scan behind another encoding (S-03)', () => {
+    // ISO-2022-JP switches with ESC sequences; read as UTF-8 the scan sees no DOCTYPE
+    const esc = String.fromCharCode(27);
+    const text =
+      `<?xml version="1.0" encoding="ISO-2022-JP"?><?pi ${esc}$B?><a${esc}(B ?>\n` +
+      '<!DOCTYPE a [<!ENTITY nr "AUS-ENTITY">]><a>&nr;</a>';
+    expect(readXml(encode(text))).toMatchObject({ ok: false, issue: 'doctype' });
+  });
+
+  it('reads a text node over 10 MB, e.g. an embedded attachment (S-02)', () => {
+    const doc = read(encode(`<?xml version="1.0"?><a>${'QUJD'.repeat(2_700_000)}</a>`));
+    expect(valuesAt(doc, 'string-length(/a)', {})).toEqual(['10800000']);
+    doc.dispose();
+  });
+
   it('reports broken XML with the line', () => {
     const result = readXml(encode('<?xml version="1.0"?>\n<a>\n<b></a>'));
     expect(result.ok).toBe(false);

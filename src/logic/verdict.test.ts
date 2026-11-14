@@ -1,11 +1,17 @@
 import type { Analysis, InvoicePart } from './analysis';
 import { invoiceDetails } from './details';
-import { TEXTS } from './texts';
-import { differingTerms, verdictOf } from './verdict';
+import { TEXTS, fill } from './texts';
+import { differingTerms, pflichtModel, verdictOf, xmlCounts } from './verdict';
+
+/** Stands for a read EN 16931 model (only its presence matters here). */
+const MODEL = { bg: 'INVOICE', terms: {}, groups: {} } as unknown as NonNullable<
+  InvoicePart['model']
+>;
 
 const part = (overrides: Partial<InvoicePart['header']> = {}, origin = 'a.xml'): InvoicePart => ({
   origin,
   syntax: 'cii',
+  model: MODEL,
   header: {
     'BT-1': ['R-1'],
     'BT-2': ['20261113'],
@@ -53,7 +59,7 @@ describe('verdictOf', () => {
         problem: { kind: 'xmlBroken', problems: [{ message: 'Ende fehlt', line: 7 }] },
       }),
     );
-    expect(verdict.explanation).toContain('Zeile 7: Ende fehlt');
+    expect(verdict.explanation).toContain('Technische Meldung (Zeile 7): Ende fehlt');
   });
 
   it('uses the attachment name for a hybrid PDF and XML wording for an XML file', () => {
@@ -114,5 +120,65 @@ describe('invoiceDetails', () => {
     expect(rows['Rechnungsnummer (BT-1)']).toBe('– (fehlt)');
     expect(rows['Rechnungsdatum (BT-2)']).toBe('13.11.2026');
     expect(rows['Betrag brutto (BT-112)']).toBe('1.000,00');
+  });
+});
+
+describe('several invoice XML with another specification (audit 2026-11-14, L-03)', () => {
+  it('compares BT-24 too, so the result does not depend on the order', () => {
+    const xr = part(
+      { 'BT-24': ['urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0'] },
+      'a.xml',
+    );
+    const min = part({ 'BT-24': ['urn:factur-x.eu:1p0:minimum'] }, 'b.xml');
+    const one = verdictOf(analysis({ invoices: [xr, min] }));
+    const other = verdictOf(analysis({ invoices: [min, xr] }));
+    expect(one.headline).toBe(TEXTS.contradicting);
+    expect(other.headline).toBe(TEXTS.contradicting);
+    expect(one.comparison).toEqual({ same: false, differing: ['BT-24'] });
+  });
+});
+
+describe('fill (audit 2026-11-14, L-11)', () => {
+  it('fills only own keys, never names of Object.prototype', () => {
+    expect(fill('{toString} {name}', { name: 'X' })).toBe('{toString} X');
+  });
+});
+
+describe('decisions of 2026-11-14 (F17, F19)', () => {
+  it('F17: ZUGFeRD 2.0 BASIC is an e-invoice with the hint on 2.0/2.0.1', () => {
+    const zf2 = part({ 'BT-24': ['urn:cen.eu:en16931:2017#compliant#urn:zugferd.de:2p0:basic'] });
+    const verdict = verdictOf(analysis({ invoices: [zf2] }));
+    expect(verdict.tone).toBe('ok');
+    expect(verdict.explanation).toContain(TEXTS.zugferd20Hint);
+  });
+
+  it('F19: no Pflichtangaben and no "Maßgeblich ist die XML" for "keine E-Rechnung"', () => {
+    const withModel = (p: InvoicePart): InvoicePart => ({ ...p, model: MODEL });
+    const minimum = verdictOf(
+      analysis({ invoices: [withModel(part({ 'BT-24': ['urn:factur-x.eu:1p0:minimum'] }))] }),
+    );
+    const notShown = minimum.invoices[0];
+    if (!notShown) throw new Error('no invoice');
+    expect(pflichtModel(notShown)).toBeUndefined();
+    expect(xmlCounts(minimum)).toBe(false);
+    const ok = verdictOf(analysis({ invoices: [withModel(part())] }));
+    const shown = ok.invoices[0];
+    if (!shown) throw new Error('no invoice');
+    expect(pflichtModel(shown)).toBe(MODEL);
+    expect(xmlCounts(ok)).toBe(true);
+    expect(TEXTS.fixedNoticeGeneral).not.toContain('XML');
+  });
+});
+
+describe('a ZUGFeRD 1.0 part next to an EN 16931 part (audit 2026-11-14, L-04)', () => {
+  it('compares only the specification, not values that were never read', () => {
+    const zf1: InvoicePart = {
+      origin: 'ZUGFeRD-invoice.xml',
+      syntax: 'zugferd1',
+      header: { 'BT-24': ['urn:ferd:CrossIndustryDocument:invoice:1p0:comfort'] },
+    };
+    const en = part({}, 'factur-x.xml');
+    expect(differingTerms([zf1, en])).toEqual(['BT-24']);
+    expect(differingTerms([en, zf1])).toEqual(['BT-24']);
   });
 });

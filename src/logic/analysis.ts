@@ -14,6 +14,19 @@ export type FileKind = 'pdf' | 'xml' | 'unknown';
 export type FileProblemKind =
   'empty' | 'unsupportedType' | 'tooLarge' | 'password' | 'damaged' | 'xmlDoctype' | 'xmlBroken';
 
+/** The check of an invoice XML against the official schema of its syntax (step 2b). */
+export interface SchemaResult {
+  /** e.g. "UN/CEFACT CII D16B" */
+  schema: string;
+  /** false: not checked, see `reason` */
+  checked: boolean;
+  reason?: string;
+  /** The first problems (at most MAX_SCHEMA_PROBLEMS) */
+  problems: Problem[];
+  /** All problems the engine reported */
+  count: number;
+}
+
 /** One invoice XML: the file itself or a PDF attachment. */
 export interface InvoicePart {
   /** File name or attachment name */
@@ -23,9 +36,11 @@ export interface InvoicePart {
   header: HeaderValues;
   /** The full EN 16931 model; missing for syntaxes outside EN 16931 (ZUGFeRD 1.0) */
   model?: InvoiceModel;
+  /** The schema check; missing for syntaxes without a bundled schema (ZUGFeRD 1.0) */
+  schema?: SchemaResult;
 }
 
-export type OtherPartKind = 'otherXml' | 'brokenXml' | 'doctypeXml' | 'notXml';
+export type OtherPartKind = 'otherXml' | 'brokenXml' | 'doctypeXml' | 'tooLargeXml' | 'notXml';
 
 /** A PDF attachment that is no invoice XML. */
 export interface OtherPart {

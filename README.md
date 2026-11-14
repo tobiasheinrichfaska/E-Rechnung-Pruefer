@@ -3,17 +3,19 @@
 Ein Werkzeug für den Browser: Sie ziehen eine Rechnung (PDF oder XML) hinein und sehen,
 
 - ob es eine E-Rechnung ist (Syntax UBL oder CII, Profil),
-- ob die XML zu den offiziellen Schemadateien passt,
 - welche Pflichtangaben nach § 14 Abs. 4 UStG enthalten sind – mit den Werten aus der XML,
+- ob die XML zu den offiziellen Schemadateien passt,
 - ob ausgewählte Beträge rechnerisch zusammenpassen.
 
 Das Ergebnis sind **Hinweise, keine Freigabe**: eine technische Erstprüfung, keine steuerliche Prüfung.
-Maßgeblich sind die Daten in der XML.
+Bei einer E-Rechnung sind die Daten in der XML maßgeblich.
 
 **Ihre Datei verlässt den Rechner nicht.** Das Werkzeug ist eine einzige HTML-Datei; der Browser
 verbietet ihr jede Netzwerkverbindung (Content-Security-Policy). Es speichert nichts.
 
-**Stand:** in Entwicklung, nur im Testbereich.
+**Stand:** in Entwicklung, nur im Testbereich. Gebaut sind das Erkennen, die Schemaprüfung, die
+Pflichtangaben und eine Auswahl der Rechenregeln. Die Beispielrechnungen in `beispiele/` sind noch nicht
+hochgeladen.
 
 ## Entwicklung
 

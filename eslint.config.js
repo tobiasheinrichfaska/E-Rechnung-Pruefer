@@ -14,20 +14,31 @@ const NO_STORAGE_OR_NETWORK = [
   'sessionStorage',
   'indexedDB',
   'caches',
+  'cookieStore',
   'fetch',
   'XMLHttpRequest',
   'WebSocket',
   'EventSource',
+  'BroadcastChannel',
+  'RTCPeerConnection',
+  'Worker',
+  'SharedWorker',
 ];
+// Without `object` the property is banned on every object, so globalThis.localStorage,
+// self.fetch or an alias of window are caught too (audit 2026-11-14, S-06).
 const NO_STORAGE_PROPERTIES = [
-  { object: 'window', property: 'localStorage' },
-  { object: 'window', property: 'sessionStorage' },
-  { object: 'window', property: 'indexedDB' },
-  { object: 'window', property: 'fetch' },
-  { object: 'document', property: 'cookie' },
-  { object: 'navigator', property: 'serviceWorker' },
-  { object: 'navigator', property: 'sendBeacon' },
+  { property: 'localStorage' },
+  { property: 'sessionStorage' },
+  { property: 'indexedDB' },
+  { property: 'caches' },
+  { property: 'cookie' },
+  { property: 'cookieStore' },
+  { property: 'fetch' },
+  { property: 'sendBeacon' },
+  { property: 'serviceWorker' },
   { object: 'navigator', property: 'storage' },
+  { object: 'window', property: 'open' },
+  { object: 'window', property: 'name' },
 ];
 
 export default defineConfig([

@@ -15,6 +15,12 @@ export interface SyntaxEntry {
   en16931: boolean;
   /** Only for syntaxes outside the binding (ZUGFeRD 1.0): where the specification id sits */
   specIdPath?: string;
+  /**
+   * The official schema the KoSIT validator uses for this syntax (scenarios.xml of the validator
+   * configuration v2026-08-31: UBL 2.1 for every UBL scenario, CII D16B for every CII scenario).
+   * Keys of SCHEMA_ENTRIES in src/io/schemas.ts.
+   */
+  schema?: { entry: 'ublInvoice' | 'ublCreditNote' | 'ciiD16B'; label: string };
 }
 
 const UBL_COMMON = {
@@ -37,6 +43,7 @@ export const SYNTAXES: readonly SyntaxEntry[] = [
     namespace: 'urn:oasis:names:specification:ubl:schema:xsd:Invoice-2',
     namespaces: UBL_COMMON,
     en16931: true,
+    schema: { entry: 'ublInvoice', label: 'UBL 2.1 (Invoice)' },
   },
   {
     id: 'ubl-creditnote',
@@ -45,6 +52,7 @@ export const SYNTAXES: readonly SyntaxEntry[] = [
     namespace: 'urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2',
     namespaces: UBL_COMMON,
     en16931: true,
+    schema: { entry: 'ublCreditNote', label: 'UBL 2.1 (CreditNote)' },
   },
   {
     id: 'cii',
@@ -53,6 +61,7 @@ export const SYNTAXES: readonly SyntaxEntry[] = [
     namespace: CII.rsm,
     namespaces: CII,
     en16931: true,
+    schema: { entry: 'ciiD16B', label: 'UN/CEFACT CII D16B' },
   },
   {
     // ZUGFeRD 1.0 (2014) used its own namespace; the BMF recognises ZUGFeRD only from 2.0.1 on.

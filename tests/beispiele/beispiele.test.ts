@@ -3,8 +3,9 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { BEISPIELE, NICHT_ALS_BEISPIEL, buildFolder } from '../../src/build/beispiele';
-import type { BuiltFile, KositXml } from '../../src/build/beispiele';
+import type { BuiltFile } from '../../src/build/beispiele';
 import { analyzeFile } from '../../src/io/analyze';
+import { readPdfAttachments } from '../../src/io/pdf';
 import type { PdfJsLike } from '../../src/io/pdf';
 import { SCHEMA_ENTRIES, SCHEMA_FILES } from '../../src/io/schemas';
 import { readXml, rootOf, schemaProblems, xsdValidator } from '../../src/io/xml';
@@ -12,7 +13,7 @@ import { checkPflichtangaben } from '../../src/logic/check';
 import type { PflichtResult } from '../../src/logic/check';
 import { MODES, PFLICHTANGABEN } from '../../src/logic/pflichtangaben';
 import { TEXTS } from '../../src/logic/texts';
-import { verdictOf } from '../../src/logic/verdict';
+import { pflichtModel, verdictOf } from '../../src/logic/verdict';
 import type { Verdict } from '../../src/logic/verdict';
 
 // The samples for testers in beispiele/ are generated (npm run beispiele = this test in mode
@@ -41,10 +42,13 @@ beforeAll(async () => {
       const file = built.find((f) => f.name === b.datei);
       if (!file) throw new Error(`not built: ${b.datei}`);
       const analysis = await analyzeFile(b.datei, file.bytes, load);
-      const model = analysis.invoices[0]?.model;
+      const verdict = verdictOf(analysis);
+      // as the page shows it: no Pflichtangaben for "keine E-Rechnung" (F19)
+      const first = verdict.invoices[0];
+      const model = first ? pflichtModel(first) : undefined;
       return {
         datei: b.datei,
-        verdict: verdictOf(analysis),
+        verdict,
         ...(model ? { pflicht: checkPflichtangaben(model) } : {}),
       };
     }),
@@ -82,19 +86,27 @@ describe('beispiele/', () => {
     expect(result?.pflicht?.summary).toBe(b.erwartet.pflicht);
   });
 
-  it('keeps every sample XML meant as invoice valid against the official schema', () => {
-    const kosit: KositXml[] = BEISPIELE.flatMap((b) => {
-      if (b.quelle.art === 'kosit') return [b.quelle.xml];
-      if (b.quelle.art === 'pdf')
-        return b.quelle.xml.flatMap((part) => (typeof part.xml === 'string' ? [] : [part.xml]));
-      return [];
-    });
-    expect(kosit.length).toBeGreaterThan(10);
-    const files = built.filter((f) => f.name.endsWith('.xml'));
-    const invalid: string[] = [];
-    for (const file of files) {
+  it('keeps every sample XML meant as invoice valid against the official schema', async () => {
+    // KoSIT-based XML: the XML files themselves and the ones embedded in the sample PDFs (T-09)
+    const toCheck: { name: string; bytes: Uint8Array }[] = [];
+    for (const file of built) {
       const b = BEISPIELE.find((x) => x.datei === file.name);
-      if (b?.quelle.art !== 'kosit') continue;
+      if (b?.quelle.art === 'kosit' && !b.quelle.xml.schemafehler) toCheck.push(file);
+      if (b?.quelle.art !== 'pdf') continue;
+      const meant = new Set(
+        b.quelle.xml.filter((part) => typeof part.xml !== 'string').map((part) => part.name),
+      );
+      // the password sample cannot be opened (that is what it shows)
+      if (meant.size === 0 || b.quelle.kennwort) continue;
+      const read = await readPdfAttachments(await load(), file.bytes);
+      if (!read.ok) throw new Error(`${file.name}: ${read.issue}`);
+      for (const a of read.attachments.filter((x) => meant.has(x.name))) {
+        toCheck.push({ name: `${file.name}/${a.name}`, bytes: a.bytes });
+      }
+    }
+    expect(toCheck.filter((f) => f.name.includes('.pdf/')).length).toBeGreaterThanOrEqual(8);
+    const invalid: string[] = [];
+    for (const file of toCheck) {
       const result = readXml(file.bytes);
       if (!result.ok) {
         invalid.push(`${file.name}: not readable`);
@@ -128,6 +140,8 @@ describe('coverage: every text of the tool appears in a sample', () => {
     TEXTS.plainPdf,
     TEXTS.pdfWithoutInvoiceData,
     TEXTS.pdfBrokenXml,
+    TEXTS.pdfNotChecked,
+    TEXTS.schemaErrorHeadline,
     ...Object.values(TEXTS.fileProblems).map((p) => p.headline),
   ];
 
