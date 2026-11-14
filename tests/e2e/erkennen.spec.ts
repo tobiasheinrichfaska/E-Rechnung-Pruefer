@@ -184,12 +184,19 @@ test('takes a file dropped anywhere on the page', async ({ page }) => {
     dt.items.add(new File([new Uint8Array(data)], 'daneben.xml', { type: 'application/xml' }));
     return dt;
   }, bytes);
-  const prevented = await page.evaluate((dt) => {
-    const event = new DragEvent('dragover', { dataTransfer: dt, bubbles: true, cancelable: true });
-    document.querySelector('h1')?.dispatchEvent(event);
-    return event.defaultPrevented;
-  }, transfer);
-  expect(prevented).toBe(true);
+  // The page-wide listener is attached right after the first render (useEffect); a real drag
+  // never comes that early, so wait for it instead of racing it (seen in WebKit, 2026-11-14)
+  const prevented = () =>
+    page.evaluate((dt) => {
+      const event = new DragEvent('dragover', {
+        dataTransfer: dt,
+        bubbles: true,
+        cancelable: true,
+      });
+      document.querySelector('h1')?.dispatchEvent(event);
+      return event.defaultPrevented;
+    }, transfer);
+  await expect.poll(prevented).toBe(true);
   await page.locator('h1').dispatchEvent('drop', { dataTransfer: transfer });
   await expect(page.getByTestId('headline')).toHaveText('E-Rechnung erkannt (XRechnung 3.0)');
   expect(problems).toEqual([]);
