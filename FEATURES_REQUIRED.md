@@ -21,7 +21,13 @@
 ## Schema und Plausibilität (Phasen 2, 3)
 
 - [x] **Schemafehler** — „Formatfehler, gem. Rn. 6a ggf. keine E-Rechnung“ mit Fundstelle (Zeile und technische Meldung; EXTENDED gegen das FeRD-Schema)
-- [x] **Rechenfehler** — „mögliche Auffälligkeit: …“ mit Regel-ID und belegenden Werten
+- [x] **Rechenfehler** — „mögliche Auffälligkeit: …“ mit Regel-ID, belegenden Werten (mit Namen) und dem Wert, den die Regel erwartet
+
+## Bedienung (Audit 14.11.2026)
+
+- [x] **Ergebnis drucken für die Kanzlei** — ohne Ablagefläche, alle Abschnitte offen, mit Prüfdatum und Uhrzeit
+- [x] **Ordner oder unlesbare Datei, mehrere Dateien zugleich** — deutsche Meldung bzw. „Geprüft wurde nur die erste.“
+- [x] **Handy 320 px** — Bezeichnungen der Pflichtangaben ohne Trennung mitten im Wort
 
 ## Rahmen
 
