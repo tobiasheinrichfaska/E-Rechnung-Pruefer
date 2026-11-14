@@ -9,9 +9,11 @@ lokal bleibt und wie du dich mit der Cloud abstimmst.
 
 - **Entwicklung:** alle Änderungen an Code, Tests, Beispielen (`npm run beispiele`), Datenmodell
   (`npm run docs`) und Doku. Gearbeitet wird auf einem Branch `claude/…`, zusammengeführt per Pull
-  Request in `main` – nach Tobias' „Merge ok“.
+  Request in `main` – ohne Rückfrage, danach berichtet (Tobias 14.11.2026: „reversibel GitHub
+  Aktionen kannst du ohne mich ausführen“).
 - **Alle Tests**, jeweils in der Sitzung beobachtet:
-  - `npm test` einschließlich der 61 FeRD-Musterrechnungen (`tests/io/ferdLokal.test.ts`),
+  - `npm test` einschließlich der 61 FeRD-Musterrechnungen (`tests/io/ferdLokal.test.ts`) und der
+    12 Muster zu ZUGFeRD 1.0 (`tests/io/zugferd1Lokal.test.ts`),
   - `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run build`,
   - `npm run test:e2e` in **Chromium, Firefox und WebKit**.
 - **Audits** mit Prüf- und Widerlegungs-Agenten, Recherche amtlicher Quellen, Pflege von

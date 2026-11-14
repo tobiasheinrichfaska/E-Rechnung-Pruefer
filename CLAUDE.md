@@ -113,6 +113,7 @@ the manual tests remain — briefing for the local Claude Code:
 | `tests/io/analyze.test.ts`                                 | Verdict paths with official files and own PDFs: XRechnung UBL/CII/Extension/CVD, MINIMUM/BASIC WL, ZUGFeRD 1.0, unknown/missing id, same invoice in UBL+CII, contradicting XML, attachments not read (DOCTYPE, > 20 MB, > 50 attachments), broken name tree, password, damaged, too large, empty, PNG; schema check: no problem in any official file, comma amount with line and F4 sentence, several XML in any order, EXTENDED left out, none for "keine E-Rechnung"                                                                                                                                                                                                                                 |
 | `tests/io/rules.test.ts`                                   | Step 3a on real files: no possible irregularity in any official invoice (> 500 rule checks); a wrong total gives BR-CO-15/-16 with the values and "warn"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | `tests/io/ferdLokal.test.ts`                               | All 61 official FeRD 2.5.2 Factur-X sample PDFs (local only, `tests/fixtures/lokal/ferd/`): MINIMUM/BASIC WL "keine E-Rechnung", all others recognised, model and Pflichtangaben built — skipped where the folder is missing; no schema problem (CII D16B, EXTENDED against its FeRD schema); no possible irregularity in the amounts (EXTENDED: only BR-CO-14) — ran in the cloud session 2026-11-14 with Tobias' upload: 62/62                                                                                                                                                                                                                                                                       |
+| `tests/io/zugferd1Lokal.test.ts`                           | The 12 official FeRD ZUGFeRD 1.0 sample PDFs (local only, `tests/fixtures/lokal/zugferd-1.0/`): attachment `ZUGFeRD-invoice.xml` found by content, identifier `…:1p0:basic                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | comfort | extended`, "keine E-Rechnung", no schema check; plus a PDFlib file and two XML kept by Mustang — skipped where the folder is missing |
 | `src/logic/*.test.ts`                                      | Profiles, decimals, dates, verdict texts and comparison, detail rows; `check.test.ts`: table integrity (every path exists in the binding), every status path, F1–F3, § 33/§ 34a modes, § 14a/§ 22c cases, display; `rules.test.ts`: every rule passing and failing, prepaid/rounding, tolerance below 1, rate 0, exact breakdown of other categories, not a number, FeRD EXTENDED only BR-CO-14, BR-CO-14 only with BT-110, named values and expected value, unchecked rules in the summary                                                                                                                                                                                                            |
 | `tests/e2e/helpers.ts`                                     | `openApp` (spy for storage/cookie/CSP, request and console listeners), `upload` (waits for the result of exactly this file), `sideEffects`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `tests/e2e/erkennen.spec.ts`                               | Playwright on `dist/index.html` (file://): recognition paths, drop (also next to the zone), CSP, a hybrid PDF with the newest JS features removed (older browsers); a spy counts storage/cookie access, BroadcastChannel, WebRTC, popups, beacons, CSP violations, requests and console errors and checks afterwards that no store holds anything — all must be none (spy self-checked)                                                                                                                                                                                                                                                                                                                |
@@ -172,13 +173,14 @@ cd E-Rechnung-Pruefer && npm ci --ignore-scripts && npx playwright install --wit
 
 The FeRD samples may not be redistributed: they live in the **private repository
 `tobiasheinrichfaska/E-Rechnung-Pruefer-privat`** (`ferd/` = the 61 samples, `ferd-paket/` = the
-whole FeRD package, SHA-256 as in `docs/quellen.md`), linked or cloned as `tests/fixtures/lokal`
+whole FeRD package, SHA-256 as in `docs/quellen.md`; `zugferd-1.0/` = the 12 ZUGFeRD 1.0 samples
+with specification and XSD, origin in its `QUELLEN.tsv`), linked or cloned as `tests/fixtures/lokal`
 (gitignored as folder and as link). **Every cloud session attaches it by itself (Tobias
 2026-11-14):** if `tests/fixtures/lokal` is missing at the start, call `add_repo` (owner
 `tobiasheinrichfaska`, repo `E-Rechnung-Pruefer-privat`, access `push`), clone it as that tool says,
 `register_repo_root`, then `ln -s /home/user/e-rechnung-pruefer-privat tests/fixtures/lokal`.
 Selected at session start, the shared setup script links it already. Without it
-`tests/io/ferdLokal.test.ts` is skipped — not a pass. Use `npm ci`, not `npm install` (npm 10 drops
+`tests/io/ferdLokal.test.ts` and `tests/io/zugferd1Lokal.test.ts` are skipped — not a pass. Use `npm ci`, not `npm install` (npm 10 drops
 the `libc` fields from `package-lock.json`).
 
 ## Development Server Ports
@@ -241,9 +243,11 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
   stylesheet also accepts a separate preceding three-letter note).
 - **UBL `ChargeIndicator`** accepted as false/true and 0/1; CII `TaxTotalAmount` without a currency
   attribute counts as BT-110 (the D16B schema allows it, KoSIT does not).
-- **Profile identifiers** are backed by official sample files (FeRD 2.5.2, KoSIT, CEN) except
-  ZUGFeRD 1.0: its namespaces in `syntax.ts` are from memory, not from a sample file (`checked:
-false`). An official CEN example in CII D16B carrying the ZUGFeRD 1.0 id is called "keine
+- **Profile identifiers** are backed by official sample files (FeRD 2.5.2, KoSIT, CEN). ZUGFeRD 1.0:
+  root, namespaces and identifiers from the FeRD schema `ZUGFeRD1p0.xsd` and the specification
+  (§ 6.2, § 6.3, § 7.2), checked on its 12 FeRD samples (private repo, `zugferd1Lokal.test.ts`);
+  files of the 2013 release candidate (rsm `urn:un:unece:uncefact:data:standard:CBFBUY:5`) are not
+  recognised. An official CEN example in CII D16B carrying the ZUGFeRD 1.0 id is called "keine
   E-Rechnung" (F5).
 - **Attachments only from the EmbeddedFiles name tree** (where Factur-X/ZUGFeRD put the XML).
   Files attached only as page annotations are not seen. At most 50 attachments are read.
@@ -281,8 +285,9 @@ F23 (hints instead of demands, the Kanzlei only where it helps, advice by kind o
 date of supply and invoice, `uebergang.ts`), F27 (different invoice XML = format error with a
 comparison table), F28 (Factur-X profile schemas), F29 (FeRD rules for EXTENDED,
 `rulesExtended.ts`), G-1 … G-10 (folded rows, jump links, technical details closed, print and
-copy buttons, compact drop zone, start view, wording). Samples 31–35. Open: F30 (supply before
-2025), ZUGFeRD 1.0 evidence (research). Next: PR, then Tobias uploads app and samples (local).
+copy buttons, compact drop zone, start view, wording). Samples 31–35. ZUGFeRD 1.0 backed by the
+FeRD specification and its 12 samples (private repo `zugferd-1.0/`, `zugferd1Lokal.test.ts`). Open:
+F30 (supply before 2025). Next: merge PR #3, then Tobias uploads app and samples (local).
 
 **2026-11-14 — quality audit of the handling (Tobias: "Qualitätsaudit, insbesondere für die
 Handhabung des Nutzers"):** PR #1 merged into `main` (`06e96a0`, 0.2.0); the tag `v0.2.0` could not

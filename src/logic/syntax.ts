@@ -65,6 +65,10 @@ export const SYNTAXES: readonly SyntaxEntry[] = [
   },
   {
     // ZUGFeRD 1.0 (2014) used its own namespace; the BMF recognises ZUGFeRD only from 2.0.1 on.
+    // Root, namespaces and the identifier path from the FeRD schema ZUGFeRD1p0.xsd and the
+    // specification (§ 6.2; technical documentation § 4.1), checked on the 12 FeRD samples
+    // (tests/io/zugferd1Lokal.test.ts). Files of the 2013 release candidate (rsm namespace
+    // urn:un:unece:uncefact:data:standard:CBFBUY:5) are not recognised.
     id: 'zugferd1',
     label: 'ZUGFeRD 1.0',
     root: 'CrossIndustryDocument',

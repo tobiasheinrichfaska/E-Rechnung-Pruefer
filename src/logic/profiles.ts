@@ -212,9 +212,11 @@ export const PROFILES: readonly ProfileEntry[] = [
     label: 'ZUGFeRD 1.0',
     profile: 'ZUGFeRD 1.0',
     einordnung: 'keineERechnung',
+    // Identifiers basic|comfort|extended, longer ones for industry profiles (e.g. …:extended:gs1):
+    // specification ZUGFeRD 1.0 § 6.3; the 12 FeRD samples in the private repo (zugferd1Lokal.test)
     source:
-      'BMF 15.10.2024 Rn. 25, 30; Abschnitt 14.1 Abs. 14 UStAE: ZUGFeRD erst ab Version 2.0.1 (F5)',
-    checked: false,
+      'BMF 15.10.2024 Rn. 25, 30; Abschnitt 14.1 Abs. 14 UStAE: ZUGFeRD erst ab Version 2.0.1 (F5); Kennung: FeRD-Spezifikation ZUGFeRD 1.0 § 6.3 und Musterrechnungen',
+    checked: true,
   },
 ];
 
