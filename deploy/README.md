@@ -85,8 +85,9 @@ decided“). Dort ist im Dashboard der Pull Zone eingestellt, von Hand auf dem K
   das gleich. Antworten nach der Anmeldung tragen aber das Cookie (`Set-Cookie`), und `public`
   erlaubt fremden Zwischenspeichern, sie aufzuheben. Vorschlag: In der Testzone `Cache-Control`
   nicht mehr setzen, sodass das Skript entscheidet (Kanzlei-PC, Repo `Testumgebung`).
-- **Reste im Speicher:** Von früheren Läufen liegen noch Beispieldateien (`beispiele/`) in beiden
-  Zonen; der Lauf meldet sie, löscht sie aber nicht. Tobias entfernt sie im Dateimanager von bunny.
+- **Reste im Speicher:** Die Beispieldateien früherer Läufe hat Tobias am 15.11.2026 gelöscht. In
+  der öffentlichen Zone antworten alle 39 Dateien von `beispiele/` mit 404 (geprüft am selben
+  Abend); die Testzone lässt sich ohne Tester-Anmeldung nicht prüfen (401).
 - **Nicht in Suchmaschinen** (Tobias, 15.11.2026): Die Seite trägt `<meta name="robots"
 content="noindex">` (`index.html`). Mandanten kommen über den Link der Kanzlei. Keine `robots.txt`
   mit `Disallow` hochladen: Eine gesperrte Seite liest die Suchmaschine nicht und sieht dann auch das
