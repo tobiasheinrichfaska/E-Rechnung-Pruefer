@@ -317,6 +317,27 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 
 ## Status / next step
 
+**Task (Kanzlei PC session, 2026-11-15, Tobias): a test page with reports without free text.**
+
+- Spec: private repo `Testumgebung`, `docs/testbericht.md` (format `testbericht/1`).
+- This app has manual tests (`manual_tests/`) but no test page yet.
+- Build one in the test build, together with the test build mode of the task below. The model is the
+  Fragebogen's test page (`src/ui/testbereich/`, `TestShell`, `TestPanel`, the `manual_tests`
+  catalogue).
+  - Test cases from `manual_tests/`; the step numbers are those of the manual test.
+  - Per test „Bestanden“ / „Nicht bestanden“. For „Nicht bestanden“ the failed steps, each with one
+    reason from the fixed list („Anderes Ergebnis als erwartet“, „Fehlermeldung“, „Knopf oder Text
+    fehlt“, „Lädt nicht oder hängt“, „Darstellung falsch“). Untouched tests count as „nicht
+    getestet“. **No free-text field.**
+  - **The time starts by itself** when a test is opened, pauses when it is left and stops when the
+    result is chosen.
+  - **„Bericht senden“** POSTs to the relative address `/_zugang/bericht`. `version` and `stand` come
+    from the build.
+- **CSP:** only the test build gets `connect-src 'self'`; the live build keeps `connect-src 'none'`,
+  and a test checks that.
+- The receiving side is built in `Testumgebung`; until then „Bericht senden“ gets 404, which the page
+  shows.
+
 **2026-11-15 — GitHub check „Tests“ and the test version (version 0.7.0):** both tasks of the Kanzlei
 PC session (Tobias) done:
 
