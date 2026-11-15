@@ -12,7 +12,9 @@ liest `vite.config.ts` über `src/build/kanzleiConfig.ts` die erste vorhandene d
 
 ```json
 {
-  "accessNotice": "Der E-Rechnungs-Prüfer ist ein kostenloses Hilfsmittel der Musterkanzlei. …"
+  "accessNotice": "Der E-Rechnungs-Prüfer ist ein kostenloses Hilfsmittel der Musterkanzlei. …",
+  "imprintUrl": "https://www.musterkanzlei.example/impressum",
+  "privacyUrl": "https://www.musterkanzlei.example/datenschutz"
 }
 ```
 
@@ -23,7 +25,12 @@ liest `vite.config.ts` über `src/build/kanzleiConfig.ts` die erste vorhandene d
   geänderter Text wird neu gefragt.
 - Gefragt wird nur über `https://`. Eine heruntergeladene Datei (`file://`) fragt nicht und speichert
   nichts. Ohne den Eintrag fragt die App nichts.
-- Andere Einträge, ein leerer Text oder einer mit mehr als 2000 Zeichen brechen den Build ab.
+- `imprintUrl` und `privacyUrl` (freiwillig, seit 15.11.2026) sind Impressum und
+  Datenschutzerklärung der Kanzlei. Die Fußzeile verlinkt sie („Impressum“, „Datenschutz“) und öffnet
+  sie in einem neuen Tab, damit ein Ergebnis auf der Seite nicht verloren geht. Nur `https://`-Adressen
+  ohne Zugangsdaten und ohne Leerzeichen.
+- Andere Einträge, ein leerer Text, einer mit mehr als 2000 Zeichen oder eine ungültige Adresse
+  brechen den Build ab.
 - Der Text des Hinweises ist von Tobias freigegeben (15.11.2026); geändert wird er nur mit seinem OK.
-- `tests/static/noBranding.test.ts` prüft, dass der Text und sein erster Satz (mit dem Namen der
-  Kanzlei) in keiner Datei des Repos stehen.
+- `tests/static/noBranding.test.ts` prüft, dass der Text, sein erster Satz (mit dem Namen der
+  Kanzlei) und der Host der beiden Adressen in keiner Datei des Repos stehen.

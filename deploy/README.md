@@ -55,5 +55,6 @@ Der Build nimmt ihn nur mit, wenn die Datei vor `npm run build` an einer dieser 
 - `config/kanzlei.local.json` im Checkout, oder
 - das private Repo als `tests/fixtures/lokal` (dann `tests/fixtures/lokal/config/kanzlei.local.json`).
 
-Fehlt sie, entsteht ohne Fehlermeldung eine Fassung **ohne** Hinweis. Der Freigabe-Lauf sollte das
-deshalb vor dem Upload prüfen, z. B. ob `dist/index.html` den Anfang des Hinweises enthält.
+Fehlt sie, entsteht ohne Fehlermeldung eine Fassung **ohne** Hinweis und ohne die Links zu
+Impressum und Datenschutz. Der Freigabe-Lauf sollte das deshalb vor dem Upload prüfen, z. B. ob
+`dist/index.html` den Anfang des Hinweises und beide Adressen enthält.
