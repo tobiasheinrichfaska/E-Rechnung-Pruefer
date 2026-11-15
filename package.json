@@ -26,6 +26,7 @@
     "tester": "powershell -NoProfile -ExecutionPolicy Bypass -File ../../private/Auslieferung/tester.ps1 -Projekt . -Ziel test"
   },
   "dependencies": {
+    "@noble/hashes": "2.4.0",
     "libxml2-wasm": "0.7.2",
     "pdfjs-dist": "6.4.299",
     "react": "19.3.1",

@@ -32,13 +32,18 @@
 - [x] **Ordner oder unlesbare Datei, mehrere Dateien zugleich** — deutsche Meldung bzw. „Geprüft wurde nur die erste.“
 - [x] **Handy 320 px** — Bezeichnungen der Pflichtangaben ohne Trennung mitten im Wort
 
+## Zugangshinweis (15.11.2026)
+
+- [x] **Online-Fassung fragt den Hinweis vor dem Start** — Text aus der lokalen Kanzlei-Konfiguration, „Weiter“ erst mit Haken, vorher nichts vom Tool; „Antwort für die Zukunft merken“ merkt nur den Fingerabdruck des Textes; geänderter Text wird neu gefragt; heruntergeladene Datei fragt nicht
+
 ## Rahmen
 
-- [x] **Keine Netzwerkanfrage, kein Speicherzugriff** — E2E zählt beides: null (Spion mit Selbsttest, Nachprüfung der Speicher nach jedem Test)
+- [x] **Keine Netzwerkanfrage, kein Speicherzugriff außer dem gemerkten Zugangshinweis** — E2E zählt beides: null bis auf genau diesen Schlüssel (Spion mit Selbsttest, Nachprüfung der Speicher nach jedem Test); ESLint lässt `localStorage` nur in `src/io/accessStore.ts` zu (Regressionstest)
 - [x] **Keine Konsolenfehler beim Laden**
 
 | Path                               | Impact                                   | Audit Check                                                                                                     |
 | ---------------------------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | Hybrid-PDF wird erkannt            | Kernfrage der Mandanten                  | E2E mit offizieller XML in eigenem PDF, auch komprimiert wie echte Factur-X-Dateien (echte FeRD-PDFs nur lokal) |
 | Nichts verlässt den Rechner        | Vertraulichkeit der Rechnung             | CSP-Test + E2E-Zähler                                                                                           |
+| Zugangshinweis vor dem Start       | Nutzung nur nach Kenntnis des Hinweises  | E2E über https mit dem echten Text (privates Repo), Logik-Tests, kein Kanzleiname im Repo                       |
 | Pflichtangaben vollständig gezeigt | Grundlage der Rückfrage beim Lieferanten | Unit-Tests je Angabe, E2E für ausgewählte Zeilen                                                                |

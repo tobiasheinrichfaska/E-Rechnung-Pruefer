@@ -157,6 +157,13 @@ export const TEXTS = {
   dropSub: 'PDF oder XML. Die Datei bleibt auf Ihrem Gerät.',
   introLeadText: 'Wählen Sie eine Rechnung aus oder ziehen Sie sie hierher.',
 
+  // The access notice before the hosted copy opens (Tobias 2026-11-15, as in the Fragebogen); the
+  // notice itself comes from the local Kanzlei configuration, never from this repo
+  accessTitle: 'Bitte bestätigen',
+  accessRemember: 'Antwort für die Zukunft merken',
+  accessRememberNote: 'Gemerkt wird nur in diesem Browser.',
+  accessContinue: 'Weiter',
+
   // Only the first file of a drop counts — said, not silent (audit Bedienung, A-04)
   onlyFirstFile: 'Sie haben {count} Dateien abgelegt. Geprüft wurde nur die erste.',
 

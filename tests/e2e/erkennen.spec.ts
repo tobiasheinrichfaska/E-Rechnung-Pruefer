@@ -24,7 +24,7 @@ test('the spy notices storage and cookie access (so an empty list means somethin
     window.open('about:blank');
   });
   const seen = await sideEffects(page);
-  const expected = ['storage.setItem', 'cookie.get', 'BroadcastChannel', 'window.open'];
+  const expected = ['storage.setItem:probe', 'cookie.get', 'BroadcastChannel', 'window.open'];
   if (await page.evaluate(() => window.localStorage.length > 0)) expected.push('left:localStorage');
   expect(seen).toEqual(expect.arrayContaining(expected));
   await expect.poll(() => problems.some((p) => p.startsWith('popup:'))).toBe(true);

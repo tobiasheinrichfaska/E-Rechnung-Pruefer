@@ -31,7 +31,9 @@ Beispielen.
 
 1. Öffnen Sie die Adresse des Tools im Browser des Geräts.
    - **Danach:** Außerhalb der Kanzlei fragt der Browser nach Benutzername und Kennwort – nehmen Sie
-     Ihre Tester-Anmeldung. Dann steht oben „E-Rechnung prüfen“.
+     Ihre Tester-Anmeldung. Dann steht oben „E-Rechnung prüfen“ und darunter „Bitte bestätigen“ mit
+     dem Zugangshinweis. Tippen Sie auf den Text, damit der Haken erscheint, dann auf **Weiter**.
+     Der Text muss ganz lesbar sein, ohne dass Sie etwas seitlich verschieben.
 2. Tippen Sie auf **Datei auswählen**.
    - **Danach:** Das Gerät öffnet seine Dateiauswahl.
 3. Wählen Sie die Rechnung.
