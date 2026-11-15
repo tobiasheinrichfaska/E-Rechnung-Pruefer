@@ -218,6 +218,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 
 | Version | Merge commit in `main` | Date       | Content                                                                                 |
 | ------- | ---------------------- | ---------- | --------------------------------------------------------------------------------------- |
+| 0.6.3   | `5d906a1`              | 2026-11-15 | Not in search engines (`noindex`)                                                       |
 | 0.6.2   | `e3deb50`              | 2026-11-15 | Footer without „in Entwicklung“                                                         |
 | 0.6.1   | `0606720`              | 2026-11-15 | The Kanzlei colour through the whole design (title, tick boxes, secondary buttons)      |
 | 0.6.0   | `00e4ab0`              | 2026-11-15 | Kanzlei colours from the local configuration, weekly-check list                         |
@@ -232,7 +233,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 
 ## Known Limitations
 
-- **In development** — all steps of the plan are built (1a–3a) plus the access notice, the Impressum/privacy links and the Kanzlei colours; version 0.6.2 not online yet.
+- **In development** — all steps of the plan are built (1a–3a) plus the access notice, the Impressum/privacy links and the Kanzlei colours; version 0.6.3 not online yet.
 - **Calculation rules (3a)** are a selection (BR-CO-10 … -17, breakdown per category/rate), not a
   validator: no BR-DE/XRechnung rules, no line-level rules (price × quantity), no currency
   conversion (BT-111). For **Factur-X EXTENDED** the FeRD forms are rebuilt (F29,
@@ -283,7 +284,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 - **Password-protected PDF** is tested with a synthetic encryption dictionary (the reader asks for
   a password); a real protected supplier PDF is not in the tests.
 - **E2E runs on file://**; the hosted copy is **older** than the repo (uploaded 2026-11-13 at
-  Fragebogen commit 76828a3, step 1c, version 0.1.0); the repo is at 0.6.2 (merge `e3deb50`, see Versioning) —
+  Fragebogen commit 76828a3, step 1c, version 0.1.0); the repo is at 0.6.3 (merge `5d906a1`, see Versioning) —
   upload only after Tobias' OK.
 - **Browsers:** the single inline script needs class static blocks and the CSP
   `'wasm-unsafe-eval'`, so the floor is about Chrome/Edge 98, Firefox 102, Safari 16.4 (derived from
@@ -310,7 +311,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 **2026-11-15 — not in search engines (version 0.6.3):** Tobias chose „Nicht auffindbar“: the page
 carries `<meta name="robots" content="noindex">`, clients come by the Kanzlei's link; no
 `robots.txt` with `Disallow` (it would hide the `noindex`), `deploy/README.md`. The e2e test reads
-the tag. Easy to change for the neutral club version later.
+the tag. Easy to change for the neutral club version later. PR #21 merged (`5d906a1`).
 
 **2026-11-15 — footer without „in Entwicklung“ (version 0.6.2):** Tobias: „Wegfallen“ — the footer
 shows only the version (and the Kanzlei links); `fusszeile.spec.ts` checks that the word is gone. PR #19 merged (`e3deb50`).
