@@ -971,6 +971,33 @@ ${rows}
 `;
 }
 
+/**
+ * The same overview for GitHub, which shows a folder's README.md below its files (Tobias
+ * 2026-11-15: the samples are not uploaded next to the tool; testers take them from the public
+ * repository or the local folder).
+ */
+export function beispieleReadme(): string {
+  const cell = (text: string) => text.replace(/\|/g, '\\|');
+  const rows = BEISPIELE.map((b) => `| [${b.datei}](${encodeURI(b.datei)}) | ${cell(b.zeigt)} |`);
+  return `# Beispielrechnungen
+
+Beispieldateien zum Ausprobieren des E-Rechnungs-Prüfers. Alle Daten sind erfunden, keine Datei ist
+eine echte Rechnung. Dieser Ordner wird erzeugt (\`npm run beispiele\`); nie von Hand ändern.
+
+**Herunterladen:** Klicken Sie unten auf den Namen einer Datei und dann auf „Download raw file“
+(Pfeil nach unten, oben rechts über dem Inhalt). Ziehen Sie die Datei dann auf die Fläche „Rechnung
+hierher ziehen“ oder wählen Sie sie mit „Datei auswählen“.
+
+| Datei | Was sie zeigt |
+| --- | --- |
+${rows.join('\n')}
+
+Die XML-Daten stammen aus der XRechnung-Testsuite der KoSIT (Apache License 2.0), mit erfundenen
+Namen statt Platzhaltern; was geändert ist, steht am Anfang jeder XML. Die PDF-Dateien hat der
+E-Rechnungs-Prüfer selbst erzeugt. Lizenzhinweise: [LIZENZEN.txt](LIZENZEN.txt).
+`;
+}
+
 export const LIZENZEN = `Beispielrechnungen des E-Rechnungs-Prüfers
 ==========================================
 
@@ -999,6 +1026,7 @@ export async function buildFolder(
   return [
     ...samples,
     { name: 'index.html', bytes: encode(beispieleSeite()) },
+    { name: 'README.md', bytes: encode(beispieleReadme()) },
     { name: 'LIZENZEN.txt', bytes: encode(LIZENZEN) },
     { name: 'LICENSE-Apache-2.0.txt', bytes: encode(apacheLicense) },
   ];

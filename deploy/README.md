@@ -3,6 +3,11 @@
 `upload.json` beschreibt das Ziel `test` (`NebenprojektERechnung/` auf der Fragebogen-Subdomain) für
 `private/Auslieferung`. Hochgeladen werden `dist/index.html` und `beispiele/`.
 
+**Auf bunny.net nur `dist/index.html` als `index.html`** (Tobias, 15.11.2026): Die Beispielrechnungen
+kommen nicht neben die öffentliche Fassung. Mandanten brauchen sie nicht, und Tester holen sie aus
+dem öffentlichen Repo (`beispiele/README.md` zeigt dort dieselbe Tabelle) oder aus dem lokalen
+Ordner.
+
 ## Kopfzeilen des Servers
 
 Die Seite bringt ihre Content-Security-Policy als `<meta>`-Tag mit (`src/build/csp.ts`). Eine
