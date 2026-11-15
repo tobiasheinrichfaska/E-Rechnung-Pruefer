@@ -78,12 +78,17 @@ describe('verdictOf', () => {
     expect(file.explanation[0]).toBe(TEXTS.xmlFile);
   });
 
-  it('lists the unreadable attachments of a PDF without invoice data', () => {
+  it('does not judge a PDF whose only attachment cannot be read (QL-06)', () => {
     const verdict = verdictOf(
       analysis({ pdf: { pages: 1, unreadable: ['kaputt.xml'], truncated: false } }),
     );
-    expect(verdict.headline).toBe(TEXTS.pdfWithoutInvoiceData);
-    expect(verdict.explanation[0]).toContain('kaputt.xml');
+    // it may hold the invoice data: "nicht vollständig geprüft", never "ohne Rechnungsdaten"
+    expect(verdict.tone).toBe('warn');
+    expect(verdict.headline).toBe(TEXTS.pdfNotChecked);
+    expect(verdict.explanation).toEqual([
+      fill(TEXTS.attachmentUnreadable, { name: 'kaputt.xml' }),
+      TEXTS.notJudged,
+    ]);
   });
 });
 
@@ -435,5 +440,81 @@ describe('the same header but other data in two invoice XML (audit QL-01)', () =
     expect(rows).toHaveLength(2);
     // with a differing header value only that is named, as before (E-04)
     expect(comparisonRows([a, { ...b, header: { ...b.header, 'BT-1': ['R-2'] } }])).toHaveLength(7);
+  });
+});
+
+describe('attachments not read next to an invoice XML (audit QL-06)', () => {
+  /** An invoice XML without a model: alone it is a plain green "E-Rechnung erkannt". */
+  const bare = (origin = 'factur-x.xml'): InvoicePart => {
+    const plain = part({}, origin);
+    delete plain.model;
+    return plain;
+  };
+  const pdf = { pages: 1, unreadable: [] as string[], truncated: false };
+
+  it('makes an e-invoice yellow and names each of them', () => {
+    expect(verdictOf(analysis({ invoices: [bare()] })).tone).toBe('ok');
+    const cases: [Partial<Analysis>, string][] = [
+      [
+        { others: [{ origin: 'x.xml', kind: 'brokenXml', problems: [] }] },
+        fill(TEXTS.attachmentBroken, { name: 'x.xml' }),
+      ],
+      [
+        { others: [{ origin: 'x.xml', kind: 'doctypeXml' }] },
+        fill(TEXTS.attachmentDoctype, { name: 'x.xml' }),
+      ],
+      [
+        { others: [{ origin: 'x.xml', kind: 'tooLargeXml' }] },
+        fill(TEXTS.attachmentTooLarge, { name: 'x.xml' }),
+      ],
+      [
+        { pdf: { ...pdf, unreadable: ['x.xml'] } },
+        fill(TEXTS.attachmentUnreadable, { name: 'x.xml' }),
+      ],
+      [{ pdf: { ...pdf, truncated: true } }, TEXTS.attachmentsTruncated],
+    ];
+    for (const [over, line] of cases) {
+      const verdict = verdictOf(analysis({ invoices: [bare()], ...over }));
+      expect(verdict.tone).toBe('warn');
+      expect(verdict.headline).toBe('E-Rechnung erkannt (EN 16931) – mit Hinweisen');
+      expect(verdict.explanation).toContain(line);
+    }
+    // an attachment that is no XML or no invoice is no reason
+    const other = verdictOf(
+      analysis({ invoices: [bare()], others: [{ origin: 'a.txt', kind: 'notXml' }] }),
+    );
+    expect(other.tone).toBe('ok');
+  });
+
+  it('keeps a format error red and names them before the technical lines', () => {
+    const schema = {
+      schema: 'X',
+      checked: true,
+      problems: [{ message: 'bad', line: 3 }],
+      count: 1,
+    };
+    const verdict = verdictOf(
+      analysis({
+        invoices: [{ ...bare(), schema }],
+        others: [{ origin: 'x.xml', kind: 'doctypeXml' }],
+      }),
+    );
+    expect(verdict.tone).toBe('bad');
+    const doctype = verdict.explanation.indexOf(fill(TEXTS.attachmentDoctype, { name: 'x.xml' }));
+    expect(doctype).toBeGreaterThan(-1);
+    expect(doctype).toBeLessThan(verdict.explanation.length - 1);
+    expect(verdict.explanation.at(-1)).toBe('Technische Meldung (Zeile 3): bad');
+  });
+
+  it('names them for several invoice XML too', () => {
+    const others = [{ origin: 'x.xml', kind: 'tooLargeXml' as const }];
+    const same = verdictOf(analysis({ invoices: [bare('a.xml'), bare('b.xml')], others }));
+    expect(same.explanation).toContain(fill(TEXTS.attachmentTooLarge, { name: 'x.xml' }));
+    // values are compared only where a model was read (L-04), so these parts have one
+    const apart = verdictOf(
+      analysis({ invoices: [part({}, 'a.xml'), part({ 'BT-1': ['R-2'] }, 'b.xml')], others }),
+    );
+    expect(apart.headline).toBe(TEXTS.contradicting);
+    expect(apart.explanation).toContain(fill(TEXTS.attachmentTooLarge, { name: 'x.xml' }));
   });
 });

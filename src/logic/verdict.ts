@@ -408,12 +408,36 @@ function sourceLines(invoice: InvoiceVerdict, inPdf: boolean): string[] {
     : [TEXTS.xmlFile];
 }
 
+/**
+ * QL-06: attachments the tool did not read beside an invoice XML — one of them may be a second
+ * invoice XML (F27), so the result is at least yellow and names them. An attachment that is no
+ * XML or a known other XML was read.
+ */
+function unreadLines(analysis: Analysis): string[] {
+  const named = (template: string, name: string) => fill(template, { name });
+  return [
+    ...analysis.others.flatMap((o) =>
+      o.kind === 'brokenXml'
+        ? [named(TEXTS.attachmentBroken, o.origin)]
+        : o.kind === 'doctypeXml'
+          ? [named(TEXTS.attachmentDoctype, o.origin)]
+          : o.kind === 'tooLargeXml'
+            ? [named(TEXTS.attachmentTooLarge, o.origin)]
+            : [],
+    ),
+    ...(analysis.pdf?.unreadable ?? []).map((name) => named(TEXTS.attachmentUnreadable, name)),
+    ...(analysis.pdf?.truncated ? [TEXTS.attachmentsTruncated] : []),
+  ];
+}
+
 /** What the verdict of one invoice reads beside the invoice itself. */
 interface Context {
   /** Every invoice XML with these data: one, or the same data several times (F27) */
   invoices: InvoiceVerdict[];
   /** F27: "Dieselbe Rechnung ist 2-mal eingebettet …" — after the head lines, before the rest */
   same: string[];
+  /** Attachments not read beside them (QL-06): after the German lines, before the technical */
+  unread: string[];
 }
 
 /**
@@ -424,7 +448,7 @@ interface Context {
 function singleVerdict(
   analysis: Analysis,
   invoice: InvoiceVerdict,
-  context: Context = { invoices: [invoice], same: [] },
+  context: Context = { invoices: [invoice], same: [], unread: unreadLines(analysis) },
 ): Verdict {
   const inPdf = analysis.kind === 'pdf';
   const profileName = invoice.profile.entry?.profile ?? invoice.specLabel;
@@ -432,7 +456,7 @@ function singleVerdict(
   const format = formatErrorLines(context.invoices, inPdf);
   // the same data give the same rule results (differingResults), so they are named once
   const rules = rulesLines([invoice]);
-  const { same } = context;
+  const { same, unread } = context;
   switch (invoice.einordnung) {
     case 'eRechnung': {
       const hint = invoice.profile.entry?.hint ? [invoice.profile.entry.hint] : [];
@@ -448,19 +472,28 @@ function singleVerdict(
             ...same,
             ...format.german,
             ...rules,
+            ...unread,
             ...format.technical,
           ],
           invoices: [invoice],
         };
       }
       // F22: missing Pflichtangaben and hints make an e-invoice yellow, as do calculation
-      // irregularities (step 3a) and the same data twice (F27); G-3: the headline says so
+      // irregularities (step 3a), the same data twice (F27) and attachments not read (QL-06);
+      // G-3: the headline says so
       const pflicht = pflichtLines(invoice);
-      const warn = rules.length > 0 || pflicht.length > 0 || same.length > 0;
+      const warn = [rules, pflicht, same, unread].some((lines) => lines.length > 0);
       return {
         tone: warn ? 'warn' : 'ok',
         headline: fill(warn ? TEXTS.eRechnungHints : TEXTS.eRechnung, { spec: invoice.specLabel }),
-        explanation: [...sourceLines(invoice, inPdf), ...hint, ...same, ...pflicht, ...rules],
+        explanation: [
+          ...sourceLines(invoice, inPdf),
+          ...hint,
+          ...same,
+          ...pflicht,
+          ...rules,
+          ...unread,
+        ],
         invoices: [invoice],
       };
     }
@@ -482,6 +515,7 @@ function singleVerdict(
           // F26: with readable dates the sentence by date, else the general one (F23)
           ...transitionLines(transitionFor([invoice]), false),
           ...same,
+          ...unread,
         ],
         invoices: [invoice],
       };
@@ -498,6 +532,7 @@ function singleVerdict(
           ...same,
           ...format.german,
           ...rules,
+          ...unread,
           TEXTS.kanzleiJudges,
           ...format.technical,
         ],
@@ -552,7 +587,7 @@ export function verdictOf(analysis: Analysis): Verdict {
       // F27: the same data twice — one part is shown, with a hint on the standard
       const same = [fill(TEXTS.sameSeveral, { count: invoices.length, names })];
       return {
-        ...singleVerdict(analysis, only, { invoices, same }),
+        ...singleVerdict(analysis, only, { invoices, same, unread: unreadLines(analysis) }),
         invoices,
         comparison: { same: true, differing },
       };
@@ -569,6 +604,7 @@ export function verdictOf(analysis: Analysis): Verdict {
         TEXTS.askSupplier,
         ...transitionLines(transitionFor(invoices), false),
         ...schemaParts(invoices, true).german,
+        ...unreadLines(analysis),
         ...format.technical,
       ],
       invoices,
@@ -608,27 +644,20 @@ export function verdictOf(analysis: Analysis): Verdict {
       invoices: [],
     };
   }
-  // An XML the tool does not read (DOCTYPE, over its size limit) or attachments beyond the first
-  // 50: not judged — as a single XML with a DOCTYPE, never "Formatfehler" (audit 2026-11-14, U-06).
-  const unread = analysis.others.filter((o) => o.kind === 'doctypeXml' || o.kind === 'tooLargeXml');
-  if (unread.length > 0 || analysis.pdf?.truncated) {
+  // An XML the tool does not read (DOCTYPE, over its size limit), an attachment it cannot take out
+  // of the PDF, or attachments beyond the first 50: not judged — as a single XML with a DOCTYPE,
+  // never "Formatfehler" (audit 2026-11-14, U-06) nor "ohne Rechnungsdaten" (audit QL-06).
+  const unread = unreadLines(analysis);
+  if (unread.length > 0) {
     return {
       tone: 'warn',
       headline: TEXTS.pdfNotChecked,
-      explanation: [
-        ...unread.map((o) =>
-          fill(o.kind === 'doctypeXml' ? TEXTS.attachmentDoctype : TEXTS.attachmentTooLarge, {
-            name: o.origin,
-          }),
-        ),
-        ...(analysis.pdf?.truncated ? [TEXTS.attachmentsTruncated] : []),
-        TEXTS.notJudged,
-      ],
+      explanation: [...unread, TEXTS.notJudged],
       invoices: [],
     };
   }
-  if (analysis.others.length > 0 || (analysis.pdf?.unreadable.length ?? 0) > 0) {
-    const names = [...analysis.others.map((o) => o.origin), ...(analysis.pdf?.unreadable ?? [])];
+  if (analysis.others.length > 0) {
+    const names = analysis.others.map((o) => o.origin);
     return {
       tone: 'bad',
       headline: TEXTS.pdfWithoutInvoiceData,

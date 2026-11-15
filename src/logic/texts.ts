@@ -76,6 +76,8 @@ export const TEXTS = {
   attachmentTooLarge:
     'Der Anhang „{name}“ ist größer als 20 MB. So große XML-Dateien liest das Tool nicht.',
   attachmentsTruncated: 'Das PDF hat sehr viele Anhänge. Das Tool hat nur die ersten 50 gelesen.',
+  // pdf.js could not take the attachment out of the PDF (audit QL-06)
+  attachmentUnreadable: 'Der Anhang „{name}“ lässt sich nicht aus dem PDF lesen.',
   notJudged: 'Ob das PDF eine E-Rechnung ist, kann das Tool deshalb nicht sagen.',
   formatError: FORMAT_ERROR,
 
