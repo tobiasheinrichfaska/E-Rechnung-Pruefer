@@ -135,6 +135,8 @@ export const TEXTS = {
   jumpSchema: 'Technische Meldungen',
   // G-2: the technical rows of an invoice, closed
   technicalDetails: 'Technische Angaben',
+  // QU-13: the heading of the invoice data, which also names their table
+  invoiceDataHeading: 'Rechnungsdaten',
   // G-8/F27: several invoice XML in one PDF
   sameHeading: 'Rechnungsdaten (gleich in {names})',
   comparisonHeading: 'Vergleich der Rechnungsdaten',

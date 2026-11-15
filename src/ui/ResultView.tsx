@@ -1,4 +1,4 @@
-import { Fragment } from 'react';
+import { Fragment, useId } from 'react';
 import type { ReactNode } from 'react';
 import type { Analysis } from '../logic/analysis';
 import { checkPflichtangaben } from '../logic/check';
@@ -99,9 +99,9 @@ function SchemaProblems({ invoice }: { invoice: InvoiceVerdict }) {
   );
 }
 
-function DetailTable({ rows }: { rows: DetailRow[] }) {
+function DetailTable({ rows, labelledBy }: { rows: DetailRow[]; labelledBy?: string }) {
   return (
-    <table className="details">
+    <table className="details" aria-labelledby={labelledBy}>
       <tbody>
         {rows.map((row) => (
           <tr key={row.label}>
@@ -181,6 +181,38 @@ function Comparison({ analysis }: { analysis: Analysis }) {
   );
 }
 
+/**
+ * One invoice XML: its data under a heading that also names their table, so a screen reader can
+ * jump there from the result box (audit QU-13); the same data twice keep their one heading (G-8).
+ */
+function InvoiceCard({
+  invoice,
+  inPdf,
+  heading,
+}: {
+  invoice: InvoiceVerdict;
+  inPdf: boolean;
+  heading: string;
+}) {
+  const headingId = useId();
+  const rows = invoiceDetails(invoice, inPdf);
+  const technical = rows.filter((r) => r.technical);
+  return (
+    <div className="card">
+      <h3 id={headingId}>{heading}</h3>
+      <DetailTable rows={rows.filter((r) => !r.technical)} labelledBy={headingId} />
+      {technical.length > 0 && (
+        <details className="technical" data-testid="technical-details">
+          <summary>{TEXTS.technicalDetails}</summary>
+          <DetailTable rows={technical} />
+        </details>
+      )}
+      <SchemaProblems invoice={invoice} />
+      <Pflichtangaben invoice={invoice} />
+    </div>
+  );
+}
+
 /** The PDF's only attachment is the one the result already names (e.g. a broken XML, audit E-08) */
 function onlyNamedAbove(analysis: Analysis, verdict: Verdict): boolean {
   const [only, ...more] = analysis.others;
@@ -230,24 +262,14 @@ export function ResultView({ analysis, verdict, notice, actions }: Props) {
 
       {comparison && !comparison.same && <Comparison analysis={analysis} />}
 
-      {shown.map((invoice, index) => {
-        const rows = invoiceDetails(invoice, inPdf);
-        const technical = rows.filter((r) => r.technical);
-        return (
-          <div className="card" key={`${invoice.part.origin}-${index}`}>
-            {comparison?.same && <h3>{fill(TEXTS.sameHeading, { names })}</h3>}
-            <DetailTable rows={rows.filter((r) => !r.technical)} />
-            {technical.length > 0 && (
-              <details className="technical" data-testid="technical-details">
-                <summary>{TEXTS.technicalDetails}</summary>
-                <DetailTable rows={technical} />
-              </details>
-            )}
-            <SchemaProblems invoice={invoice} />
-            <Pflichtangaben invoice={invoice} />
-          </div>
-        );
-      })}
+      {shown.map((invoice, index) => (
+        <InvoiceCard
+          key={`${invoice.part.origin}-${index}`}
+          invoice={invoice}
+          inPdf={inPdf}
+          heading={comparison?.same ? fill(TEXTS.sameHeading, { names }) : TEXTS.invoiceDataHeading}
+        />
+      ))}
 
       {inPdf && analysis.others.length > 0 && !onlyNamedAbove(analysis, verdict) && (
         <div className="card">
