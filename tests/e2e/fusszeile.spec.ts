@@ -27,6 +27,7 @@ test.describe('with the addresses of the local configuration', () => {
       await expect(anchor).toHaveAttribute('target', '_blank');
       await expect(anchor).toHaveAttribute('rel', 'noopener noreferrer');
     }
+    await expect(footer).not.toContainText('Entwicklung');
     expect(problems).toEqual([]);
     expect(await sideEffects(page)).toEqual([]);
     // the downloaded copy carries them too (a page of its own: the https page refuses file://)
@@ -45,5 +46,7 @@ test('without configured addresses the page links nowhere', async ({ page }) => 
   test.skip(configured.length > 0, 'addresses are configured (local Kanzlei build)');
   await openApp(page);
   await expect(page.locator('footer')).toContainText('Version');
+  // the public copy no longer says „in Entwicklung“ (Tobias 2026-11-15)
+  await expect(page.locator('footer')).not.toContainText('Entwicklung');
   await expect(page.getByRole('link')).toHaveCount(0);
 });
