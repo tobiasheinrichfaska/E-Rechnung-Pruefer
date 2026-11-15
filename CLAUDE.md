@@ -287,7 +287,8 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 
 ## Status / next step
 
-**Hosting move decided (Kanzlei PC session, 2026-11-15; nothing moved yet):** Tobias: this tool and
+**Hosting move decided (Kanzlei PC session, 2026-11-15; bunny account, pull zone and DNS set up the
+same day, nothing uploaded):** Tobias: this tool and
 the Fragebogen move **first**, and **as the Kanzlei**, not privately and not yet as the planned club.
 
 - **Where:**
@@ -295,6 +296,10 @@ the Fragebogen move **first**, and **as the Kanzlei**, not privately and not yet
     own**, no longer `NebenprojektERechnung/` on the Fragebogen subdomain.
   - bunny.net has no login, so moving there means going public. Until Tobias releases the tool, the
     test copy stays at IONOS behind its login.
+  - Set up 2026-11-15: the subdomain and a second name that redirects to it (301, path kept) point
+    by CNAME at the pull zone (IONOS DNS checked). Their certificates and the redirect are entered at
+    bunny.net the same day. Until the release the storage stays empty, so the address shows bunny's
+    error page.
 - **New task for a cloud session: an access notice before the start.**
   - Build it like the Fragebogen's (`src/logic/accessGate.ts` there): only when a notice is
     configured, only over https, a changed text is asked again, a downloaded file does not ask.
@@ -316,10 +321,20 @@ the Fragebogen move **first**, and **as the Kanzlei**, not privately and not yet
     > dort. Die Rechnung wird nur in Ihrem Browser geprüft und nicht übertragen.
 
   - No liability clause of its own.
-- **Headers:**
-  - bunny.net serves no `.htaccess`. The server headers in `deploy/README.md`, including
-    `frame-ancestors`, become bunny.net edge rules.
-  - Check them by hand after the first upload (`curl -I`).
+- **Headers and pull zone (set in the bunny dashboard 2026-11-15, by hand on the Kanzlei PC; checked
+  with `curl -I` only after the first upload):** see `deploy/README.md`, „Auf bunny.net“.
+  - An edge rule sends the same headers as the Fragebogen's: a CSP addition with `frame-ancestors`,
+    `base-uri`, `form-action` and `object-src` all `'none'`, `X-Frame-Options: DENY`, HSTS one
+    year, nosniff, `no-referrer`, Permissions-Policy, COOP and CORP `same-origin`. Once checked with
+    `curl -I`, this closes S-11.
+  - **Keep both in step:** the `<meta>` CSP (`src/build/csp.ts`) already forbids `object-src`,
+    `base-uri` and `form-action`; the header forbids them again. Relaxing one of them in `csp.ts`
+    therefore needs the edge rule changed too, which only the Kanzlei PC can do; say so in the
+    hand-over.
+  - Cache: an edge rule sets the cache time in the CDN and in the browser to 0, so every upload
+    arrives at once without a purge.
+  - Also set: "Force SSL", TLS 1.2 and newer only, POST refused and only GET and HEAD allowed, logs
+    without IP addresses, delivery only through data centres in EU member states.
 - **Upload:**
   - Later through a separate private "Freigabe" repo: GitHub Actions, each run started by Tobias by
     hand. That repo is never attached to a cloud session.
@@ -327,7 +342,8 @@ the Fragebogen move **first**, and **as the Kanzlei**, not privately and not yet
     path. Until then the test copy at IONOS stays and the Kanzlei PC updates it as before. Cloud
     sessions never upload.
 - **Kanzlei to-dos outside this repo:** a sentence on bunny.net in the Kanzlei's privacy policy (the
-  CDN processes IP addresses), a DPA with bunny.net; the Kanzlei's Impressum applies.
+  CDN processes IP addresses for delivery, its logs keep none, the invoice never reaches it); the
+  Kanzlei's Impressum applies. The DPA with bunny.net is accepted and filed (2026-11-15).
 - **Later, a separate step:**
   - A neutral version without the Kanzlei name for everyone, offered by the planned club on a neutral
     domain of its own.

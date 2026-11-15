@@ -17,3 +17,30 @@ X-Frame-Options: DENY
 
 Ob der Server das heute tut, lässt sich aus dem Repo nicht prüfen (die Zugangsregeln erzeugt
 `private/Auslieferung`).
+
+## Auf bunny.net (geplant; eingestellt am 15.11.2026)
+
+Die öffentliche Fassung zieht auf eine eigene Subdomain bei bunny.net um (`CLAUDE.md`, „Hosting move
+decided“). Dort ist im Dashboard der Pull Zone eingestellt, von Hand auf dem Kanzlei-PC:
+
+- **Edge Rule „Sicherheits-Header“**, dieselben Werte wie beim Fragebogen:
+
+  ```
+  Content-Security-Policy: frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'
+  X-Frame-Options: DENY
+  Strict-Transport-Security: max-age=31536000
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Resource-Policy: same-origin
+  ```
+
+- **Edge Rule „Kein Zwischenspeicher“:** Cache-Zeit im CDN und im Browser 0. Jeder Upload kommt
+  sofort an, ohne den Cache zu leeren.
+- „Force SSL“, TLS ab 1.2, POST abgewiesen, nur GET und HEAD, Logs ohne IP-Adressen, Auslieferung nur
+  über Rechenzentren in EU-Staaten.
+- Der zweite Name leitet mit 301 auf die Subdomain weiter, der Pfad bleibt erhalten.
+- **Ändert sich `src/build/csp.ts` bei `object-src`, `base-uri` oder `form-action`, muss auch die Edge
+  Rule geändert werden**, sonst sperrt die Kopfzeile weiter.
+- Geprüft wird mit `curl -I` nach dem ersten Upload. Bis zur Freigabe bleibt der Speicher leer.
