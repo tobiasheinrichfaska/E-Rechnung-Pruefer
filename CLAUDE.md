@@ -227,6 +227,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 
 | Version | Merge commit in `main` | Date       | Content                                                                                 |
 | ------- | ---------------------- | ---------- | --------------------------------------------------------------------------------------- |
+| 0.7.0   | `f342986`              | 2026-11-15 | GitHub check „Tests“, test version with „Tester einladen“, not installable              |
 | 0.6.3   | `5d906a1`              | 2026-11-15 | Not in search engines (`noindex`)                                                       |
 | 0.6.2   | `e3deb50`              | 2026-11-15 | Footer without „in Entwicklung“                                                         |
 | 0.6.1   | `0606720`              | 2026-11-15 | The Kanzlei colour through the whole design (title, tick boxes, secondary buttons)      |
@@ -293,7 +294,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 - **Password-protected PDF** is tested with a synthetic encryption dictionary (the reader asks for
   a password); a real protected supplier PDF is not in the tests.
 - **E2E runs on file://**; the hosted copy is **older** than the repo (uploaded 2026-11-13 at
-  Fragebogen commit 76828a3, step 1c, version 0.1.0); the repo is at 0.6.3 (merge `5d906a1`, see Versioning) —
+  Fragebogen commit 76828a3, step 1c, version 0.1.0); the repo is at 0.7.0 (merge `f342986`, see Versioning) —
   upload only after Tobias' OK.
 - **Browsers:** the single inline script needs class static blocks and the CSP
   `'wasm-unsafe-eval'`, so the floor is about Chrome/Edge 98, Firefox 102, Safari 16.4 (derived from
@@ -357,6 +358,7 @@ PC session (Tobias) done:
   service worker, no apple-mobile-web-app tags; the CSP now also says `manifest-src 'none'`
   (`installation.spec.ts`). What no page can stop: a browser's own „add to home screen“ shortcut,
   which without a service worker only opens the address online.
+- PR #23 merged (`f342986`).
 
 **2026-11-15 — not in search engines (version 0.6.3):** Tobias chose „Nicht auffindbar“: the page
 carries `<meta name="robots" content="noindex">`, clients come by the Kanzlei's link; no
