@@ -218,6 +218,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 
 | Version | Merge commit in `main` | Date       | Content                                                                                 |
 | ------- | ---------------------- | ---------- | --------------------------------------------------------------------------------------- |
+| 0.6.0   | `00e4ab0`              | 2026-11-15 | Kanzlei colours from the local configuration, weekly-check list                         |
 | 0.5.0   | `c2cd7a8`              | 2026-11-15 | Impressum and privacy links from the local configuration                                |
 | 0.4.0   | `8877aed`              | 2026-11-15 | Access notice before the hosted copy opens (local Kanzlei configuration)                |
 | 0.3.1   | `a3cf751`              | 2026-11-14 | F30: supply before 2025 needs no E-Rechnung (BMF 15.10.2024 Rn. 50)                     |
@@ -229,7 +230,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 
 ## Known Limitations
 
-- **In development** — all steps of the plan are built (1a–3a) plus the access notice and the Impressum/privacy links; version 0.5.0 not online yet.
+- **In development** — all steps of the plan are built (1a–3a) plus the access notice, the Impressum/privacy links and the Kanzlei colours; version 0.6.0 not online yet.
 - **Calculation rules (3a)** are a selection (BR-CO-10 … -17, breakdown per category/rate), not a
   validator: no BR-DE/XRechnung rules, no line-level rules (price × quantity), no currency
   conversion (BT-111). For **Factur-X EXTENDED** the FeRD forms are rebuilt (F29,
@@ -280,7 +281,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 - **Password-protected PDF** is tested with a synthetic encryption dictionary (the reader asks for
   a password); a real protected supplier PDF is not in the tests.
 - **E2E runs on file://**; the hosted copy is **older** than the repo (uploaded 2026-11-13 at
-  Fragebogen commit 76828a3, step 1c, version 0.1.0); the repo is at 0.5.0 (merge `c2cd7a8`, see Versioning) —
+  Fragebogen commit 76828a3, step 1c, version 0.1.0); the repo is at 0.6.0 (merge `00e4ab0`, see Versioning) —
   upload only after Tobias' OK.
 - **Browsers:** the single inline script needs class static blocks and the CSP
   `'wasm-unsafe-eval'`, so the floor is about Chrome/Edge 98, Firefox 102, Safari 16.4 (derived from
@@ -312,7 +313,8 @@ legal and technical sources, S1/S2 with the private files); the release run must
 integrity task can follow; `npm audit --omit=dev` 0, dev tools 9 moderate (minimatch via ESLint,
 below the reporting level); no CI workflow in this repo. Then: „Stelle die App auf die Kanzleifarben
 um (bei Fragebogen haben wir das schon getan)“ — the Fragebogen's `colors` block, copied unchanged
-into the private configuration, applied as `--kanzlei-…` variables; links now take the accent.
+into the private configuration, applied as `--kanzlei-…` variables; links now take the accent. PR #13
+merged (`00e4ab0`), private repo PR #3 (`colors`) merged.
 
 **2026-11-15 — Impressum and privacy links (version 0.5.0):** Tobias: the release repo is made by the
 Kanzlei PC; asked what is left here. Decided: links to the Kanzlei's Impressum and privacy policy
