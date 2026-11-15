@@ -31,7 +31,9 @@ test('the spy notices storage and cookie access (so an empty list means somethin
   await page.evaluate(() => window.localStorage.clear());
 });
 
-test('shows the page with the fixed notice and a CSP', async ({ page }) => {
+test('shows the page with the fixed notice, a CSP and no search-engine indexing', async ({
+  page,
+}) => {
   const problems = await openApp(page);
   await expect(page.getByRole('heading', { name: 'E-Rechnung prüfen' })).toBeVisible();
   await expect(page.getByTestId('fixed-notice')).toContainText('keine steuerliche Prüfung');
@@ -39,6 +41,8 @@ test('shows the page with the fixed notice and a CSP', async ({ page }) => {
     .locator('meta[http-equiv="Content-Security-Policy"]')
     .getAttribute('content');
   expect(csp).toContain("connect-src 'none'");
+  // not found through search engines: clients come by the Kanzlei's link (Tobias 2026-11-15)
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex');
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);
 });

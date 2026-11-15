@@ -49,6 +49,10 @@ decided“). Dort ist im Dashboard der Pull Zone eingestellt, von Hand auf dem K
 - **Ändert sich `src/build/csp.ts` bei `object-src`, `base-uri` oder `form-action`, muss auch die Edge
   Rule geändert werden**, sonst sperrt die Kopfzeile weiter.
 - Geprüft wird mit `curl -I` nach dem ersten Upload. Bis zur Freigabe bleibt der Speicher leer.
+- **Nicht in Suchmaschinen** (Tobias, 15.11.2026): Die Seite trägt `<meta name="robots"
+content="noindex">` (`index.html`). Mandanten kommen über den Link der Kanzlei. Keine `robots.txt`
+  mit `Disallow` hochladen: Eine gesperrte Seite liest die Suchmaschine nicht und sieht dann auch das
+  `noindex` nicht.
 
 ## Zugangshinweis im Freigabe-Lauf
 
