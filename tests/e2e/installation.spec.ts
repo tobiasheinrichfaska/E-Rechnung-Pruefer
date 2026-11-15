@@ -7,7 +7,7 @@
 // service worker it opens the address afresh and works only online.
 import { expect, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { BUILT, BUILT_TEST, openHosted, sideEffects } from './helpers';
+import { BUILT, BUILT_TEST, openHosted, sideEffects, TEST_VERSION_KEYS } from './helpers';
 
 const INSTALL_HINTS = [
   /rel=["']?manifest/i,
@@ -40,6 +40,9 @@ for (const [name, built] of [
     );
     expect(registrations).toBe(0);
     expect(problems).toEqual([]);
-    expect(await sideEffects(page)).toEqual([]);
+    // the test version may keep the tester's run (Tobias 2026-11-15), the live build nothing more
+    expect(await sideEffects(page, built === BUILT_TEST ? TEST_VERSION_KEYS : undefined)).toEqual(
+      [],
+    );
   });
 }

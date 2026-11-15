@@ -3,7 +3,10 @@ import type { Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { ACCESS_STORAGE } from '../../src/logic/storageKeys';
+import { ACCESS_STORAGE, TEST_RUN_STORAGE } from '../../src/logic/storageKeys';
+
+/** The keys a test of the test version may allow: the access notice and the tester's run. */
+export const TEST_VERSION_KEYS = [ACCESS_STORAGE, TEST_RUN_STORAGE];
 
 /** The live build (`npm run build`) and the test version for the test zone (`npm run build:test`). */
 export const BUILT = join(import.meta.dirname, '..', '..', 'dist', 'index.html');
@@ -145,40 +148,52 @@ export async function upload(page: Page, name: string, bytes: Uint8Array, mimeTy
 /**
  * What the spy saw, plus what is left in the stores afterwards: named access such as
  * `localStorage.x = 1` passes no Storage method, so the stores themselves are checked as well.
+ * Allowed are only the given keys — by default the confirmed access notice; tests of the test
+ * version also allow the tester's run (TEST_VERSION_KEYS), which alone may also be removed (sent or
+ * started anew). The access notice is never removed, so removing it stays reported.
  */
-export async function sideEffects(page: Page): Promise<string[]> {
-  return page.evaluate(async (access) => {
-    // the confirmed access notice: reading and writing exactly its key (any folder) is allowed
-    const own = (key: string) => key === access || key.startsWith(`${access}@/`);
-    const seen = (window as unknown as { __sideEffects: string[] }).__sideEffects.filter(
-      (entry) => {
-        const match = /^storage\.(getItem|setItem):(.*)$/.exec(entry);
-        return !(match?.[2] !== undefined && own(match[2]));
-      },
-    );
-    const left = (name: string, count: () => number) => {
+export async function sideEffects(page: Page, allowed = [ACCESS_STORAGE]): Promise<string[]> {
+  return page.evaluate(
+    async ({ names, run }) => {
+      const ownTo = (list: string[]) => (key: string) =>
+        list.some((name) => key === name || key.startsWith(`${name}@/`));
+      const own = ownTo(names);
+      const removable = ownTo(names.filter((name) => name === run));
+      const seen = (window as unknown as { __sideEffects: string[] }).__sideEffects.filter(
+        (entry) => {
+          const match = /^storage\.(getItem|setItem|removeItem):(.*)$/.exec(entry);
+          if (match?.[2] === undefined) return true;
+          return match[1] === 'removeItem' ? !removable(match[2]) : !own(match[2]);
+        },
+      );
+      const left = (name: string, count: () => number) => {
+        try {
+          if (count() > 0) seen.push(`left:${name}`);
+        } catch {
+          // a store the browser refuses here (file://) holds nothing
+        }
+      };
+      left(
+        'localStorage',
+        () => Object.keys(window.localStorage).filter((key) => !own(key)).length,
+      );
+      left('sessionStorage', () => window.sessionStorage.length);
+      const cookie = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie');
+      left('cookie', () => String(cookie?.get?.call(document) ?? '').length);
       try {
-        if (count() > 0) seen.push(`left:${name}`);
+        if (window.indexedDB?.databases && (await window.indexedDB.databases()).length > 0) {
+          seen.push('left:indexedDB');
+        }
       } catch {
-        // a store the browser refuses here (file://) holds nothing
+        // not available here
       }
-    };
-    left('localStorage', () => Object.keys(window.localStorage).filter((key) => !own(key)).length);
-    left('sessionStorage', () => window.sessionStorage.length);
-    const cookie = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie');
-    left('cookie', () => String(cookie?.get?.call(document) ?? '').length);
-    try {
-      if (window.indexedDB?.databases && (await window.indexedDB.databases()).length > 0) {
-        seen.push('left:indexedDB');
+      try {
+        if (window.caches && (await window.caches.keys()).length > 0) seen.push('left:caches');
+      } catch {
+        // not available here
       }
-    } catch {
-      // not available here
-    }
-    try {
-      if (window.caches && (await window.caches.keys()).length > 0) seen.push('left:caches');
-    } catch {
-      // not available here
-    }
-    return seen;
-  }, ACCESS_STORAGE);
+      return seen;
+    },
+    { names: allowed, run: TEST_RUN_STORAGE },
+  );
 }

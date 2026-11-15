@@ -14,7 +14,9 @@ echter Lieferanten, echte Mailprogramme, echte Handys. Was eine Maschine prüfen
   - Bei „Nicht bestanden“ wählen Sie die Schritte mit Problem, je mit einem Grund aus der Liste.
     **Es gibt kein Textfeld.** Wo eine Anleitung „Notieren Sie …“ sagt, wählen Sie stattdessen den
     Schritt und seinen Grund; mehr sagen Sie Tobias direkt.
-  - Zum Schluss **Bericht senden**. Die Ergebnisse bleiben nur, bis Sie die Seite neu laden.
+  - Zum Schluss **Bericht senden**. Bis dahin bleiben die Ergebnisse in diesem Browser gespeichert,
+    auch wenn Sie die Seite neu laden; nach dem Senden sind sie gelöscht. „Neu beginnen“ löscht sie
+    nach einer Rückfrage.
 - Lokal: `npm run build`, dann `dist/index.html` mit einem Doppelklick öffnen.
 - Beispielrechnungen: im öffentlichen Repo unter
   https://github.com/tobiasheinrichfaska/E-Rechnung-Pruefer/tree/main/beispiele (die Tabelle „Was
