@@ -321,6 +321,17 @@ describe('decisions of 2026-11-14, dialogue (F22–F27, G-3, G-7, G-10)', () => 
     expect(other.explanation).toContain(TEXTS.kanzleiJudges);
   });
 
+  it('QU-12: an unknown XML names its root element last, as a technical detail', () => {
+    const other = verdictOf(analysis({ kind: 'xml', root: { name: 'Order', namespace: 'urn:x' } }));
+    expect(other.explanation).toEqual([
+      TEXTS.otherFormats,
+      TEXTS.kanzleiJudges,
+      'Technische Angabe: Wurzelelement Order (Namensraum urn:x).',
+    ]);
+    const bare = verdictOf(analysis({ kind: 'xml', root: { name: 'Order', namespace: '' } }));
+    expect(bare.explanation.at(-1)).toBe('Technische Angabe: Wurzelelement Order (Namensraum –).');
+  });
+
   it('G-10/F24: a broken XML says the German sentences first, the engine message last', () => {
     const verdict = verdictOf(
       analysis({

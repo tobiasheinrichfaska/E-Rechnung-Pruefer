@@ -60,7 +60,8 @@ export const TEXTS = {
   askSupplier: 'Sie könnten beim Lieferanten eine eindeutige Fassung anfordern.',
 
   otherXml: 'XML-Datei ohne bekanntes Rechnungsformat',
-  rootIs: 'Wurzelelement: {name} (Namensraum {namespace}).',
+  // QU-12: a technical detail, so last in the box (as G-10 for the engine's messages)
+  rootIs: 'Technische Angabe: Wurzelelement {name} (Namensraum {namespace}).',
   otherFormats:
     'Das Tool kennt UBL und CII nach EN 16931. Andere Formate (z. B. EDI) können eine E-Rechnung sein, wenn Sie das mit dem Lieferanten vereinbart haben (§ 14 Abs. 1 Satz 6 Nr. 2 UStG; EDI übergangsweise bis Ende 2027, § 27 Abs. 38 UStG). Das Tool beurteilt sie nicht.',
 

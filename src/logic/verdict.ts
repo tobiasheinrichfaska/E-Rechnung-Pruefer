@@ -618,15 +618,17 @@ export function verdictOf(analysis: Analysis): Verdict {
       tone: 'warn',
       headline: TEXTS.otherXml,
       explanation: [
-        analysis.root
-          ? fill(TEXTS.rootIs, {
-              name: analysis.root.name,
-              namespace: analysis.root.namespace || '–',
-            })
-          : '',
         TEXTS.otherFormats,
         TEXTS.kanzleiJudges,
-      ].filter((line) => line.length > 0),
+        ...(analysis.root
+          ? [
+              fill(TEXTS.rootIs, {
+                name: analysis.root.name,
+                namespace: analysis.root.namespace || '–',
+              }),
+            ]
+          : []),
+      ],
       invoices: [],
     };
   }
