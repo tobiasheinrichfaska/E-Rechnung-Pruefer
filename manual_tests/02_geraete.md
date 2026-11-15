@@ -12,7 +12,8 @@ Browserfenster geöffnet, das Mailprogramm daneben.
 
 1. Ziehen Sie den Anhang aus der E-Mail über die Fläche „Rechnung hierher ziehen“ und halten Sie ihn
    dort.
-   - **Danach:** Der Rahmen der Fläche wird blau, die Fläche hellblau.
+   - **Danach:** Der Rahmen der Fläche färbt sich in der Farbe der Knöpfe, die Fläche wird hell
+     getönt.
 2. Lassen Sie los.
    - **Danach:** Unter der Fläche steht „Geprüfte Datei: …“ mit dem Namen des Anhangs, darunter das
      Ergebnis. Passiert nichts oder öffnet der Browser die Datei selbst, notieren Sie das

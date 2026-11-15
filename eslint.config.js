@@ -9,8 +9,9 @@ import { defineConfig, globalIgnores } from 'eslint/config';
 // Fixed frame (hand-over 2026-11-13): the file never leaves the computer and nothing is stored.
 // The browser's CSP blocks the network; these rules keep the code from even trying. Changed
 // 2026-11-15 (Tobias, „ja, Beschränkung fällt“): one exception, the remembered access notice —
-// localStorage in src/io/accessStore.ts only (ACCESS_STORE below); anything else stays refused
-// (tests/static/storageBan.test.ts).
+// localStorage in src/io/accessStore.ts only (ACCESS_STORE below). And the test version's
+// „Bericht senden“ (2026-11-15): fetch in src/io/testReportSend.ts only (REPORT_SENDER below).
+// Anything else stays refused (tests/static/storageBan.test.ts).
 const NO_STORAGE_OR_NETWORK = [
   'localStorage',
   'sessionStorage',
@@ -45,6 +46,11 @@ const NO_STORAGE_PROPERTIES = [
 
 /** The only file allowed to use localStorage (the remembered access notice). */
 export const ACCESS_STORE = 'src/io/accessStore.ts';
+/**
+ * The only file allowed to use fetch: „Bericht senden“ of the test version (Tobias 2026-11-15). The
+ * live build has no test page; its CSP keeps connect-src 'none' (tests/e2e/testbericht.spec.ts).
+ */
+export const REPORT_SENDER = 'src/io/testReportSend.ts';
 
 export default defineConfig([
   globalIgnores(['dist', 'dist-test', 'coverage', '.tmp', 'playwright-report', 'test-results']),
@@ -70,6 +76,16 @@ export default defineConfig([
       'no-restricted-globals': [
         'error',
         ...NO_STORAGE_OR_NETWORK.filter((name) => name !== 'localStorage'),
+      ],
+    },
+  },
+  {
+    // The one place that may use the network: posting the test report of the test version
+    files: [REPORT_SENDER],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        ...NO_STORAGE_OR_NETWORK.filter((name) => name !== 'fetch'),
       ],
     },
   },

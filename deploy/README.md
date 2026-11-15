@@ -26,6 +26,11 @@ Die Testfassung läuft in einer eigenen geschützten Testzone bei bunny.net, get
   `manifest.webmanifest` oder ein `sw.js` neben `index.html` hochladen.
 - Beide Builds brauchen vorher die Kanzlei-Konfiguration (Abschnitt „Zugangshinweis im
   Freigabe-Lauf“).
+- **Testseite** (ab 0.8.0): Die Testfassung zeigt neben dem Tool die Handtests und schickt mit
+  „Bericht senden“ einen Bericht ohne Freitext an `/_zugang/bericht` (Format `testbericht/1`, Repo
+  `Testumgebung`, `docs/testbericht.md`). Deshalb erlaubt nur ihre CSP `connect-src 'self'`; die
+  öffentliche Fassung bleibt bei `connect-src 'none'`. Eine CSP-Kopfzeile der **Testzone** darf
+  `connect-src` nicht auf `'none'` stellen. Der Testbuild braucht `git` (Commit als `stand`).
 - **Gate:** Jeder Upload wartet auf die GitHub-Prüfung **„Tests“** (`.github/workflows/tests.yml`).
   Sie muss für genau den hochgeladenen Commit grün sein. In beiden Einträgen von `Freigabe` gilt
   deshalb `"gate": { "workflow": "Tests" }`.

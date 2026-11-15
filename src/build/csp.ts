@@ -14,15 +14,24 @@ function hashOf(text: string): string {
   return `'sha256-${createHash('sha256').update(text, 'utf8').digest('base64')}'`;
 }
 
+export interface CspOptions {
+  /** Only the test version: „Bericht senden“ posts to its own address (Tobias 2026-11-15). */
+  connectSelf?: boolean;
+}
+
 /** The policy for these inline script and style hashes. */
-export function cspFor(scriptHashes: readonly string[], styleHashes: readonly string[]): string {
+export function cspFor(
+  scriptHashes: readonly string[],
+  styleHashes: readonly string[],
+  options: CspOptions = {},
+): string {
   return [
     "default-src 'none'",
     `script-src ${scriptHashes.join(' ')} 'wasm-unsafe-eval'`,
     `style-src ${styleHashes.join(' ')}`,
     'img-src data: blob:',
     'font-src data:',
-    "connect-src 'none'",
+    options.connectSelf ? "connect-src 'self'" : "connect-src 'none'",
     "worker-src 'none'",
     // no web app manifest: the page is not offered for installation (Tobias 2026-11-15)
     "manifest-src 'none'",
@@ -36,7 +45,7 @@ export function cspFor(scriptHashes: readonly string[], styleHashes: readonly st
  * Inserts the policy right after `<meta charset>`. Refuses a page that loads a script or
  * stylesheet from outside or already carries a policy — the single file must not.
  */
-export function withCsp(html: string): string {
+export function withCsp(html: string, options: CspOptions = {}): string {
   if (/<meta[^>]+http-equiv=["']?Content-Security-Policy/i.test(html)) {
     throw new Error('The page already has a Content-Security-Policy');
   }
@@ -52,6 +61,7 @@ export function withCsp(html: string): string {
   const policy = cspFor(
     scripts.map((match) => hashOf(match[2] ?? '')),
     styles.map((match) => hashOf(match[2] ?? '')),
+    options,
   );
   const charset = /<meta charset="UTF-8" \/>|<meta charset="utf-8">/i.exec(html);
   if (!charset) throw new Error('The page has no <meta charset>');
