@@ -10,7 +10,10 @@ const INVITE = '/_zugang/einladen';
 const inviteLink = 'Tester einladen';
 
 test('the live build carries no invitation link', async ({ page }) => {
-  expect(readFileSync(BUILT, 'utf8')).not.toContain(INVITE);
+  const live = readFileSync(BUILT, 'utf8');
+  // neither the address nor the word: the live file knows nothing of the test zone
+  expect(live).not.toContain('_zugang');
+  expect(live).not.toContain(inviteLink);
   await openApp(page);
   await expect(page.locator('footer').first()).toContainText('Version');
   await expect(page.getByRole('link', { name: inviteLink })).toHaveCount(0);

@@ -27,7 +27,7 @@ export function Footer() {
       {TESTER_INVITE !== null && (
         <>
           {' · '}
-          <a href={TESTER_INVITE}>{TEXTS.testerInvite}</a>
+          <a href={TESTER_INVITE.href}>{TESTER_INVITE.text}</a>
         </>
       )}
     </footer>

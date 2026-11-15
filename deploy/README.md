@@ -21,6 +21,9 @@ Die Testfassung läuft in einer eigenen geschützten Testzone bei bunny.net, get
 - **Nur die Testfassung** hat unten den Link **„Tester einladen“**. Er führt im selben Tab auf
   `/_zugang/einladen`, die Seite des Anmeldeskripts für einen Einladungslink. Die öffentliche Fassung
   enthält diese Adresse nie; `tests/e2e/testfassung.spec.ts` prüft das an `dist/index.html`.
+- **Nicht installierbar** (Tobias, 15.11.2026): Keine der beiden Fassungen hat ein Manifest oder einen
+  Service Worker; ihre CSP verbietet beides (`manifest-src`, `worker-src`). Deshalb nie eine
+  `manifest.webmanifest` oder ein `sw.js` neben `index.html` hochladen.
 - Beide Builds brauchen vorher die Kanzlei-Konfiguration (Abschnitt „Zugangshinweis im
   Freigabe-Lauf“).
 - **Gate:** Jeder Upload wartet auf die GitHub-Prüfung **„Tests“** (`.github/workflows/tests.yml`).

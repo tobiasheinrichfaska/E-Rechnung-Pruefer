@@ -24,6 +24,8 @@ export function cspFor(scriptHashes: readonly string[], styleHashes: readonly st
     'font-src data:',
     "connect-src 'none'",
     "worker-src 'none'",
+    // no web app manifest: the page is not offered for installation (Tobias 2026-11-15)
+    "manifest-src 'none'",
     "object-src 'none'",
     "base-uri 'none'",
     "form-action 'none'",

@@ -56,3 +56,7 @@ Anmeldeskript (Repo `Testumgebung`) und lässt sich hier nicht nachstellen.
    - **Danach:** Das Tool erscheint wieder.
 4. Öffnen Sie die öffentliche Adresse des Tools.
    - **Danach:** Unten steht kein **Tester einladen**.
+5. Öffnen Sie auf dem Handy und am Rechner (Chrome oder Edge) das Menü des Browsers.
+   - **Danach:** Es gibt keinen Eintrag **App installieren** für das Tool. „Zum Startbildschirm
+     hinzufügen“ oder „Verknüpfung erstellen“ darf es geben: Das ist nur ein Lesezeichen. Notieren
+     Sie Gerät und Browser, wenn „App installieren“ erscheint.
