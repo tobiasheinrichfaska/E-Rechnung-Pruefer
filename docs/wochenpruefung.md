@@ -104,10 +104,25 @@ Integritätsauftrag, neue Projekte) stehen im Auftrag der Aufgabe, nicht hier.
 
 - **Prüfen:**
   - `npx vitest run tests/io/ferdLokal.test.ts tests/io/zugferd1Lokal.test.ts`
-  - `npm run test:e2e -- --trace off tests/e2e/zugangshinweis.spec.ts tests/e2e/fusszeile.spec.ts`
+  - `npm run test:e2e -- --trace off tests/e2e/zugangshinweis.spec.ts tests/e2e/fusszeile.spec.ts tests/e2e/farben.spec.ts`
     (die Browser richtet das Setup-Skript der Umgebung ein)
 
   Ein übersprungener Test ist nicht bestanden.
 
 - **Dann:** Einen Fehlschlag mit Ursache melden und beheben wie jeden anderen.
+- **Ende:** dauerhaft.
+
+### T1 · PDF- und XML-Bibliothek
+
+Das Tool liest fremde Dateien mit zwei fest eingestellten Bibliotheken: `pdfjs-dist` (PDF, Legacy-Build)
+und `libxml2-wasm` (XML, XSD). Eine Sicherheitskorrektur dort zählt, auch bevor `npm audit` sie kennt.
+
+- **Prüfen:** Gibt es eine neuere Fassung als die in `package.json` (Stand 15.11.2026: `pdfjs-dist`
+  6.4.299, `libxml2-wasm` 0.7.2)? Quellen: die Release-Seiten der Projekte auf GitHub
+  (github.com/mozilla/pdf.js, github.com/jameslan/libxml2-wasm) und die npm-Registry.
+- **Dann:** Nennt die Release-Notiz eine Sicherheitskorrektur oder einen Fehler beim Lesen von
+  Dateien: ein PR mit dem Update, wenn die Fassung mindestens zwei Wochen alt ist, mit allen Tests
+  (auch S2) und dem E2E-Test „ältere Browser“ (`erkennen.spec.ts`). Im Lockfile müssen die 15
+  `libc`-Felder bleiben, die npm 10 beim Installieren entfernt (`CLAUDE.md`, „Testing“); danach
+  `npm ci`. Sonst nur melden.
 - **Ende:** dauerhaft.
