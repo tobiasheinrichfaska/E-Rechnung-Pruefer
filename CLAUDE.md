@@ -239,6 +239,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 
 | Version | Merge commit in `main` | Date       | Content                                                                                 |
 | ------- | ---------------------- | ---------- | --------------------------------------------------------------------------------------- |
+| 0.9.0   | `949c453`              | 2026-11-15 | The test version keeps the tester's run in the browser                                  |
 | 0.8.0   | `2374542`              | 2026-11-15 | Test page with reports without free text (test version only)                            |
 | 0.7.0   | `f342986`              | 2026-11-15 | GitHub check „Tests“, test version with „Tester einladen“, not installable              |
 | 0.6.3   | `5d906a1`              | 2026-11-15 | Not in search engines (`noindex`)                                                       |
@@ -256,7 +257,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 
 ## Known Limitations
 
-- **In development** — all steps of the plan are built (1a–3a) plus the access notice, the Impressum/privacy links and the Kanzlei colours; version 0.8.0 not online yet.
+- **In development** — all steps of the plan are built (1a–3a) plus the access notice, the Impressum/privacy links and the Kanzlei colours; version 0.9.0 not online yet.
 - **Calculation rules (3a)** are a selection (BR-CO-10 … -17, breakdown per category/rate), not a
   validator: no BR-DE/XRechnung rules, no line-level rules (price × quantity), no currency
   conversion (BT-111). For **Factur-X EXTENDED** the FeRD forms are rebuilt (F29,
@@ -312,7 +313,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
   text); the receiving side (`/_zugang/bericht`, `app`
   `erechnung` in Testumgebung's `zugang/bereiche.json`) is built in `Testumgebung`, until then 404.
 - **E2E runs on file://**; the hosted copy is **older** than the repo (uploaded 2026-11-13 at
-  Fragebogen commit 76828a3, step 1c, version 0.1.0); the repo is at 0.8.0 (merge `2374542`, see Versioning) —
+  Fragebogen commit 76828a3, step 1c, version 0.1.0); the repo is at 0.9.0 (merge `949c453`, see Versioning) —
   upload only after Tobias' OK.
 - **Browsers:** the single inline script needs class static blocks and the CSP
   `'wasm-unsafe-eval'`, so the floor is about Chrome/Edge 98, Firefox 102, Safari 16.4 (derived from
@@ -356,7 +357,8 @@ PC session (Tobias; spec: repo `Testumgebung`, `docs/testbericht.md`, read in th
   later; manual tests run through the test environment (`manual_tests/README.md`).
 - Then Tobias (asked, „Ja, wie Fragebogen“): the run is kept in the browser
   (`src/io/testRunStore.ts`, key `e-rechnung-pruefer-testlauf`, test version only), restored after a
-  reload with the open test, cleared once sent; „Neu beginnen“ with one confirmation.
+  reload with the open test, cleared once sent; „Neu beginnen“ with one confirmation. Version 0.9.0,
+  PR #28 merged (`949c453`); PR #27 (weekly check T1) merged on Tobias' request („du mergest 27“).
 - Open: the PDF copy (optional); `app: "erechnung"` for `erechnung-test` in Testumgebung's `zugang/bereiche.json` (its
   own session builds the receiving side).
 - PR #25 merged (`2374542`).
