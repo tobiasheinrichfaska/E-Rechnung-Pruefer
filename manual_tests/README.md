@@ -23,8 +23,9 @@ echter Lieferanten, echte Mailprogramme, echte Handys. Was eine Maschine prüfen
   sie zeigt“ steht unter der Dateiliste; herunterladen mit „Download raw file“), lokal
   `beispiele/index.html`. Sie werden nicht neben dem Tool hochgeladen (Tobias, 15.11.2026). Alle
   Daten sind erfunden; die Dateien dürfen in E-Mails und auf Geräte.
-- Achtung: Notieren Sie die Versionsnummer unten auf der Seite (Stand des Repos: 0.8.0). Steht
-  dort eine ältere Nummer, ist der letzte Upload noch nicht erfolgt; prüfen Sie dann lokal.
+- Achtung: Notieren Sie die Versionsnummer unten auf der Seite. Den Stand des Repos zeigt die
+  Versionstabelle in `CLAUDE.md`; steht unten eine ältere Nummer, ist der letzte Upload noch nicht
+  erfolgt, prüfen Sie dann lokal.
 - Echte Rechnungen bleiben auf dem Rechner. Nie in das Repo legen, nie an Dritte senden. Notieren Sie
   nur Lieferant, Programm, Ergebnis und Abweichung – keine Beträge oder Namen von Mandanten.
 

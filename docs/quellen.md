@@ -27,8 +27,9 @@ Von Tobias in die Sitzung hochgeladen: `Factur-X_1.09.2_MINIMUM.zip` (Teil des F
 Schema-Ordner aller Profile 0–4 und `5. CII D22B XSD`), SHA-256
 `8ff977d9d6a1ff273956c9ee548122ae848789a6ff32d5543a03f852b7929a1f`. Übernommen sind nur die vier XSD
 des Ordners `4_Factur-X_1.09.2_EXTENDED/`, unverändert, nach `schemas/factur-x-1.09.2-extended/`
-(Apache-2.0, Lizenztext daneben). Die übrigen Profile prüft das Tool wie der KoSIT-Validator gegen CII
-D16B.
+(Apache-2.0, Lizenztext daneben). Die übrigen Profile prüfte das Tool damals wie der KoSIT-Validator
+gegen CII D16B; seit F28 (0.3.0) prüft es jedes Factur-X-Profil gegen sein eigenes FeRD-Schema (Abschnitt
+F28 unten).
 
 | Datei                                                  | SHA-256                                                            |
 | ------------------------------------------------------ | ------------------------------------------------------------------ |
