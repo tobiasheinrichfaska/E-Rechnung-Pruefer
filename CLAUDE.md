@@ -214,6 +214,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 
 | Version | Merge commit in `main` | Date       | Content                                                                                 |
 | ------- | ---------------------- | ---------- | --------------------------------------------------------------------------------------- |
+| 0.4.0   | `8877aed`              | 2026-11-15 | Access notice before the hosted copy opens (local Kanzlei configuration)                |
 | 0.3.1   | `a3cf751`              | 2026-11-14 | F30: supply before 2025 needs no E-Rechnung (BMF 15.10.2024 Rn. 50)                     |
 | 0.3.0   | `c78be21`              | 2026-11-14 | Decisions F22–F29, G-1 … G-10, profile schemas, FeRD EXTENDED rules, ZUGFeRD 1.0 backed |
 | 0.2.0   | `06e96a0`              | 2026-11-14 | Inventory and audit, F16–F21, schema check (2a/2b), rules (3a)                          |
@@ -274,7 +275,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 - **Password-protected PDF** is tested with a synthetic encryption dictionary (the reader asks for
   a password); a real protected supplier PDF is not in the tests.
 - **E2E runs on file://**; the hosted copy is **older** than the repo (uploaded 2026-11-13 at
-  Fragebogen commit 76828a3, step 1c, version 0.1.0); the repo is at 0.3.1 (merge `a3cf751`, see Versioning) —
+  Fragebogen commit 76828a3, step 1c, version 0.1.0); the repo is at 0.4.0 (merge `8877aed`, see Versioning) —
   upload only after Tobias' OK.
 - **Browsers:** the single inline script needs class static blocks and the CSP
   `'wasm-unsafe-eval'`, so the floor is about Chrome/Edge 98, Firefox 102, Safari 16.4 (derived from
@@ -307,7 +308,7 @@ Fragebogen's library, added to `package-lock.json` by hand because npm 10 drops 
 fields); ESLint allows `localStorage` only in the access store, a regression test shows every
 other access still refused; the e2e spy allows exactly the access key. The release run must place
 the configuration before `npm run build` (`deploy/README.md`), else it builds a copy without the
-notice. Next on the bunny path: the release repo with its workflow (Tobias, Kanzlei PC; the
+notice. PR #9 merged (`8877aed`), private repo PR #2 (`config/`) merged. Next on the bunny path: the release repo with its workflow (Tobias, Kanzlei PC; the
 workflow can be drafted here as text), the bunny storage key as its secret, the first run, `curl -I`.
 
 **Hosting move decided (Kanzlei PC session, 2026-11-15; bunny account, pull zone and DNS set up the
