@@ -34,6 +34,12 @@ a {
   color: var(--accent);
 }
 
+/* Tobias 2026-11-15: the Kanzlei colour through the whole design, as in the Fragebogen — the title,
+   tick boxes and the secondary buttons too. The status colours (ok/warn/bad) keep their meaning. */
+input {
+  accent-color: var(--accent);
+}
+
 .page {
   max-width: 960px;
   margin: 0 auto;
@@ -43,6 +49,7 @@ a {
 h1 {
   font-size: 1.6rem;
   margin: 0 0 8px;
+  color: var(--accent);
 }
 
 .lead {
@@ -532,9 +539,9 @@ button.primary:disabled {
 }
 
 .result-actions button {
-  background: var(--panel);
-  color: var(--text);
-  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--accent);
+  border: 1px solid var(--accent);
   border-radius: 6px;
   padding: 6px 12px;
   font-size: 0.95rem;
