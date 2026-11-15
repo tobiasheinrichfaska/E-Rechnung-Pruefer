@@ -46,13 +46,8 @@ function schemaCheck(
     return { schema, checked: false, reason: TEXTS.schemaOwnProfile, problems: [], count: 0 };
   }
   const validator = xsdValidator(SCHEMA_ENTRIES[own?.entry ?? syntax.schema.entry], SCHEMA_FILES);
-  const problems = schemaProblems(doc, validator);
-  return {
-    schema,
-    checked: true,
-    problems: problems.slice(0, MAX_SCHEMA_PROBLEMS),
-    count: problems.length,
-  };
+  const { problems, count } = schemaProblems(doc, validator, MAX_SCHEMA_PROBLEMS);
+  return { schema, checked: true, problems, count };
 }
 
 /** Above this size a file is not even read into memory (the larger of the two limits). */
