@@ -316,7 +316,9 @@ the Fragebogen move **first**, and **as the Kanzlei**, not privately and not yet
 - **Upload:**
   - Later through a separate private "Freigabe" repo: GitHub Actions, each run started by Tobias by
     hand. That repo is never attached to a cloud session.
-  - Until then the Kanzlei PC uploads. Cloud sessions never upload.
+  - The first upload to bunny.net already goes that way; the local upload tool has no bunny.net
+    path. Until then the test copy at IONOS stays and the Kanzlei PC updates it as before. Cloud
+    sessions never upload.
 - **Kanzlei to-dos outside this repo:** a sentence on bunny.net in the Kanzlei's privacy policy (the
   CDN processes IP addresses), a DPA with bunny.net; the Kanzlei's Impressum applies.
 - **Later, a separate step:**
