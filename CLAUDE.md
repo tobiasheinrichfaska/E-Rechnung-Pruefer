@@ -308,6 +308,24 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 
 ## Status / next step
 
+**Task (Kanzlei PC session, 2026-11-15, Tobias): footer link „Tester einladen“ in a test build.**
+
+- The test version runs in a protected test zone of its own at bunny.net, separate from the live
+  zone. The login script comes from the private repo `Testumgebung` (`zugang/`): testers log in once,
+  then a cookie recognises the device.
+- Add a link **„Tester einladen“** to the footer of the test version, pointing to the relative address
+  `/_zugang/einladen`. That page of the login script makes a one-time invitation link (7 days) and
+  leads back with „Zurück zur App“.
+- **There is no separate test build yet:** today the test zone gets the same `npm run build` as the
+  live version.
+  - Add a test build mode (e.g. `build:test` with its own output folder) that carries the link.
+  - The live build must never carry it; a test checks that `dist/index.html` does not contain
+    `/_zugang/einladen`.
+  - Tell Tobias the script name and output folder, so that the Kanzlei PC switches the `erechnungtest`
+    entry of the repo `Freigabe` to it.
+- Style it like the rest of the app. It is a plain navigation, no fetch, so the CSP stays as it is.
+- Background: `Testumgebung` `docs/plan.md`, „Fußzeile ‚Tester einladen‘“.
+
 **2026-11-15 — not in search engines (version 0.6.3):** Tobias chose „Nicht auffindbar“: the page
 carries `<meta name="robots" content="noindex">`, clients come by the Kanzlei's link; no
 `robots.txt` with `Disallow` (it would hide the `noindex`), `deploy/README.md`. The e2e test reads
