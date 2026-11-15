@@ -1,6 +1,14 @@
 import { readdirSync } from 'node:fs';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { MAX_FILE_BYTES, analyzeFile, fileKindOf, tooLargeFile } from '../../src/io/analyze';
+import {
+  MAX_FILE_BYTES,
+  analyzeFile,
+  extendedAmounts,
+  fileKindOf,
+  tooLargeFile,
+} from '../../src/io/analyze';
+import { readXml, rootOf } from '../../src/io/xml';
+import { syntaxOf } from '../../src/logic/syntax';
 import type { PdfJsLike } from '../../src/io/pdf';
 import { TEXTS } from '../../src/logic/texts';
 import { verdictOf } from '../../src/logic/verdict';
@@ -452,5 +460,51 @@ describe('schema check (step 2b)', () => {
     const { verdict } = await check('r.xml', encode(minimum));
     expect(verdict.headline).toMatch(/Profil MINIMUM: keine E-Rechnung/);
     expect(verdict.explanation.join(' ')).not.toContain('Schema');
+  });
+});
+
+describe('the amounts of Factur-X EXTENDED (F29)', () => {
+  const EXTENDED = 'urn:cen.eu:en16931:2017#conformant#urn:factur-x.eu:1p0:extended';
+  const LINES =
+    /<ram:IncludedSupplyChainTradeLineItem>[\s\S]*?<\/ram:IncludedSupplyChainTradeLineItem>/g;
+  const base = withSpecId(CII, EXTENDED);
+  const line = base.match(LINES)?.[0] ?? '';
+  /** The official invoice with these lines instead of its 20 */
+  const withLines = (lines: string) => {
+    let first = true;
+    return base.replace(LINES, () => (first ? ((first = false), lines) : ''));
+  };
+  const amountsOf = (text: string) => {
+    const read = readXml(encode(text));
+    if (!read.ok) throw new Error('not read');
+    try {
+      const syntax = syntaxOf(rootOf(read.doc));
+      if (!syntax) throw new Error('no syntax');
+      const started = performance.now();
+      const amounts = extendedAmounts(read.doc, syntax.namespaces);
+      return { amounts, seconds: (performance.now() - started) / 1000 };
+    } finally {
+      read.doc.dispose();
+    }
+  };
+
+  it('reads the status of each line in document order', () => {
+    const status = (code: string) =>
+      line.replace(
+        '<ram:AssociatedDocumentLineDocument>',
+        `<ram:AssociatedDocumentLineDocument><ram:LineStatusReasonCode>${code}</ram:LineStatusReasonCode>`,
+      );
+    const { amounts } = amountsOf(withLines(status('GROUP') + line + status('DETAIL')));
+    expect(amounts.lineStatus).toEqual(['GROUP', '', 'DETAIL']);
+  });
+
+  // A positional XPath per line walked the siblings up to it every time: 20 000 lines took 15 s
+  // here and froze the tab (audit 2026-11-15, QS-01); read node by node they take about 0.15 s
+  it('reads 20 000 lines in linear time', () => {
+    const { amounts, seconds } = amountsOf(
+      withLines('<ram:IncludedSupplyChainTradeLineItem/>'.repeat(20_000)),
+    );
+    expect(amounts.lineStatus).toHaveLength(20_000);
+    expect(seconds).toBeLessThan(3);
   });
 });
