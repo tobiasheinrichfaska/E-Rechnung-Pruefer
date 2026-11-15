@@ -851,3 +851,43 @@ describe('decisions of 2026-11-14 (F16–F21)', () => {
     );
   });
 });
+
+describe('audit 2026-11-15', () => {
+  const recipientWithoutStreet = {
+    'BG-7': [
+      { 'BT-44': 'Käufer AG', 'BG-8': [{ 'BT-52': 'Karlsruhe', 'BT-53': '76131', 'BT-55': 'DE' }] },
+    ],
+  };
+  const small = {
+    'BG-22': [{ 'BT-106': '100.00', 'BT-109': '100.00', 'BT-110': '19.00', 'BT-112': '119.00' }],
+  };
+  const noTax = {
+    'BG-1': [{ 'BT-22': 'Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.' }],
+    'BG-22': [{ 'BT-106': '500.00', 'BT-109': '500.00', 'BT-112': '500.00', 'BT-115': '500.00' }],
+    'BG-23': [{ 'BT-116': '500.00', 'BT-117': '0', 'BT-118': 'E', 'BT-119': '0' }],
+  };
+
+  it('gives the street hint of the recipient only where his address is required (QL-08)', () => {
+    const kleinbetrag = checkPflichtangaben(model({ ...recipientWithoutStreet, ...small }));
+    expect(kleinbetrag.mode).toBe('kleinbetrag');
+    // § 33 UStDV does not ask for the recipient's address at all
+    expect(row(kleinbetrag, 'anschrift-empfaenger').hints).toEqual([]);
+    expect(kleinbetrag.hintCount).toBe(0);
+    // § 34a UStDV does (the row is "immer"), so the hint stays
+    const ku = checkPflichtangaben(model({ ...recipientWithoutStreet, ...noTax }));
+    expect(ku.mode).toBe('kleinunternehmer');
+    expect(row(ku, 'anschrift-empfaenger').hints).toHaveLength(1);
+    // the supplier's address is required in every mode, so its hint stays in each
+    const supplier = {
+      'BG-4': [
+        {
+          'BT-27': 'Verkäufer GmbH',
+          'BT-31': 'DE123456789',
+          'BG-5': [{ 'BT-37': 'Karlsruhe', 'BT-38': '76131', 'BT-40': 'DE' }],
+        },
+      ],
+    };
+    const smallSupplier = checkPflichtangaben(model({ ...supplier, ...small }));
+    expect(row(smallSupplier, 'anschrift-leistender').hints).toHaveLength(1);
+  });
+});
