@@ -117,7 +117,12 @@ export function roundTo(value: Decimal, digits: number): Decimal {
   return { units: floorDiv(2n * value.units + factor, 2n * factor), scale: digits };
 }
 
-/** a lies strictly within b ± tolerance (the EN 16931 checks with a tolerance of 1). */
-export function within(a: Decimal, b: Decimal, tolerance: Decimal): boolean {
-  return compareDecimal(subtract(a, tolerance), b) < 0 && compareDecimal(add(a, tolerance), b) > 0;
+/**
+ * a lies strictly within b ± tolerance (the EN 16931 checks with a tolerance of 1); `inclusive`:
+ * b may also lie on a ± tolerance (the CII forms with ≤ and ≥).
+ */
+export function within(a: Decimal, b: Decimal, tolerance: Decimal, inclusive = false): boolean {
+  const below = compareDecimal(subtract(a, tolerance), b);
+  const above = compareDecimal(add(a, tolerance), b);
+  return inclusive ? below <= 0 && above >= 0 : below < 0 && above > 0;
 }

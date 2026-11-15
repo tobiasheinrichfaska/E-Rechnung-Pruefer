@@ -444,9 +444,9 @@ export const FUNCTIONS: { layer: string; signature: string; purpose: string }[] 
   },
   {
     layer: 'logic',
-    signature: 'checkRules(model, { ownRules, extended }): RulesResult',
+    signature: 'checkRules(model, { ownRules, extended, syntax }): RulesResult',
     purpose:
-      'Rechenregeln der EN 16931 (BR-CO-10 bis -17, Aufschlüsselung je Kategorie und Satz) wie im CEN-Schematron; für Factur-X EXTENDED die Regeln von FeRD (BR-FXEXT-…, checkExtendedRules) und BR-CO-14; ZUGFeRD 2.0 EXTENDED nur BR-CO-14',
+      'Rechenregeln der EN 16931 (BR-CO-10 bis -17, Aufschlüsselung je Kategorie und Satz) wie im CEN-Schematron der Syntax (RULE_FORMS: UBL oder CII — Vergleich, Toleranz, gerundete Teilsummen, BR-CO-15-Alternative, Ids von L und M); für Factur-X EXTENDED die Regeln von FeRD (BR-FXEXT-…, checkExtendedRules) und BR-CO-14; ZUGFeRD 2.0 EXTENDED nur BR-CO-14',
   },
   {
     layer: 'logic',

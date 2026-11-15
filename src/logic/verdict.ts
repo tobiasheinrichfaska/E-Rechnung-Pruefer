@@ -166,13 +166,17 @@ export function schemaFailed(invoice: InvoiceVerdict): boolean {
   return invoice.einordnung !== 'keineERechnung' && (invoice.part.schema?.count ?? 0) > 0;
 }
 
-/** Step 3a; FeRD EXTENDED has its own forms of the rules (Profile.ownRules). */
+/**
+ * Step 3a in the forms of the CEN Schematron of the part's syntax (audit QL-03); FeRD EXTENDED has
+ * its own forms of the rules (Profile.ownRules).
+ */
 export function rulesOf(invoice: InvoiceVerdict): RulesResult | undefined {
   const model = pflichtModel(invoice);
   return model
     ? checkRules(model, {
         ownRules: invoice.profile.entry?.ownRules ?? false,
         extended: invoice.part.extended,
+        syntax: invoice.part.syntax,
       })
     : undefined;
 }
