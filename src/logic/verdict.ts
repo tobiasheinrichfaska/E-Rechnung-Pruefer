@@ -311,7 +311,8 @@ function pflichtLines(invoice: InvoiceVerdict): string[] {
   return [
     ...(result.missingLabels.length > 0
       ? [
-          fill(TEXTS.pflichtMissingLine, { list: result.missingLabels.join('; ') }),
+          // the missing parts of a partly present row, as the section names them (audit QU-03)
+          fill(TEXTS.pflichtMissingLine, { list: result.missingListed.join('; ') }),
           TEXTS.supplierComplete,
         ]
       : []),

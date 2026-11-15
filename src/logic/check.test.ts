@@ -700,10 +700,21 @@ describe('wording of the result (screenshot review 2026-11-13)', () => {
 
   it('names only the missing parts of a partly present row (audit 2026-11-14, U-02)', () => {
     const result = checkPflichtangaben(model({ 'BG-11': [{ 'BT-62': 'Vertreter GmbH' }] }));
+    // QU-03: "davon fehlen", never "nur …", which reads as "only this is there"
     expect(result.summary).toBe(
-      'Es fehlt: Fiskalvertreter: Name, Anschrift und USt-IdNr. (nur USt-IdNr. des Fiskalvertreters; Anschrift).',
+      'Es fehlt: Fiskalvertreter: Name, Anschrift und USt-IdNr. (davon fehlen: USt-IdNr. des Fiskalvertreters; Anschrift).',
     );
     expect(result.missingLabels).toEqual(['Fiskalvertreter: Name, Anschrift und USt-IdNr.']);
+    // the result box takes the same list (QU-03)
+    expect(result.missingListed).toEqual([
+      'Fiskalvertreter: Name, Anschrift und USt-IdNr. (davon fehlen: USt-IdNr. des Fiskalvertreters; Anschrift)',
+    ]);
+    const one = checkPflichtangaben(
+      model({ 'BG-11': [{ 'BT-62': 'Vertreter GmbH', 'BT-63': 'DE111111111' }] }),
+    );
+    expect(one.missingListed).toEqual([
+      'Fiskalvertreter: Name, Anschrift und USt-IdNr. (davon fehlt: Anschrift)',
+    ]);
   });
 
   it('leaves out positions that would only show their number', () => {

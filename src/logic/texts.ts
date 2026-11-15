@@ -233,7 +233,9 @@ export const TEXTS = {
   hintBelow: 'Bitte beachten Sie den Hinweis unten.',
   hintsBelow: 'Bitte beachten Sie die {count} Hinweise unten.',
   missingList: 'Es fehlt: {list}.',
-  missingOnly: 'nur',
+  // QU-03: what is missing of a partly present row — "nur …" read as "only this is there"
+  missingPart: 'davon fehlt:',
+  missingParts: 'davon fehlen:',
   addressCity: 'Ort',
   addressPostcodeOrStreet: 'Postleitzahl oder Straße/Postfach',
   noGroup: 'keine Angabe „{group}“',

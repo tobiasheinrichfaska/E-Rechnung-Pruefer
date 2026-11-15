@@ -43,6 +43,8 @@ export interface PflichtResult {
   modeText?: string;
   rows: RowResult[];
   missingLabels: string[];
+  /** The missing rows as the summary names them: a partly present row with its missing parts */
+  missingListed: string[];
   /** How many hints the rows carry (F22: they make the result yellow) */
   hintCount: number;
   summary: string;
@@ -349,10 +351,11 @@ export function checkPflichtangaben(model: InvoiceModel): PflichtResult {
   const missingRows = rows.filter((r) => r.status === 'fehlt');
   const hintCount = rows.reduce((count, r) => count + r.hints.length, 0);
   const missingLabels = missingRows.map((r) => r.row.label);
-  // A partly present row names what is missing, not the whole row (audit 2026-11-14, U-02)
+  // A partly present row names what is missing, not the whole row (audit 2026-11-14, U-02); the
+  // result box takes the same list (audit QU-03)
   const listed = missingRows.map((r) =>
     r.values.length > 0 && r.missing.length > 0 && r.missing.length <= 3
-      ? `${r.row.label} (${TEXTS.missingOnly} ${r.missing.join('; ')})`
+      ? `${r.row.label} (${r.missing.length === 1 ? TEXTS.missingPart : TEXTS.missingParts} ${r.missing.join('; ')})`
       : r.row.label,
   );
   return {
@@ -360,6 +363,7 @@ export function checkPflichtangaben(model: InvoiceModel): PflichtResult {
     ...(text ? { modeText: text } : {}),
     rows,
     missingLabels,
+    missingListed: listed,
     hintCount,
     summary:
       missingLabels.length > 0

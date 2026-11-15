@@ -301,6 +301,13 @@ export const ENTITIES: EntityDoc[] = [
         meaning: 'Bezeichnungen der fehlenden Angaben',
       },
       {
+        name: 'missingListed',
+        type: 'string[]',
+        required: true,
+        meaning:
+          'Die fehlenden Angaben, wie Zusammenfassung und Ergebniskasten sie nennen: eine teilweise vorhandene Zeile mit ihren fehlenden Teilen („davon fehlen: …“)',
+      },
+      {
         name: 'hintCount',
         type: 'number',
         required: true,

@@ -174,6 +174,14 @@ describe('PDF files', () => {
     expect(analysis.others.map((o) => o.kind).sort()).toEqual(['notXml', 'otherXml']);
   });
 
+  it('names in the result box only the missing parts of a partly present row (QU-03)', async () => {
+    const { verdict } = await check('r.xml', official('kosit/paare/01.14a-INVOICE_ubl.xml'));
+    expect(verdict.explanation).toContain(
+      'Es fehlen Pflichtangaben: Fiskalvertreter: Name, Anschrift und USt-IdNr. ' +
+        '(davon fehlen: Ort; Postleitzahl oder Straße/Postfach) (siehe „Pflichtangaben“).',
+    );
+  });
+
   it('keeps the invoice when other attachments are present', async () => {
     const pdf = miniPdf({
       attachments: [
