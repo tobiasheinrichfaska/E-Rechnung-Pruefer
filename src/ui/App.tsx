@@ -14,6 +14,7 @@ import { resultText } from '../logic/zusammenfassung';
 import type { Verdict } from '../logic/verdict';
 import { AccessGate } from './AccessGate';
 import { DropZone } from './DropZone';
+import { Footer } from './Footer';
 import { ResultView } from './ResultView';
 
 /** The one short sentence a screen reader announces (never the whole result). */
@@ -112,7 +113,7 @@ export function App() {
             setGateOpen(false);
           }}
         />
-        <p className="version">Version {APP_VERSION} · in Entwicklung</p>
+        <Footer />
       </main>
     );
   }
@@ -313,7 +314,7 @@ function Checker() {
           {noticeText(state)}
         </p>
       )}
-      <p className="version">Version {APP_VERSION} · in Entwicklung</p>
+      <Footer />
     </main>
   );
 }

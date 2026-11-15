@@ -71,4 +71,22 @@ describe('the Kanzlei configuration', () => {
       issues: ['$.accesNotice: unbekannter Eintrag'],
     });
   });
+
+  it('takes the Impressum and privacy addresses only as https without login data', () => {
+    const imprintUrl = 'https://www.musterkanzlei.example/impressum';
+    const privacyUrl = 'https://www.musterkanzlei.example/datenschutz#cdn';
+    expect(parseAppConfig({ imprintUrl, privacyUrl })).toEqual({
+      ok: true,
+      config: { imprintUrl, privacyUrl },
+    });
+    expect(parseAppConfig({ imprintUrl: 'http://www.musterkanzlei.example/impressum' })).toEqual({
+      ok: false,
+      issues: ['$.imprintUrl: nicht https://'],
+    });
+    expect(parseAppConfig({ privacyUrl: 'javascript:alert(1)' }).ok).toBe(false);
+    expect(parseAppConfig({ privacyUrl: 'https://nutzer:kennwort@example.org/' }).ok).toBe(false);
+    expect(parseAppConfig({ privacyUrl: '/datenschutz' }).ok).toBe(false);
+    expect(parseAppConfig({ imprintUrl: ' https://example.org/impressum' }).ok).toBe(false);
+    expect(parseAppConfig({ imprintUrl: 42 }).ok).toBe(false);
+  });
 });

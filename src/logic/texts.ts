@@ -163,6 +163,9 @@ export const TEXTS = {
   accessRemember: 'Antwort für die Zukunft merken',
   accessRememberNote: 'Gemerkt wird nur in diesem Browser.',
   accessContinue: 'Weiter',
+  // Links at the foot of the page, addresses from the local Kanzlei configuration
+  imprint: 'Impressum',
+  privacy: 'Datenschutz',
 
   // Only the first file of a drop counts — said, not silent (audit Bedienung, A-04)
   onlyFirstFile: 'Sie haben {count} Dateien abgelegt. Geprüft wurde nur die erste.',

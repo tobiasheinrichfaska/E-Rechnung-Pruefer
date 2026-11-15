@@ -6,8 +6,8 @@
 //   3. config/kanzlei.example.json — neutral, holds nothing: the tool asks no notice.
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { parseAppConfig } from '../logic/appConfig';
-import type { AppConfig } from '../logic/appConfig';
+import { parseAppConfig } from '../logic/appConfig.ts';
+import type { AppConfig } from '../logic/appConfig.ts';
 
 const ROOT = new URL('../../', import.meta.url);
 
