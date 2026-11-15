@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { encode, official, officialText } from '../support/fixtures';
+import { encode, official, officialText, withInvoiceNumber } from '../support/fixtures';
 import { miniPdf } from '../../src/build/minipdf';
 import { openApp, sideEffects, upload } from './helpers';
 
@@ -206,6 +206,34 @@ test('prints and copies the result for the Kanzlei (G-4)', async ({ page }) => {
   ]);
   expect(text).toContain('Ergebnis: E-Rechnung erkannt (XRechnung 3.0)');
   expect(text).toContain('Pflichtangaben: ');
+
+  // QU-07: the copy carries what the page shows besides the box lines
+  const copy = async () => {
+    await page.getByRole('button', { name: 'Ergebnis als Text kopieren' }).click();
+    await expect(page.getByTestId('copy-result')).toBeVisible();
+    const all = await page.evaluate(() => (window as unknown as { __copied: string[] }).__copied);
+    return all.at(-1) ?? '';
+  };
+  // the reduced list of a Kleinbetragsrechnung (§ 33 UStDV)
+  await upload(
+    page,
+    'klein.xml',
+    official('kosit/paare/01.02a-INVOICE_ubl.xml'),
+    'application/xml',
+  );
+  expect(await copy()).toMatch(/\n[^\n]*§ 33 UStDV\.\nPflichtangaben: /);
+  // two different invoice XML: what differs, as in the box
+  const cii = officialText('cen/CII_example1.xml');
+  const xml = (name: string, data: string) => ({ name, bytes: encode(data), mime: 'text/xml' });
+  await upload(
+    page,
+    'zwei.pdf',
+    miniPdf({ attachments: [xml('a.xml', cii), xml('b.xml', withInvoiceNumber(cii, 'X-2'))] }),
+    'application/pdf',
+  );
+  const differing = await page.getByTestId('differing').innerText();
+  expect(differing).toMatch(/^Unterschiedlich: Rechnungsnummer/);
+  expect(await copy()).toContain(`\n${differing}\n`);
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);
 });

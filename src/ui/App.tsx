@@ -9,7 +9,7 @@ import type { Analysis } from '../logic/analysis';
 import { checkPflichtangaben } from '../logic/check';
 import { germanMoment } from '../logic/dates';
 import { TEXTS, fill } from '../logic/texts';
-import { pflichtModel, rulesOf, verdictOf, xmlCounts } from '../logic/verdict';
+import { differingLine, pflichtModel, rulesOf, verdictOf, xmlCounts } from '../logic/verdict';
 import { resultText } from '../logic/zusammenfassung';
 import type { Verdict } from '../logic/verdict';
 import { AccessGate } from './AccessGate';
@@ -40,15 +40,22 @@ function noticeText(state: State): string {
 
 type Done = Extract<State, { step: 'done' }>;
 
-/** G-4: the result as text for a mail to the Kanzlei */
+/** G-4: the result as text for a mail to the Kanzlei, with what the page shows (audit QU-07) */
 function textOf(state: Done): string {
-  const [first] = state.verdict.comparison?.same === false ? [] : state.verdict.invoices;
+  const comparison = state.verdict.comparison;
+  const [first] = comparison?.same === false ? [] : state.verdict.invoices;
   const model = first ? pflichtModel(first) : undefined;
+  const pflicht = model ? checkPflichtangaben(model) : undefined;
   return resultText({
     fileName: state.analysis.fileName,
     ...germanMoment(state.checkedAt),
     verdict: state.verdict,
-    pflicht: model ? checkPflichtangaben(model).summary : undefined,
+    differing:
+      comparison && !comparison.same
+        ? differingLine(state.analysis.invoices, comparison.differing)
+        : undefined,
+    mode: pflicht?.modeText,
+    pflicht: pflicht?.summary,
     rules: first ? rulesOf(first)?.summary : undefined,
     notice: noticeText(state),
     version: APP_VERSION,
