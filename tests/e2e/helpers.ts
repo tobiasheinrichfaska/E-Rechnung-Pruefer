@@ -29,13 +29,17 @@ const SPY = () => {
       return original.apply(this, args);
     } as never;
   }
-  const idb = window.indexedDB;
-  if (idb) {
-    const open = idb.open.bind(idb);
-    idb.open = ((...args: Parameters<IDBFactory['open']>) => {
+  // On the prototypes, not the instances: WebKit's page did not see a patched window.indexedDB or
+  // cookieStore instance (found by the self-check in erkennen.spec.ts, audit 2026-11-15, QT-15)
+  if (typeof IDBFactory !== 'undefined') {
+    const open = IDBFactory.prototype.open;
+    IDBFactory.prototype.open = function (
+      this: IDBFactory,
+      ...args: Parameters<IDBFactory['open']>
+    ) {
       seen.push('indexedDB.open');
-      return open(...args);
-    }) as IDBFactory['open'];
+      return open.apply(this, args);
+    };
   }
   const cookie = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie');
   Object.defineProperty(document, 'cookie', {
@@ -73,14 +77,15 @@ const SPY = () => {
       return beacon(...args);
     }) as typeof navigator.sendBeacon;
   }
-  const store = w['cookieStore'] as Record<string, (...args: unknown[]) => unknown> | undefined;
+  const store = (w['CookieStore'] as { prototype: object } | undefined)?.prototype as
+    Record<string, (...args: unknown[]) => unknown> | undefined;
   if (store) {
     for (const method of ['get', 'getAll', 'set', 'delete']) {
-      const original = store[method]?.bind(store);
+      const original = store[method];
       if (original) {
-        store[method] = (...args: unknown[]) => {
+        store[method] = function (this: unknown, ...args: unknown[]) {
           seen.push(`cookieStore.${method}`);
-          return original(...args);
+          return original.apply(this, args);
         };
       }
     }
