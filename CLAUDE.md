@@ -346,10 +346,13 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
   without `connect-src`, `curl -I` of both zones, the workspace entry.
 - **The public zone is online with 0.6.3** (uploaded 2026-11-15 17:27 Berlin time; read back here:
   `noindex`, `connect-src 'none'`, no test page). S-11 closed: all eight security headers present.
-- Open: the test zone's edge rule sets `Cache-Control: public, max-age=0` over the login script's
-  own value (`deploy/README.md`); Tobias: „ja“ — the task for Claude in Chrome lies in the private repo
-  (`auslieferung/auftrag-chrome-zwischenspeicher-2026-11-15.md`). The privacy
-  policy of the Kanzlei now matters, since the tool is public (Tobias: „wartet“).
+- Done the same evening: the test zones' edge rule set `Cache-Control: public, max-age=0` over the
+  login script's own value; Tobias: „ja“, Claude in Chrome changed it after the task in the private
+  repo (`auslieferung/auftrag-chrome-zwischenspeicher-2026-11-15.md`). `curl -I`: `erechnungtest`
+  and `fragebogentest` 401 with `private, no-store`, the live zones unchanged (`deploy/README.md`).
+  The same for the private account's test zones and Testumgebung's setup prompts is left to the
+  `Testumgebung` session. The privacy policy of the Kanzlei now matters, since the tool is public
+  (Tobias: „wartet“).
 - Tobias' answers the same night: the old sample files are deleted (public zone checked: all 404);
   the public address of the tool is noted in the private repo (`CLAUDE.md` there, „Addresses“), so a
   cloud session can read the live version; the receiving side of the reports and the manual tests
