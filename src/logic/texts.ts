@@ -224,6 +224,10 @@ export const TEXTS = {
   hintBelow: 'Bitte beachten Sie den Hinweis unten.',
   hintsBelow: 'Bitte beachten Sie die {count} Hinweise unten.',
   missingList: 'Es fehlt: {list}.',
+  // QU-05: a row hint is named in words, not by its colour alone — unless its text already starts
+  // with the word of a possible irregularity
+  rowHintLabel: 'Hinweis:',
+  rowHintOwnLabel: 'Mögliche Auffälligkeit:',
   missingOnly: 'nur',
   addressCity: 'Ort',
   addressPostcodeOrStreet: 'Postleitzahl oder Straße/Postfach',

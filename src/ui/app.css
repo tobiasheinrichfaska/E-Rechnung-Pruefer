@@ -296,9 +296,12 @@ button.primary:disabled {
   margin-top: 2px;
 }
 
+/* „Hinweis:“ in front says what it is (PflichtangabenView); the transparent border frames it in a
+   forced-colours theme, where the background is dropped, as for the badges (audit QU-05, Z-02) */
 .row-hint {
   color: var(--warn);
   background: var(--warn-bg);
+  border: 1px solid transparent;
   border-radius: 4px;
   padding: 4px 8px;
   margin-top: 4px;
