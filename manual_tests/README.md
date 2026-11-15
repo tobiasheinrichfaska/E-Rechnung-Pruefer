@@ -6,15 +6,22 @@ echter Lieferanten, echte Mailprogramme, echte Handys. Was eine Maschine prüfen
 
 ## Vorbereitung
 
-- Gehostet: die Adresse des Ordners `NebenprojektERechnung/` öffnen (aus der Kanzlei ohne Anmeldung,
-  sonst mit Tester-Anmeldung „E-Rechnung - Test“).
+- Gehostet: die **Testzone** öffnen (Adresse von Tobias; Anmeldung „E-Rechnung - Test“ mit Ihrem
+  Tester-Zugang, danach erkennt der Browser das Gerät wieder). Dort steht neben dem Tool die
+  **Testseite** mit diesen Handtests (Tobias, 15.11.2026: Handtests über die Testumgebung):
+  - Öffnen Sie dort einen Test. Die Zeit läuft von selbst, solange er offen ist, und endet, wenn Sie
+    „Bestanden“ oder „Nicht bestanden“ wählen.
+  - Bei „Nicht bestanden“ wählen Sie die Schritte mit Problem, je mit einem Grund aus der Liste.
+    **Es gibt kein Textfeld.** Wo eine Anleitung „Notieren Sie …“ sagt, wählen Sie stattdessen den
+    Schritt und seinen Grund; mehr sagen Sie Tobias direkt.
+  - Zum Schluss **Bericht senden**. Die Ergebnisse bleiben nur, bis Sie die Seite neu laden.
 - Lokal: `npm run build`, dann `dist/index.html` mit einem Doppelklick öffnen.
 - Beispielrechnungen: im öffentlichen Repo unter
   https://github.com/tobiasheinrichfaska/E-Rechnung-Pruefer/tree/main/beispiele (die Tabelle „Was
   sie zeigt“ steht unter der Dateiliste; herunterladen mit „Download raw file“), lokal
   `beispiele/index.html`. Sie werden nicht neben dem Tool hochgeladen (Tobias, 15.11.2026). Alle
   Daten sind erfunden; die Dateien dürfen in E-Mails und auf Geräte.
-- Achtung: Notieren Sie die Versionsnummer unten auf der Seite (Stand des Repos: 0.7.0). Steht
+- Achtung: Notieren Sie die Versionsnummer unten auf der Seite (Stand des Repos: 0.8.0). Steht
   dort eine ältere Nummer, ist der letzte Upload noch nicht erfolgt; prüfen Sie dann lokal.
 - Echte Rechnungen bleiben auf dem Rechner. Nie in das Repo legen, nie an Dritte senden. Notieren Sie
   nur Lieferant, Programm, Ergebnis und Abweichung – keine Beträge oder Namen von Mandanten.
@@ -40,6 +47,10 @@ echter Lieferanten, echte Mailprogramme, echte Handys. Was eine Maschine prüfen
     Werte stehen unter Bezeichnung und Marke.
   - Testfassung (`dist-test/index.html`): „Tester einladen“ in der Fußzeile, im selben Tab, auf
     `/_zugang/einladen`; die öffentliche Fassung hat den Link nicht.
+  - Testseite der Testfassung: alle Handtests neben dem Tool, die Zeit je Test (läuft, ruht beim
+    Verlassen, endet mit dem Ergebnis), Schritte mit Grund, „Bericht senden“ mit genau den Feldern
+    des Formats `testbericht/1`, Ablehnung (400) und fehlende Empfangsstelle (404), zwei Reiter am
+    Handy; die öffentliche Fassung hat nichts davon und bleibt bei `connect-src 'none'`.
   - Screenreader: Statuszeile mit kurzem Ergebnissatz, Fokus auf dem Ergebnis, Zeilen- und
     Spaltenköpfe der Pflichtangaben, benannte Tabellen (`zugang.spec.ts`). Wie ein echter
     Screenreader vorliest, prüft das nicht.

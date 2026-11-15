@@ -40,6 +40,7 @@
 
 - [x] **„Tester einladen“ nur in der Testfassung** — `npm run build:test` (`dist-test/`): Link in der Fußzeile auf `/_zugang/einladen`, im selben Tab; `dist/index.html` enthält weder die Adresse noch das Wort
 - [x] **Nicht installierbar** — kein Manifest, kein Service Worker, keine Apple-Web-App-Angaben; CSP `manifest-src` und `worker-src` `'none'` (öffentliche Fassung und Testfassung)
+- [x] **Testseite der Testfassung** — alle Handtests neben dem Tool (am Handy zwei Reiter); je Test „Bestanden“ / „Nicht bestanden“ mit Schritten und Grund aus fester Liste, **kein Textfeld**; die Zeit misst die Seite selbst; „Bericht senden“ an `/_zugang/bericht` im Format `testbericht/1`, Meldung bei 400 und 404; nur die Testfassung darf verbinden (`connect-src 'self'`)
 - [x] **GitHub-Prüfung „Tests“** — Typen, Lint, Format, Unit-Tests und E2E in drei Browsern; jeder Upload wartet darauf
 
 ## Rahmen

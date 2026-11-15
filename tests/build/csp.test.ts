@@ -16,6 +16,17 @@ describe('Content-Security-Policy', () => {
     expect(policy).not.toContain("'unsafe-inline'");
   });
 
+  it('lets only the test version connect, and only to its own address („Bericht senden“)', () => {
+    const test = cspFor(["'sha256-a'"], ["'sha256-b'"], { connectSelf: true });
+    expect(test).toContain("connect-src 'self'");
+    expect(test).not.toContain("connect-src 'none'");
+    // everything else stays as strict as in the live build
+    const live = cspFor(["'sha256-a'"], ["'sha256-b'"]);
+    expect(test.replace("connect-src 'self'", "connect-src 'none'")).toBe(live);
+    expect(withCsp(PAGE, { connectSelf: true })).toContain("connect-src 'self'");
+    expect(withCsp(PAGE)).toContain("connect-src 'none'");
+  });
+
   it('inserts the policy right after the charset with the hashes of the inline code', () => {
     const html = withCsp(PAGE);
     expect(html).toMatch(

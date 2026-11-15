@@ -91,3 +91,56 @@ lokal bleibt und wie du dich mit der Cloud abstimmst.
   Pull Requests, Merge nach `main`) ohne Rückfrage, aber melden (Tobias 14.11.2026); der Upload
   auf den Server nur nach Tobias' OK; Steuerfragen entscheidet nur Tobias; keine Netzwerkzugriffe in der App; Speicher nur für den
   bestätigten Zugangshinweis (Tobias 15.11.2026), alles Weitere nur nach Rückfrage; FeRD-Muster nie ins öffentliche Repo.
+
+## 5. Anfrage an den Kanzlei-PC (Cloud-Sitzung, 15.11.2026)
+
+Tobias hat am 15.11.2026 abends die offenen Punkte am Kanzlei-PC so verteilt: „formuliere eine
+Anfrage an den PC“. Bitte arbeite sie im Repo `Freigabe` und lokal ab und melde das Ergebnis über
+eine Cloud-Sitzung oder eine Datei im privaten Repo `E-Rechnung-Pruefer-privat` (`auslieferung/`).
+Keine Zugangsdaten, keine Zonen-IDs in dieses öffentliche Repo.
+
+1. **Gate auf die GitHub-Prüfung „Tests“** (Einträge `erechnung` und `erechnungtest` im Repo
+   `Freigabe`): `"gate": { "workflow": "Tests" }`.
+   - Warum: Seit Version 0.7.0 (`main`, Merge `f342986`) hat dieses Repo den Workflow
+     `.github/workflows/tests.yml` mit dem Namen „Tests“: Typprüfung, Lint, Formatierung,
+     Unit-Tests und E2E in Chromium, Firefox und WebKit, bei jedem Push auf `main` und jedem PR.
+     Er war für `f342986` und `b8b1584` grün.
+   - Der Notbehelf „der Upload führt selbst `npm test` aus“ kann dann wegfallen.
+2. **Build der Testzone** (`erechnungtest`): `npm run build:test` statt `npm run build`; hochgeladen
+   wird `dist-test/index.html` als `index.html`.
+   - Nur diese Fassung hat „Tester einladen“, ab 0.8.0 die Testseite mit „Bericht senden“ und in
+     ihrer CSP `connect-src 'self'`. Die öffentliche Zone (`erechnung`) bekommt weiter
+     `npm run build` und `dist/index.html`.
+   - Der Testbuild braucht `git` im Checkout: Er setzt den Commit als `stand` in den Bericht ein
+     (`git rev-parse --short HEAD`) und bricht ohne `git` ab.
+3. **Kanzlei-Konfiguration vor dem Build** (beide Einträge): Der Lauf muss vor dem Build das private
+   Repo `E-Rechnung-Pruefer-privat` als `tests/fixtures/lokal` auschecken oder
+   `config/kanzlei.local.json` hinlegen (`deploy/README.md`, „Zugangshinweis im Freigabe-Lauf“).
+   - Sonst entsteht **ohne Fehlermeldung** eine Fassung ohne Zugangshinweis, ohne Impressum und
+     Datenschutz und ohne Kanzleifarben.
+   - Bitte einen Prüfschritt nach dem Build: Die gebaute Datei enthält den Anfang des Hinweises und
+     beide Adressen.
+   - Die Cloud kann das nicht selbst einbauen: Das Repo `Freigabe` wird nie an eine Cloud-Sitzung
+     angehängt.
+4. **Nur `index.html` hochladen** – so sollte es nach Meinung der Cloud sein; bitte bestätigen oder
+   sagen, was der Lauf heute hochlädt.
+   - Keine Beispielrechnungen (Tobias, 15.11.2026), kein `manifest.webmanifest`, kein `sw.js`, keine
+     Quelltexte. Die App ist absichtlich nicht installierbar (`deploy/README.md`).
+5. **Nachweis nach jedem Upload:** Der Lauf schreibt nach jedem erfolgreichen Upload
+   `auslieferung/<Ziel>.json` ins private Repo `E-Rechnung-Pruefer-privat` (Adresse, Commit, Zeit,
+   Dateien mit SHA-256; Format in `deploy/README.md`, „Nachweis jedes Uploads“). Darauf baut später
+   ein täglicher Integritätsabgleich auf (Wochenprüfung, Punkt 4).
+6. **Kopfzeilen der Testzone:** Ab 0.8.0 schickt „Bericht senden“ an `/_zugang/bericht`. Setzt eine
+   Edge Rule der **Testzone** eine CSP-Kopfzeile, darf sie `connect-src` nicht auf `'none'` stellen,
+   sonst blockiert der Browser den Bericht. Die öffentliche Zone bleibt, wie sie ist.
+7. **Nach dem ersten Upload:** `curl -I` der öffentlichen Adresse (und der Testzone; dort ist 401
+   vom Login-Skript richtig). Die Ausgabe als Datei ins private Repo `E-Rechnung-Pruefer-privat`
+   (`auslieferung/kopfzeilen-JJJJ-MM-TT.txt`) legen. Die Cloud prüft damit die Sicherheits-Kopfzeilen
+   gegen `deploy/README.md` und schließt den Befund S-11 der Bestandsaufnahme.
+8. **Workspace-`CLAUDE.md`** (`c:\skripte\private\general stuff\CLAUDE.md`): in der Projekttabelle
+   einen Eintrag für das private Repo `E-Rechnung-Pruefer-privat` (reines Daten-Begleitrepo des
+   E-Rechnungs-Prüfers: FeRD-Muster, ZUGFeRD 1.0, Kanzlei-Konfiguration; eingebunden als
+   `tests/fixtures/lokal`).
+
+Nicht mehr in dieser Anfrage: die alte IONOS-Testkopie (Tobias: „nicht mehr dein Problem“) und die
+Datenschutzerklärung der Kanzlei (Tobias: „machen wir später“).

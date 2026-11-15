@@ -11,3 +11,13 @@ export const APP_CONFIG: AppConfig = __APP_CONFIG__;
  */
 export const TESTER_INVITE: { href: string; text: string } | null =
   __TESTER_INVITE__ === null ? null : { href: __TESTER_INVITE__, text: 'Tester einladen' };
+
+/**
+ * The test version (`npm run build:test`, mode `testbereich`): the test page with the manual tests
+ * and „Bericht senden“ (Tobias 2026-11-15). False in every other build, so the page and its code are
+ * left out of the live file.
+ */
+export const TEST_AREA: boolean = __TESTER_INVITE__ !== null;
+
+/** The commit the test version was built from (`git rev-parse --short HEAD`), else null. */
+export const APP_STAND: string | null = __APP_STAND__;
