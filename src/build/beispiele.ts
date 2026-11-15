@@ -221,7 +221,7 @@ export const BEISPIELE: readonly Beispiel[] = [
       ton: 'warn',
       ueberschrift: 'E-Rechnung erkannt (XRechnung 3.0) – mit Hinweisen',
       pflicht:
-        'Es fehlt: Fiskalvertreter: Name, Anschrift und USt-IdNr. (nur Ort; Postleitzahl oder Straße/Postfach).',
+        'Es fehlt: Fiskalvertreter: Name, Anschrift und USt-IdNr. (davon fehlen: Ort; Postleitzahl oder Straße/Postfach).',
     },
   },
   {

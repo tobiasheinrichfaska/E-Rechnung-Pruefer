@@ -32,6 +32,7 @@ const OTHER_KIND: Readonly<Record<string, string>> = {
   brokenXml: 'XML, fehlerhaft',
   doctypeXml: 'XML mit DOCTYPE, nicht gelesen',
   tooLargeXml: 'XML über 20 MB, nicht gelesen',
+  unreadable: 'nicht lesbar',
 };
 
 /** Targets of the jump links from the result box (G-1); one invoice card at most has them. */
@@ -213,9 +214,17 @@ function InvoiceCard({
   );
 }
 
+/** Every attachment that is no invoice XML, also those pdf.js could not read (audit QL-06) */
+function attachmentsOf(analysis: Analysis): { origin: string; kind: string }[] {
+  return [
+    ...analysis.others,
+    ...(analysis.pdf?.unreadable ?? []).map((origin) => ({ origin, kind: 'unreadable' })),
+  ];
+}
+
 /** The PDF's only attachment is the one the result already names (e.g. a broken XML, audit E-08) */
 function onlyNamedAbove(analysis: Analysis, verdict: Verdict): boolean {
-  const [only, ...more] = analysis.others;
+  const [only, ...more] = attachmentsOf(analysis);
   return (
     analysis.invoices.length === 0 &&
     only !== undefined &&
@@ -271,11 +280,11 @@ export function ResultView({ analysis, verdict, notice, actions }: Props) {
         />
       ))}
 
-      {inPdf && analysis.others.length > 0 && !onlyNamedAbove(analysis, verdict) && (
+      {inPdf && attachmentsOf(analysis).length > 0 && !onlyNamedAbove(analysis, verdict) && (
         <div className="card">
           <h3>{analysis.invoices.length > 0 ? 'Weitere Anhänge im PDF' : 'Anhänge im PDF'}</h3>
           <ul>
-            {analysis.others.map((other) => (
+            {attachmentsOf(analysis).map((other) => (
               <li key={other.origin}>
                 {other.origin} – {OTHER_KIND[other.kind] ?? other.kind}
               </li>
@@ -283,7 +292,6 @@ export function ResultView({ analysis, verdict, notice, actions }: Props) {
           </ul>
         </div>
       )}
-      {analysis.pdf?.truncated && <p className="hint">{TEXTS.attachmentsTruncated}</p>}
     </section>
   );
 }

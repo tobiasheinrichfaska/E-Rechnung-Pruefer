@@ -92,4 +92,10 @@ describe('arithmetic for the rules (step 3a)', () => {
     expect(within(n('-5'), n('-4.5'), n('1'))).toBe(true);
     expect(abs(n('-3.2')).units).toBe(32n);
   });
+
+  it('compares within a tolerance including its bounds (the CII forms, audit QL-03)', () => {
+    expect(within(n('19.00'), n('20.00'), n('1'), true)).toBe(true);
+    expect(within(n('19.00'), n('18.00'), n('1'), true)).toBe(true);
+    expect(within(n('19.00'), n('20.01'), n('1'), true)).toBe(false);
+  });
 });

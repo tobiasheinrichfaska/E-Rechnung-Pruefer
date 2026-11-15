@@ -2,8 +2,8 @@ import { readdirSync } from 'node:fs';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { MAX_FILE_BYTES, analyzeFile, fileKindOf, tooLargeFile } from '../../src/io/analyze';
 import type { PdfJsLike } from '../../src/io/pdf';
-import { TEXTS } from '../../src/logic/texts';
-import { verdictOf } from '../../src/logic/verdict';
+import { TEXTS, fill } from '../../src/logic/texts';
+import { differingLine, verdictOf } from '../../src/logic/verdict';
 import { encode, official, officialText, withInvoiceNumber, withSpecId } from '../support/fixtures';
 import { compressedPdf } from '../../src/build/compressedPdf';
 import { miniPdf } from '../../src/build/minipdf';
@@ -174,6 +174,14 @@ describe('PDF files', () => {
     expect(analysis.others.map((o) => o.kind).sort()).toEqual(['notXml', 'otherXml']);
   });
 
+  it('names in the result box only the missing parts of a partly present row (QU-03)', async () => {
+    const { verdict } = await check('r.xml', official('kosit/paare/01.14a-INVOICE_ubl.xml'));
+    expect(verdict.explanation).toContain(
+      'Es fehlen Pflichtangaben: Fiskalvertreter: Name, Anschrift und USt-IdNr. ' +
+        '(davon fehlen: Ort; Postleitzahl oder Straße/Postfach) (siehe „Pflichtangaben“).',
+    );
+  });
+
   it('keeps the invoice when other attachments are present', async () => {
     const pdf = miniPdf({
       attachments: [
@@ -206,6 +214,27 @@ describe('PDF files', () => {
     expect(verdict.explanation.join(' ')).toContain('2-mal eingebettet');
   });
 
+  // Audit QL-01: the same header is not enough — what the result shows of each part must agree
+  it('calls two invoice XML with the same header but other data different, in any order', async () => {
+    const cii = officialText(XR_CII);
+    const noTaxId = cii.replace(
+      /<ram:SpecifiedTaxRegistration>[\s\S]*?<\/ram:SpecifiedTaxRegistration>/g,
+      '',
+    );
+    expect(noTaxId).not.toContain('SpecifiedTaxRegistration');
+    for (const attachments of [
+      [xml('a.xml', cii), xml('b.xml', noTaxId)],
+      [xml('b.xml', noTaxId), xml('a.xml', cii)],
+    ]) {
+      const { analysis, verdict } = await check('r.pdf', miniPdf({ attachments }));
+      expect(verdict.comparison).toEqual({ same: false, differing: [] });
+      expect(verdict.headline).toBe(TEXTS.contradicting);
+      expect(differingLine(analysis.invoices, [])).toContain(
+        'Steuernummer oder USt-IdNr. des leistenden Unternehmers',
+      );
+    }
+  });
+
   it('never picks one of two different invoices', async () => {
     const pdf = miniPdf({
       attachments: [xml('a.xml', CII), xml('b.xml', withInvoiceNumber(CII, 'ANDERE-NR'))],
@@ -234,6 +263,54 @@ describe('PDF files', () => {
     expect(verdict.headline).toBe('PDF nicht vollständig geprüft');
     expect(verdict.explanation.join(' ')).toContain('Dokumenttyp-Angabe');
     expect(verdict.explanation.join(' ')).not.toContain('Rn. 6a');
+  });
+
+  // Audit QL-06: what the tool did not read could be a second invoice XML (F27)
+  it('names attachments not read beside an invoice XML and makes the result yellow', async () => {
+    const doctype = '<?xml version="1.0"?><!DOCTYPE a [<!ENTITY x "y">]><a>&x;</a>';
+    const broken = '<rsm:CrossIndustryInvoice xmlns:rsm="urn:x"><a></rsm:CrossIndustryInvoice>';
+    for (const [other, line] of [
+      [xml('zweite.xml', doctype), fill(TEXTS.attachmentDoctype, { name: 'zweite.xml' })],
+      [xml('zweite.xml', broken), fill(TEXTS.attachmentBroken, { name: 'zweite.xml' })],
+    ] as const) {
+      const pdf = miniPdf({ attachments: [xml('factur-x.xml', officialText(XR_CII)), other] });
+      const { verdict } = await check('r.pdf', pdf);
+      expect(verdict.tone).toBe('warn');
+      expect(verdict.headline).toBe('E-Rechnung erkannt (XRechnung 3.0) – mit Hinweisen');
+      expect(verdict.explanation.at(-1)).toBe(line);
+    }
+  });
+
+  it('names an attachment pdf.js cannot take out of the PDF, and judges nothing without', async () => {
+    const withMissingStream = (attachments: Attachment[]) => {
+      const text = new TextDecoder('latin1').decode(miniPdf({ attachments }));
+      const last = [...text.matchAll(/\/EF << \/F (\d+) 0 R >>/g)].at(-1)?.[1] ?? '';
+      // object 0 is free: the attachment's stream is missing, every offset stays right
+      const broken = text.replace(
+        `/EF << /F ${last} 0 R >>`,
+        `/EF << /F ${'0'.repeat(last.length)} 0 R >>`,
+      );
+      return new Uint8Array(Buffer.from(broken, 'latin1'));
+    };
+    const next = await check(
+      'r.pdf',
+      withMissingStream([xml('factur-x.xml', officialText(XR_CII)), xml('zweite.xml', '<a/>')]),
+    );
+    expect(next.analysis.pdf?.unreadable).toEqual(['zweite.xml']);
+    expect(next.verdict.explanation).toContain(
+      fill(TEXTS.attachmentUnreadable, { name: 'zweite.xml' }),
+    );
+    const alone = await check(
+      'r.pdf',
+      withMissingStream([xml('factur-x.xml', officialText(XR_CII))]),
+    );
+    expect(alone.analysis.invoices).toEqual([]);
+    expect(alone.verdict.tone).toBe('warn');
+    expect(alone.verdict.headline).toBe(TEXTS.pdfNotChecked);
+    expect(alone.verdict.explanation).toEqual([
+      fill(TEXTS.attachmentUnreadable, { name: 'factur-x.xml' }),
+      TEXTS.notJudged,
+    ]);
   });
 
   it('does not call a well-formed XML attachment over 20 MB a format error', async () => {
@@ -360,8 +437,15 @@ describe('schema check (step 2b)', () => {
     expect(statement).toBeLessThan(technical);
   });
 
+  // an element the schema does not know: the data stay the same (a comma amount would not, QL-01)
+  const UNKNOWN = (text: string) =>
+    text.replace(
+      '</cbc:CustomizationID>',
+      '</cbc:CustomizationID>\n<cbc:Unbekannt>x</cbc:Unbekannt>',
+    );
+
   it('names the attachment and judges several XML whatever their order', async () => {
-    const bad = xml('b-xrechnung.xml', COMMA(officialText(XR_UBL)));
+    const bad = xml('b-xrechnung.xml', UNKNOWN(officialText(XR_UBL)));
     const good = xml('a-xrechnung.xml', officialText(XR_UBL));
     for (const attachments of [
       [good, bad],

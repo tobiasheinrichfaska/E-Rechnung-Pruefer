@@ -149,6 +149,7 @@ const NO_DATE_AT_ALL = [
 /**
  * F10 (Tobias 2026-11-13, research): any address under which the business can be reached is
  * enough, also a P.O. box or a Großkundenadresse — so a missing street is a hint, not a gap.
+ * `modes`: only where the address is required at all (audit QL-08, as L-06 for the F15 hint).
  */
 function noStreetHint(
   group: string,
@@ -156,8 +157,10 @@ function noStreetHint(
   city: string,
   postcode: string,
   who: string,
+  modes?: Mode[],
 ): Hint {
   return {
+    ...(modes ? { modes } : {}),
     when: {
       kind: 'all',
       of: [
@@ -256,6 +259,8 @@ export const PFLICHTANGABEN: readonly Pflichtangabe[] = [
         'BT-52',
         'BT-53',
         'der Leistungsempfänger',
+        // § 33 UStDV does not ask for the recipient's address (NICHT_KB)
+        ['regel', 'kleinunternehmer'],
       ),
     ],
     source:

@@ -7,6 +7,7 @@ import { decimalEquals, formatAmount, parseDecimal } from './decimal';
 import { first } from './model';
 import type { BtId, InvoiceModel } from './model';
 import { checkPflichtangaben } from './check';
+import type { RowResult } from './check';
 import { profileOf } from './profiles';
 import { adviceFor, checkRules } from './rules';
 import type { RulesResult } from './rules';
@@ -76,6 +77,96 @@ export function differingTerms(parts: readonly InvoicePart[]): BtId[] {
   });
 }
 
+/** A part's Pflichtangaben row or rule results as the client reads them, to compare the parts. */
+interface Outcome {
+  key: string;
+  label: string;
+  /** Everything the result shows of it: equal signatures, equal results */
+  signature: string;
+  /** Short, for the line "Unterschiedlich: …" and the comparison table */
+  shown: string;
+}
+
+const SHOWN_MAX = 120;
+const STATUS_TEXT: Readonly<Record<RowResult['status'], string>> = {
+  vorhanden: TEXTS.statusVorhanden,
+  fehlt: TEXTS.statusFehlt,
+  einzelfall: TEXTS.statusEinzelfall,
+};
+
+function rowShown(row: RowResult): string {
+  const values = row.values.map((v) => v.value).join(', ');
+  const hints =
+    row.hints.length === 0
+      ? ''
+      : ` (${row.hints.length === 1 ? TEXTS.differingWithHint : fill(TEXTS.differingWithHints, { count: row.hints.length })})`;
+  const text = `${STATUS_TEXT[row.status]}${values ? `: ${values}` : ''}${hints}`;
+  return text.length > SHOWN_MAX ? `${text.slice(0, SHOWN_MAX - 1)}…` : text;
+}
+
+function rulesShown(rules: RulesResult): string {
+  if (rules.auffaellig.length > 0) {
+    return `${TEXTS.ruleStatusAuffaellig}: ${rules.auffaellig.join(', ')}`;
+  }
+  return rules.notChecked > 0
+    ? `${TEXTS.ruleStatusPasst}, ${rules.notChecked} ${TEXTS.ruleStatusNichtPruefbar}`
+    : TEXTS.ruleStatusPasst;
+}
+
+/** What the result shows of one part beside its header: every Pflichtangabe and the rules. */
+function outcomesOf(invoice: InvoiceVerdict): Outcome[] {
+  const model = pflichtModel(invoice);
+  if (!model) return [];
+  const rows = checkPflichtangaben(model).rows.map((row) => ({
+    key: row.row.id,
+    label: row.row.label,
+    signature: JSON.stringify([
+      row.status,
+      row.reason ?? '',
+      row.missing,
+      row.hints,
+      row.values,
+      row.groups,
+    ]),
+    shown: rowShown(row),
+  }));
+  const rules = rulesOf(invoice);
+  return rules
+    ? [
+        ...rows,
+        {
+          key: 'rules',
+          label: TEXTS.differingRules,
+          signature: JSON.stringify(rules.results.map((r) => [r.id, r.occurrence ?? '', r.status])),
+          shown: rulesShown(rules),
+        },
+      ]
+    : rows;
+}
+
+/**
+ * F27: two invoice XML are the same invoice only if the result says the same of each — the
+ * compared header values, and also the missing Pflichtangaben, the hints, the values of every row
+ * and the rule results (audit QL-01). Not the whole model: the same invoice in UBL and CII differs
+ * in documented details (tests/io/extract.test.ts). One item per row or rule that differs.
+ */
+export function differingResults(
+  parts: readonly InvoicePart[],
+): { label: string; values: string[] }[] {
+  const outcomes = parts.map((part) => {
+    const map = new Map<string, Outcome>();
+    for (const outcome of outcomesOf(judgeInvoice(part))) map.set(outcome.key, outcome);
+    return map;
+  });
+  const keys = [...new Set(outcomes.flatMap((map) => [...map.keys()]))];
+  return keys.flatMap((key) => {
+    const each = outcomes.map((map) => map.get(key));
+    if (new Set(each.map((o) => o?.signature ?? '')).size === 1) return [];
+    const label = each.find((o) => o !== undefined)?.label ?? key;
+    return [{ label, values: each.map((o) => o?.shown ?? '–') }];
+  });
+}
+
 /** A compared value as the client reads it: German date and amount, "–" when missing. */
 function shownValue(part: InvoicePart, bt: BtId): string {
   const value = first(part.header, bt)?.trim() ?? '';
@@ -93,16 +184,24 @@ function shownValue(part: InvoicePart, bt: BtId): string {
 
 /**
  * "Unterschiedlich: Rechnungsnummer (PRG1502112 / PRG1502113)." — with the values of every part,
- * so the client sees what differs without scrolling to each part (audit Bedienung, E-04).
+ * so the client sees what differs without scrolling to each part (audit Bedienung, E-04). With
+ * the same header the differing Pflichtangaben and rules are named instead (audit QL-01).
  */
 export function differingLine(parts: readonly InvoicePart[], differing: readonly BtId[]): string {
-  const items = differing.map((bt) =>
-    fill(TEXTS.differingItem, {
-      label: termLabel(bt),
-      values: parts.map((part) => shownValue(part, bt)).join(' / '),
-    }),
-  );
-  return fill(TEXTS.differingLine, { items: items.join('; ') });
+  const items =
+    differing.length > 0
+      ? differing.map((bt) => ({
+          label: termLabel(bt),
+          values: parts.map((part) => shownValue(part, bt)),
+        }))
+      : differingResults(parts);
+  return fill(TEXTS.differingLine, {
+    items: items
+      .map((item) =>
+        fill(TEXTS.differingItem, { label: item.label, values: item.values.join(' / ') }),
+      )
+      .join('; '),
+  });
 }
 
 export interface ComparisonRow {
@@ -125,6 +224,10 @@ export function comparisonRows(parts: readonly InvoicePart[]): ComparisonRow[] {
       values: parts.map((part) => shownValue(part, bt)),
       differs: differing.has(bt),
     })),
+    // the same header: what differs beside it (audit QL-01)
+    ...(differing.size === 0
+      ? differingResults(parts).map((item) => ({ ...item, differs: true }))
+      : []),
   ];
 }
 
@@ -158,18 +261,25 @@ function problemLine(problem: Problem | undefined): string[] {
   return problem ? [technicalLine(problem)] : [];
 }
 
-/** Schema problems count only where the XML is what counts (not for "keine E-Rechnung", F19). */
-function schemaFailed(invoice: InvoiceVerdict): boolean {
+/**
+ * Schema problems count only where the XML is what counts (not for "keine E-Rechnung", F19) — the
+ * result box and the detail row "Schema (XSD)" ask the same (audit QL-09).
+ */
+export function schemaFailed(invoice: InvoiceVerdict): boolean {
   return invoice.einordnung !== 'keineERechnung' && (invoice.part.schema?.count ?? 0) > 0;
 }
 
-/** Step 3a; FeRD EXTENDED has its own forms of the rules (Profile.ownRules). */
+/**
+ * Step 3a in the forms of the CEN Schematron of the part's syntax (audit QL-03); FeRD EXTENDED has
+ * its own forms of the rules (Profile.ownRules).
+ */
 export function rulesOf(invoice: InvoiceVerdict): RulesResult | undefined {
   const model = pflichtModel(invoice);
   return model
     ? checkRules(model, {
         ownRules: invoice.profile.entry?.ownRules ?? false,
         extended: invoice.part.extended,
+        syntax: invoice.part.syntax,
       })
     : undefined;
 }
@@ -201,7 +311,8 @@ function pflichtLines(invoice: InvoiceVerdict): string[] {
   return [
     ...(result.missingLabels.length > 0
       ? [
-          fill(TEXTS.pflichtMissingLine, { list: result.missingLabels.join('; ') }),
+          // the missing parts of a partly present row, as the section names them (audit QU-03)
+          fill(TEXTS.pflichtMissingLine, { list: result.missingListed.join('; ') }),
           TEXTS.supplierComplete,
         ]
       : []),
@@ -275,7 +386,8 @@ function schemaParts(
         : []),
     );
   }
-  return { german, technical };
+  // the same message of two parts is shown once (audit QL-07)
+  return { german, technical: [...new Set(technical)] };
 }
 
 /** A format error: what is wrong, the F24 sentence, the transition sentence — technique last. */
@@ -297,37 +409,92 @@ function sourceLines(invoice: InvoiceVerdict, inPdf: boolean): string[] {
     : [TEXTS.xmlFile];
 }
 
-function singleVerdict(analysis: Analysis, invoice: InvoiceVerdict): Verdict {
+/**
+ * QL-06: attachments the tool did not read beside an invoice XML — one of them may be a second
+ * invoice XML (F27), so the result is at least yellow and names them. An attachment that is no
+ * XML or a known other XML was read.
+ */
+function unreadLines(analysis: Analysis): string[] {
+  const named = (template: string, name: string) => fill(template, { name });
+  return [
+    ...analysis.others.flatMap((o) =>
+      o.kind === 'brokenXml'
+        ? [named(TEXTS.attachmentBroken, o.origin)]
+        : o.kind === 'doctypeXml'
+          ? [named(TEXTS.attachmentDoctype, o.origin)]
+          : o.kind === 'tooLargeXml'
+            ? [named(TEXTS.attachmentTooLarge, o.origin)]
+            : [],
+    ),
+    ...(analysis.pdf?.unreadable ?? []).map((name) => named(TEXTS.attachmentUnreadable, name)),
+    ...(analysis.pdf?.truncated ? [TEXTS.attachmentsTruncated] : []),
+  ];
+}
+
+/** What the verdict of one invoice reads beside the invoice itself. */
+interface Context {
+  /** Every invoice XML with these data: one, or the same data several times (F27) */
+  invoices: InvoiceVerdict[];
+  /** F27: "Dieselbe Rechnung ist 2-mal eingebettet …" — after the head lines, before the rest */
+  same: string[];
+}
+
+/**
+ * The verdict of one invoice — also of the same data embedded several times (F27): then headline
+ * and tone are those of one XML, the schema result of every part is named, each line once
+ * (audit QL-07).
+ */
+function singleVerdict(
+  analysis: Analysis,
+  invoice: InvoiceVerdict,
+  context: Context = { invoices: [invoice], same: [] },
+): Verdict {
   const inPdf = analysis.kind === 'pdf';
   const profileName = invoice.profile.entry?.profile ?? invoice.specLabel;
-  const format = formatErrorLines([invoice], inPdf);
+  // the schema result of every part, never only of the first (cf. L-03)
+  const format = formatErrorLines(context.invoices, inPdf);
+  // the same data give the same rule results (differingResults), so they are named once
   const rules = rulesLines([invoice]);
+  const { same } = context;
+  // attachments not read beside it (QL-06): after the German lines, before the technical ones
+  const unread = unreadLines(analysis);
   switch (invoice.einordnung) {
     case 'eRechnung': {
       const hint = invoice.profile.entry?.hint ? [invoice.profile.entry.hint] : [];
       if (format.german.length > 0) {
         // Step 2b: the XML does not match the official schema (F24)
+        const failed = context.invoices.find(schemaFailed) ?? invoice;
         return {
           tone: 'bad',
-          headline: fill(TEXTS.schemaErrorHeadline, { spec: invoice.specLabel }),
+          headline: fill(TEXTS.schemaErrorHeadline, { spec: failed.specLabel }),
           explanation: [
             ...sourceLines(invoice, inPdf),
             ...hint,
+            ...same,
             ...format.german,
             ...rules,
+            ...unread,
             ...format.technical,
           ],
           invoices: [invoice],
         };
       }
       // F22: missing Pflichtangaben and hints make an e-invoice yellow, as do calculation
-      // irregularities (step 3a); G-3: the headline says so
+      // irregularities (step 3a), the same data twice (F27) and attachments not read (QL-06);
+      // G-3: the headline says so
       const pflicht = pflichtLines(invoice);
-      const warn = rules.length > 0 || pflicht.length > 0;
+      const warn = [rules, pflicht, same, unread].some((lines) => lines.length > 0);
       return {
         tone: warn ? 'warn' : 'ok',
         headline: fill(warn ? TEXTS.eRechnungHints : TEXTS.eRechnung, { spec: invoice.specLabel }),
-        explanation: [...sourceLines(invoice, inPdf), ...hint, ...pflicht, ...rules],
+        explanation: [
+          ...sourceLines(invoice, inPdf),
+          ...hint,
+          ...same,
+          ...pflicht,
+          ...rules,
+          ...unread,
+        ],
         invoices: [invoice],
       };
     }
@@ -348,6 +515,8 @@ function singleVerdict(analysis: Analysis, invoice: InvoiceVerdict): Verdict {
           zugferd1 ? TEXTS.zugferd1Reason : TEXTS.minimumReason,
           // F26: with readable dates the sentence by date, else the general one (F23)
           ...transitionLines(transitionFor([invoice]), false),
+          ...same,
+          ...unread,
         ],
         invoices: [invoice],
       };
@@ -361,8 +530,10 @@ function singleVerdict(analysis: Analysis, invoice: InvoiceVerdict): Verdict {
             ? fill(TEXTS.unknownSpec, { id: invoice.profile.id })
             : TEXTS.missingSpec,
           TEXTS.shownAnyway,
+          ...same,
           ...format.german,
           ...rules,
+          ...unread,
           TEXTS.kanzleiJudges,
           ...format.technical,
         ],
@@ -412,30 +583,12 @@ export function verdictOf(analysis: Analysis): Verdict {
   if (invoices.length > 1 && only) {
     const differing = differingTerms(analysis.invoices);
     const names = analysis.invoices.map((p) => p.origin).join(', ');
-    // the schema result of every part, never only of the first (cf. L-03)
     const format = formatErrorLines(invoices, true);
-    if (differing.length === 0) {
+    if (differing.length === 0 && differingResults(analysis.invoices).length === 0) {
       // F27: the same data twice — one part is shown, with a hint on the standard
-      const base = singleVerdict(analysis, only);
-      const failed = format.german.length > 0;
-      const firstFailed = invoices.find(schemaFailed);
-      const eRechnung = only.einordnung === 'eRechnung';
+      const same = [fill(TEXTS.sameSeveral, { count: invoices.length, names })];
       return {
-        tone: failed ? 'bad' : base.tone === 'bad' ? 'bad' : 'warn',
-        headline: firstFailed
-          ? fill(TEXTS.schemaErrorHeadline, { spec: firstFailed.specLabel })
-          : eRechnung
-            ? fill(TEXTS.eRechnungHints, { spec: only.specLabel })
-            : base.headline,
-        explanation: [
-          ...(eRechnung ? sourceLines(only, true) : base.explanation),
-          ...(eRechnung && only.profile.entry?.hint ? [only.profile.entry.hint] : []),
-          fill(TEXTS.sameSeveral, { count: invoices.length, names }),
-          ...format.german,
-          ...(eRechnung && !failed ? pflichtLines(only) : []),
-          ...rulesLines(invoices),
-          ...format.technical,
-        ],
+        ...singleVerdict(analysis, only, { invoices, same }),
         invoices,
         comparison: { same: true, differing },
       };
@@ -452,6 +605,7 @@ export function verdictOf(analysis: Analysis): Verdict {
         TEXTS.askSupplier,
         ...transitionLines(transitionFor(invoices), false),
         ...schemaParts(invoices, true).german,
+        ...unreadLines(analysis),
         ...format.technical,
       ],
       invoices,
@@ -465,15 +619,17 @@ export function verdictOf(analysis: Analysis): Verdict {
       tone: 'warn',
       headline: TEXTS.otherXml,
       explanation: [
-        analysis.root
-          ? fill(TEXTS.rootIs, {
-              name: analysis.root.name,
-              namespace: analysis.root.namespace || '–',
-            })
-          : '',
         TEXTS.otherFormats,
         TEXTS.kanzleiJudges,
-      ].filter((line) => line.length > 0),
+        ...(analysis.root
+          ? [
+              fill(TEXTS.rootIs, {
+                name: analysis.root.name,
+                namespace: analysis.root.namespace || '–',
+              }),
+            ]
+          : []),
+      ],
       invoices: [],
     };
   }
@@ -491,32 +647,30 @@ export function verdictOf(analysis: Analysis): Verdict {
       invoices: [],
     };
   }
-  // An XML the tool does not read (DOCTYPE, over its size limit) or attachments beyond the first
-  // 50: not judged — as a single XML with a DOCTYPE, never "Formatfehler" (audit 2026-11-14, U-06).
-  const unread = analysis.others.filter((o) => o.kind === 'doctypeXml' || o.kind === 'tooLargeXml');
-  if (unread.length > 0 || analysis.pdf?.truncated) {
+  // An XML the tool does not read (DOCTYPE, over its size limit), an attachment it cannot take out
+  // of the PDF, or attachments beyond the first 50: not judged — as a single XML with a DOCTYPE,
+  // never "Formatfehler" (audit 2026-11-14, U-06) nor "ohne Rechnungsdaten" (audit QL-06).
+  const unread = unreadLines(analysis);
+  if (unread.length > 0) {
     return {
       tone: 'warn',
       headline: TEXTS.pdfNotChecked,
-      explanation: [
-        ...unread.map((o) =>
-          fill(o.kind === 'doctypeXml' ? TEXTS.attachmentDoctype : TEXTS.attachmentTooLarge, {
-            name: o.origin,
-          }),
-        ),
-        ...(analysis.pdf?.truncated ? [TEXTS.attachmentsTruncated] : []),
-        TEXTS.notJudged,
-      ],
+      explanation: [...unread, TEXTS.notJudged],
       invoices: [],
     };
   }
-  if (analysis.others.length > 0 || (analysis.pdf?.unreadable.length ?? 0) > 0) {
-    const names = [...analysis.others.map((o) => o.origin), ...(analysis.pdf?.unreadable ?? [])];
+  const [single, ...more] = analysis.others;
+  if (single) {
+    // QU-09: the names in quotes, so the list below can see that the result names them (E-08a)
     return {
       tone: 'bad',
       headline: TEXTS.pdfWithoutInvoiceData,
       explanation: [
-        fill(TEXTS.attachmentsNoInvoice, { names: names.join(', ') }),
+        more.length === 0
+          ? fill(TEXTS.attachmentNoInvoice, { name: single.origin })
+          : fill(TEXTS.attachmentsNoInvoice, {
+              names: analysis.others.map((o) => `„${o.origin}“`).join(', '),
+            }),
         TEXTS.plainPdfWhy,
         TEXTS.regimeGeneral,
       ],

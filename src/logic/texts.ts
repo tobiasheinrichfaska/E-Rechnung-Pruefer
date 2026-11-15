@@ -60,13 +60,16 @@ export const TEXTS = {
   askSupplier: 'Sie könnten beim Lieferanten eine eindeutige Fassung anfordern.',
 
   otherXml: 'XML-Datei ohne bekanntes Rechnungsformat',
-  rootIs: 'Wurzelelement: {name} (Namensraum {namespace}).',
+  // QU-12: a technical detail, so last in the box (as G-10 for the engine's messages)
+  rootIs: 'Technische Angabe: Wurzelelement {name} (Namensraum {namespace}).',
   otherFormats:
     'Das Tool kennt UBL und CII nach EN 16931. Andere Formate (z. B. EDI) können eine E-Rechnung sein, wenn Sie das mit dem Lieferanten vereinbart haben (§ 14 Abs. 1 Satz 6 Nr. 2 UStG; EDI übergangsweise bis Ende 2027, § 27 Abs. 38 UStG). Das Tool beurteilt sie nicht.',
 
   plainPdf: 'Keine E-Rechnung: einfaches PDF',
   pdfWithoutInvoiceData: 'Keine E-Rechnung: PDF ohne Rechnungsdaten',
   plainPdfWhy: 'Das PDF enthält keine Rechnungsdaten als XML. Ein PDF allein ist keine E-Rechnung.',
+  // the names in quotes, as everywhere else (audit QU-09)
+  attachmentNoInvoice: 'Der Anhang „{name}“ enthält keine Rechnungsdaten.',
   attachmentsNoInvoice: 'Anhänge im PDF: {names}. Keiner davon enthält Rechnungsdaten.',
   pdfBrokenXml: 'PDF mit fehlerhafter XML',
   attachmentBroken: 'Der Anhang „{name}“ ist XML, lässt sich aber nicht lesen.',
@@ -76,6 +79,8 @@ export const TEXTS = {
   attachmentTooLarge:
     'Der Anhang „{name}“ ist größer als 20 MB. So große XML-Dateien liest das Tool nicht.',
   attachmentsTruncated: 'Das PDF hat sehr viele Anhänge. Das Tool hat nur die ersten 50 gelesen.',
+  // pdf.js could not take the attachment out of the PDF (audit QL-06)
+  attachmentUnreadable: 'Der Anhang „{name}“ lässt sich nicht aus dem PDF lesen.',
   notJudged: 'Ob das PDF eine E-Rechnung ist, kann das Tool deshalb nicht sagen.',
   formatError: FORMAT_ERROR,
 
@@ -125,6 +130,10 @@ export const TEXTS = {
   checkedFile: 'Geprüfte Datei: „{name}“ – geprüft am {date} um {time} Uhr',
   differingLine: 'Unterschiedlich: {items}.',
   differingItem: '{label} ({values})',
+  // QL-01: with the same header the Pflichtangaben or the rules of the parts may still differ
+  differingWithHint: 'mit Hinweis',
+  differingWithHints: 'mit {count} Hinweisen',
+  differingRules: 'Rechnerische Prüfung',
   // G-1: rows "nur im Einzelfall nötig" without a value are folded; jump links from the box.
   // A fold-out names what it holds, not "anzeigen", which stays wrong once it is open (QU-11)
   foldedRows: '{count} Angaben, die nur in besonderen Fällen nötig sind',
@@ -241,7 +250,9 @@ export const TEXTS = {
   // with the word of a possible irregularity
   rowHintLabel: 'Hinweis:',
   rowHintOwnLabel: 'Mögliche Auffälligkeit:',
-  missingOnly: 'nur',
+  // QU-03: what is missing of a partly present row — "nur …" read as "only this is there"
+  missingPart: 'davon fehlt:',
+  missingParts: 'davon fehlen:',
   addressCity: 'Ort',
   addressPostcodeOrStreet: 'Postleitzahl oder Straße/Postfach',
   noGroup: 'keine Angabe „{group}“',
