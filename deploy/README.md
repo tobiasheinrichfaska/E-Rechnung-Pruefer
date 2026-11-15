@@ -80,13 +80,18 @@ decided“). Dort ist im Dashboard der Pull Zone eingestellt, von Hand auf dem K
   und `Cache-Control: public, max-age=0`. Die Testzone antwortet 401 vom Login-Skript mit
   `frame-ancestors`, `base-uri` und `object-src` auf `'none'`, ohne `connect-src` (so darf
   „Bericht senden“ verbinden) und ohne `form-action` (Einladungen des Login-Skripts).
-- **Offen für die Testzone:** Die Edge Rule setzt dort `Cache-Control: public, max-age=0` und
-  überschreibt damit das `no-store` bzw. `private` des Login-Skripts. Für die leere 401-Antwort ist
-  das gleich. Antworten nach der Anmeldung tragen aber das Cookie (`Set-Cookie`), und `public`
-  erlaubt fremden Zwischenspeichern, sie aufzuheben. Tobias (15.11.2026): „ja“. Der Auftrag an
-  Claude in Chrome liegt im privaten Repo (`auslieferung/auftrag-chrome-zwischenspeicher-2026-11-15.md`):
-  In beiden Testzonen des Kanzlei-Kontos `Cache-Control: private, no-store` statt der Browser-Zeit
-  0, die CDN-Zeit bleibt 0, die Live-Zonen bleiben; Prüfung mit `curl -I`, sonst zurückstellen.
+- **Zwischenspeicher der Testzonen (erledigt am 15.11.2026):** Die Edge Rule setzte dort
+  `Cache-Control: public, max-age=0` und überschrieb damit das `no-store` bzw. `private` des
+  Login-Skripts. Antworten nach der Anmeldung tragen das Cookie (`Set-Cookie`), und `public` erlaubt
+  fremden Zwischenspeichern, sie aufzuheben. Tobias: „ja“; Claude in Chrome hat es nach dem Auftrag im
+  privaten Repo (`auslieferung/auftrag-chrome-zwischenspeicher-2026-11-15.md`) geändert: In
+  `erechnungtest` und `fragebogentest` hat die Regel „Kein Zwischenspeicher“ jetzt „Override Cache
+  Time“ 0 und „Set Response Header“ `Cache-Control: private, no-store` (statt „Override Browser Cache
+  Time“ 0). `curl -I` am selben Abend: beide Testzonen 401 mit `cache-control: private, no-store`,
+  die Live-Zonen `erechnung` und `fragebogen` unverändert 200 mit `public, max-age=0`, die
+  Sicherheits-Kopfzeilen der Testzone vollständig. Dieselbe Sollzeile gilt für die
+  Einrichtungs-Aufträge im Repo `Testumgebung` und die Testzonen im privaten bunny-Konto; das
+  übernimmt die Sitzung von `Testumgebung`.
 - **Reste im Speicher:** Die Beispieldateien früherer Läufe hat Tobias am 15.11.2026 gelöscht. In
   der öffentlichen Zone antworten alle 39 Dateien von `beispiele/` mit 404 (geprüft am selben
   Abend); die Testzone lässt sich ohne Tester-Anmeldung nicht prüfen (401).
