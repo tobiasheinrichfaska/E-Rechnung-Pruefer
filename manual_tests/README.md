@@ -14,18 +14,18 @@ echter Lieferanten, echte Mailprogramme, echte Handys. Was eine Maschine prüfen
   sie zeigt“ steht unter der Dateiliste; herunterladen mit „Download raw file“), lokal
   `beispiele/index.html`. Sie werden nicht neben dem Tool hochgeladen (Tobias, 15.11.2026). Alle
   Daten sind erfunden; die Dateien dürfen in E-Mails und auf Geräte.
-- Achtung: Notieren Sie die Versionsnummer unten auf der Seite (Stand des Repos: 0.6.1). Steht
+- Achtung: Notieren Sie die Versionsnummer unten auf der Seite (Stand des Repos: 0.7.0). Steht
   dort eine ältere Nummer, ist der letzte Upload noch nicht erfolgt; prüfen Sie dann lokal.
 - Echte Rechnungen bleiben auf dem Rechner. Nie in das Repo legen, nie an Dritte senden. Notieren Sie
   nur Lieferant, Programm, Ergebnis und Abweichung – keine Beträge oder Namen von Mandanten.
 
 ## Übersicht
 
-| Datei                                                | Tests         | Bereich                                                                |
-| ---------------------------------------------------- | ------------- | ---------------------------------------------------------------------- |
-| [`01_echte_rechnungen.md`](01_echte_rechnungen.md)   | MT-01         | Echte Rechnungen: Ergebnis, Werte und jedes „fehlt“ gegen das PDF-Bild |
-| [`02_geraete.md`](02_geraete.md)                     | MT-02 – MT-03 | Ziehen aus Mailprogramm und Explorer; echtes Handy oder Tablet         |
-| [`03_verstaendlichkeit.md`](03_verstaendlichkeit.md) | MT-04         | Jedes Ergebnis und jeder Hinweis, gelesen wie von einem Mandanten      |
+| Datei                                                | Tests               | Bereich                                                                                         |
+| ---------------------------------------------------- | ------------------- | ----------------------------------------------------------------------------------------------- |
+| [`01_echte_rechnungen.md`](01_echte_rechnungen.md)   | MT-01               | Echte Rechnungen: Ergebnis, Werte und jedes „fehlt“ gegen das PDF-Bild                          |
+| [`02_geraete.md`](02_geraete.md)                     | MT-02, MT-03, MT-05 | Ziehen aus Mailprogramm und Explorer; echtes Handy oder Tablet; Tester einladen in der Testzone |
+| [`03_verstaendlichkeit.md`](03_verstaendlichkeit.md) | MT-04               | Jedes Ergebnis und jeder Hinweis, gelesen wie von einem Mandanten                               |
 
 ## Automatisiert statt von Hand
 
@@ -38,6 +38,8 @@ echter Lieferanten, echte Mailprogramme, echte Handys. Was eine Maschine prüfen
   - Pflichtangaben vollständig, mit Lücken und Hinweisen, Kleinbetrag; Positionen aufklappen.
   - Handybreite (375 px und 320 px, auch mit langem Dateinamen): nichts verschiebt sich seitlich, die
     Werte stehen unter Bezeichnung und Marke.
+  - Testfassung (`dist-test/index.html`): „Tester einladen“ in der Fußzeile, im selben Tab, auf
+    `/_zugang/einladen`; die öffentliche Fassung hat den Link nicht.
   - Screenreader: Statuszeile mit kurzem Ergebnissatz, Fokus auf dem Ergebnis, Zeilen- und
     Spaltenköpfe der Pflichtangaben, benannte Tabellen (`zugang.spec.ts`). Wie ein echter
     Screenreader vorliest, prüft das nicht.

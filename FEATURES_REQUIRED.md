@@ -36,6 +36,11 @@
 
 - [x] **Online-Fassung fragt den Hinweis vor dem Start** — Text aus der lokalen Kanzlei-Konfiguration, „Weiter“ erst mit Haken, vorher nichts vom Tool; „Antwort für die Zukunft merken“ merkt nur den Fingerabdruck des Textes; geänderter Text wird neu gefragt; heruntergeladene Datei fragt nicht
 
+## Testfassung (15.11.2026)
+
+- [x] **„Tester einladen“ nur in der Testfassung** — `npm run build:test` (`dist-test/`): Link in der Fußzeile auf `/_zugang/einladen`, im selben Tab; `dist/index.html` enthält die Adresse nie
+- [x] **GitHub-Prüfung „Tests“** — Typen, Lint, Format, Unit-Tests und E2E in drei Browsern; jeder Upload wartet darauf
+
 ## Rahmen
 
 - [x] **Keine Netzwerkanfrage, kein Speicherzugriff außer dem gemerkten Zugangshinweis** — E2E zählt beides: null bis auf genau diesen Schlüssel (Spion mit Selbsttest, Nachprüfung der Speicher nach jedem Test); ESLint lässt `localStorage` nur in `src/io/accessStore.ts` zu (Regressionstest)
