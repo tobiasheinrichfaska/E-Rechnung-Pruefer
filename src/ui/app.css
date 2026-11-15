@@ -296,9 +296,12 @@ button.primary:disabled {
   margin-top: 2px;
 }
 
+/* „Hinweis:“ in front says what it is (PflichtangabenView); the transparent border frames it in a
+   forced-colours theme, where the background is dropped, as for the badges (audit QU-05, Z-02) */
 .row-hint {
   color: var(--warn);
   background: var(--warn-bg);
+  border: 1px solid transparent;
   border-radius: 4px;
   padding: 4px 8px;
   margin-top: 4px;
@@ -445,8 +448,10 @@ button.primary:disabled {
   user-select: none;
 }
 
-/* The headline gets the focus when the result appears; no ring after a mouse action */
-.verdict h2:focus:not(:focus-visible) {
+/* The headline gets the focus when the result appears, the title after the access notice (QU-06);
+   no ring after a mouse action */
+.verdict h2:focus:not(:focus-visible),
+.page > h1:focus:not(:focus-visible) {
   outline: none;
 }
 
@@ -496,7 +501,8 @@ button.primary:disabled {
   padding-left: 20px;
 }
 
-/* G-5: on a phone nothing can be dragged — the title says "auswählen" */
+/* G-5: on a phone nothing can be dragged — the title says "auswählen", and so does the sentence
+   above the drop zone (QU-10) */
 .title-narrow {
   display: none;
 }
@@ -589,7 +595,8 @@ details.technical > summary {
     print-color-adjust: exact;
   }
 
-  .verdict h2:focus {
+  .verdict h2:focus,
+  .page > h1:focus {
     outline: none;
   }
 

@@ -125,15 +125,18 @@ export const TEXTS = {
   checkedFile: 'Geprüfte Datei: „{name}“ – geprüft am {date} um {time} Uhr',
   differingLine: 'Unterschiedlich: {items}.',
   differingItem: '{label} ({values})',
-  // G-1: rows "nur im Einzelfall nötig" without a value are folded; jump links from the box
-  foldedRows: '{count} Angaben, die nur in besonderen Fällen nötig sind – anzeigen',
-  foldedRow: 'Eine Angabe, die nur in besonderen Fällen nötig ist – anzeigen',
+  // G-1: rows "nur im Einzelfall nötig" without a value are folded; jump links from the box.
+  // A fold-out names what it holds, not "anzeigen", which stays wrong once it is open (QU-11)
+  foldedRows: '{count} Angaben, die nur in besonderen Fällen nötig sind',
+  foldedRow: 'Eine Angabe, die nur in besonderen Fällen nötig ist',
   jumpTo: 'Springen zu:',
   jumpPflicht: 'Pflichtangaben',
   jumpRules: 'Rechnerische Prüfung',
   jumpSchema: 'Technische Meldungen',
   // G-2: the technical rows of an invoice, closed
   technicalDetails: 'Technische Angaben',
+  // QU-13: the heading of the invoice data, which also names their table
+  invoiceDataHeading: 'Rechnungsdaten',
   // G-8/F27: several invoice XML in one PDF
   sameHeading: 'Rechnungsdaten (gleich in {names})',
   comparisonHeading: 'Vergleich der Rechnungsdaten',
@@ -156,6 +159,8 @@ export const TEXTS = {
   chooseFile: 'Datei auswählen',
   dropSub: 'PDF oder XML. Die Datei bleibt auf Ihrem Gerät.',
   introLeadText: 'Wählen Sie eine Rechnung aus oder ziehen Sie sie hierher.',
+  // QU-10: on a phone nothing can be dragged — the sentence says it as the title does (G-5)
+  introLeadTextPhone: 'Wählen Sie eine Rechnung aus.',
 
   // The access notice before the hosted copy opens (Tobias 2026-11-15, as in the Fragebogen); the
   // notice itself comes from the local Kanzlei configuration, never from this repo
@@ -166,9 +171,17 @@ export const TEXTS = {
   // Links at the foot of the page, addresses from the local Kanzlei configuration
   imprint: 'Impressum',
   privacy: 'Datenschutz',
+  // Said to screen readers only: these links open a new tab (audit QU-15, technique G201)
+  newTab: '(öffnet in neuem Tab)',
 
   // Only the first file of a drop counts — said, not silent (audit Bedienung, A-04)
   onlyFirstFile: 'Sie haben {count} Dateien abgelegt. Geprüft wurde nur die erste.',
+
+  // An unexpected error: the German sentences first, the engine's (mostly English) message last as
+  // a technical line (G-10, audit QU-14)
+  failedHeadline: 'Die Prüfung ist abgebrochen',
+  failedWhy: 'Bei „{name}“ ist ein unerwarteter Fehler aufgetreten.',
+  failedAgain: 'Bitte versuchen Sie es erneut oder wenden Sie sich an Ihre Kanzlei.',
 
   announceChecking: '„{name}“ wird geprüft.',
   announceResult: 'Ergebnis: {headline}.',
@@ -193,8 +206,8 @@ export const TEXTS = {
   rulesHint: 'Mögliche Auffälligkeit bei den Beträgen: {ids} (siehe „Rechnerische Prüfung“).',
   rulesHintIn:
     'Mögliche Auffälligkeit bei den Beträgen im Anhang „{name}“: {ids} (siehe „Rechnerische Prüfung“).',
-  rulesShowAll: 'Alle geprüften Regeln anzeigen',
-  rulesShowOthers: 'Weitere geprüfte Regeln anzeigen',
+  rulesShowAll: 'Alle geprüften Regeln',
+  rulesShowOthers: 'Weitere geprüfte Regeln',
   ruleStatusPasst: 'passt',
   ruleStatusAuffaellig: 'mögliche Auffälligkeit',
   ruleStatusNichtPruefbar: 'nicht prüfbar',
@@ -224,6 +237,10 @@ export const TEXTS = {
   hintBelow: 'Bitte beachten Sie den Hinweis unten.',
   hintsBelow: 'Bitte beachten Sie die {count} Hinweise unten.',
   missingList: 'Es fehlt: {list}.',
+  // QU-05: a row hint is named in words, not by its colour alone — unless its text already starts
+  // with the word of a possible irregularity
+  rowHintLabel: 'Hinweis:',
+  rowHintOwnLabel: 'Mögliche Auffälligkeit:',
   missingOnly: 'nur',
   addressCity: 'Ort',
   addressPostcodeOrStreet: 'Postleitzahl oder Straße/Postfach',
@@ -231,7 +248,7 @@ export const TEXTS = {
   statusVorhanden: 'vorhanden',
   statusFehlt: 'fehlt',
   statusEinzelfall: 'nur im Einzelfall nötig',
-  showPositions: 'Positionen anzeigen ({count})',
+  showPositions: 'Positionen ({count})',
   notInXml: '– nicht in der XML',
   noModel:
     'Für diese Rechnungsdaten zeigt das Tool keine Pflichtangaben (kein Format nach EN 16931).',

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { official } from '../support/fixtures';
+import { encode, official, officialText } from '../support/fixtures';
 import { openApp, sideEffects, upload } from './helpers';
 
 test('shows every Pflichtangabe of a complete invoice with its values', async ({ page }) => {
@@ -42,7 +42,11 @@ test('names what is missing, with the missing parts, and shows hints', async ({ 
   );
   const address = page.getByTestId('pflicht-anschrift-leistender');
   await expect(address.getByTestId('status')).toHaveText('vorhanden');
-  await expect(address.getByTestId('row-hint')).toContainText('Ohne Straße oder Postfach');
+  // QU-05: a hint says so in words, not by its colour alone, and keeps a frame in a forced-colours
+  // theme (a transparent border, as the badges have)
+  const hint = address.getByTestId('row-hint');
+  await expect(hint).toHaveText(/^Hinweis: Ohne Straße oder Postfach/);
+  expect(await hint.evaluate((e) => getComputedStyle(e).borderTopStyle)).toBe('solid');
   await expect(page.getByRole('heading', { name: /Angaben in besonderen Fällen/ })).toBeVisible();
   const representative = page.getByTestId('pflicht-fiskalvertreter');
   await expect(representative.getByTestId('status')).toHaveText('fehlt');
@@ -63,6 +67,27 @@ test('applies the reduced list of a Kleinbetragsrechnung', async ({ page }) => {
 
   await expect(page.locator('.pflicht .mode')).toContainText('§ 33 UStDV');
   await expect(page.getByTestId('pflicht-summe').getByTestId('status')).toHaveText('vorhanden');
+
+  expect(problems).toEqual([]);
+  expect(await sideEffects(page)).toEqual([]);
+});
+
+// QU-05: a hint that already names a possible irregularity gets no „Hinweis:“ in front of it
+test('keeps „Mögliche Auffälligkeit:“ as the only word in front of such a hint', async ({
+  page,
+}) => {
+  const problems = await openApp(page);
+  // as sample 09: a credit note (381) called „Gutschrift“ in a note
+  const text = officialText('kosit/paare/01.06a-INVOICE_uncefact.xml')
+    .replace('<ram:TypeCode>380</ram:TypeCode>', '<ram:TypeCode>381</ram:TypeCode>')
+    .replace(
+      '    </rsm:ExchangedDocument>',
+      '        <ram:IncludedNote>\n            <ram:Content>Gutschrift zur Rechnung R123456788</ram:Content>\n        </ram:IncludedNote>\n    </rsm:ExchangedDocument>',
+    );
+  await upload(page, 'korrektur.xml', encode(text), 'application/xml');
+  await expect(page.getByTestId('pflicht-gutschrift').getByTestId('row-hint')).toHaveText(
+    /^Mögliche Auffälligkeit: In einer Bemerkung steht „Gutschrift“/,
+  );
 
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);

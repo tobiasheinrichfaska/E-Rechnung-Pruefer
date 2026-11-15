@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { encode, official, officialText } from '../support/fixtures';
+import { encode, official, officialText, withInvoiceNumber } from '../support/fixtures';
 import { miniPdf } from '../../src/build/minipdf';
 import { openApp, sideEffects, upload } from './helpers';
 
@@ -59,6 +59,32 @@ test('names a file the browser cannot read in German', async ({ page }) => {
   await expect(page.getByTestId('headline')).toHaveText('Die Datei lässt sich nicht öffnen');
   await expect(page.getByTestId('verdict')).toContainText('Vielleicht ist es ein Ordner');
   await expect(page.getByTestId('verdict')).not.toContainText('could not be found');
+  expect(problems).toEqual([]);
+  expect(await sideEffects(page)).toEqual([]);
+});
+
+// QU-14: an error the tool does not expect — the German sentences first, the engine's message last
+// and marked as English. Simulated: the decoder that tells PDF from XML fails.
+test('shows an unexpected error in German and marks its message as English', async ({ page }) => {
+  const problems = await openApp(page);
+  await page.evaluate(() => {
+    const decode = TextDecoder.prototype.decode;
+    TextDecoder.prototype.decode = function (this: TextDecoder, ...args) {
+      if (this.encoding === 'windows-1252') throw new TypeError('Simulated decoder failure');
+      return decode.apply(this, args);
+    };
+  });
+  await upload(page, 'kaputt.xml', official(XRECHNUNG), 'application/xml');
+  await expect(page.getByTestId('headline')).toHaveText('Die Prüfung ist abgebrochen');
+  await expect(page.getByTestId('headline')).toBeFocused();
+  const box = page.getByTestId('verdict');
+  await expect(box.locator('p')).toHaveText([
+    'Bei „kaputt.xml“ ist ein unerwarteter Fehler aufgetreten.',
+    'Bitte versuchen Sie es erneut oder wenden Sie sich an Ihre Kanzlei.',
+    'Technische Meldung: Simulated decoder failure',
+  ]);
+  await expect(box.locator('[lang="en"]')).toHaveText('Simulated decoder failure');
+  await expect(page.getByRole('status')).toHaveText('Die Prüfung ist abgebrochen.');
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);
 });
@@ -146,7 +172,7 @@ test('folds the rows without a value, links to the sections and keeps the notice
   // G-1: rows "nur im Einzelfall nötig" without a value are closed, one click away
   const folded = page.getByTestId('folded-rows').first();
   await expect(folded.locator('summary')).toHaveText(
-    /^(\d+ Angaben, die nur in besonderen Fällen nötig sind|Eine Angabe, die nur in besonderen Fällen nötig ist) – anzeigen$/,
+    /^(\d+ Angaben, die nur in besonderen Fällen nötig sind|Eine Angabe, die nur in besonderen Fällen nötig ist)$/,
   );
   await expect(folded.locator('tbody tr').first()).toBeHidden();
   await folded.locator('summary').click();
@@ -206,6 +232,34 @@ test('prints and copies the result for the Kanzlei (G-4)', async ({ page }) => {
   ]);
   expect(text).toContain('Ergebnis: E-Rechnung erkannt (XRechnung 3.0)');
   expect(text).toContain('Pflichtangaben: ');
+
+  // QU-07: the copy carries what the page shows besides the box lines
+  const copy = async () => {
+    await page.getByRole('button', { name: 'Ergebnis als Text kopieren' }).click();
+    await expect(page.getByTestId('copy-result')).toBeVisible();
+    const all = await page.evaluate(() => (window as unknown as { __copied: string[] }).__copied);
+    return all.at(-1) ?? '';
+  };
+  // the reduced list of a Kleinbetragsrechnung (§ 33 UStDV)
+  await upload(
+    page,
+    'klein.xml',
+    official('kosit/paare/01.02a-INVOICE_ubl.xml'),
+    'application/xml',
+  );
+  expect(await copy()).toMatch(/\n[^\n]*§ 33 UStDV\.\nPflichtangaben: /);
+  // two different invoice XML: what differs, as in the box
+  const cii = officialText('cen/CII_example1.xml');
+  const xml = (name: string, data: string) => ({ name, bytes: encode(data), mime: 'text/xml' });
+  await upload(
+    page,
+    'zwei.pdf',
+    miniPdf({ attachments: [xml('a.xml', cii), xml('b.xml', withInvoiceNumber(cii, 'X-2'))] }),
+    'application/pdf',
+  );
+  const differing = await page.getByTestId('differing').innerText();
+  expect(differing).toMatch(/^Unterschiedlich: Rechnungsnummer/);
+  expect(await copy()).toContain(`\n${differing}\n`);
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);
 });
@@ -223,9 +277,18 @@ test('shrinks the drop zone after a result and says "auswählen" on a phone (G-5
   // a phone, before a result (the spy of openApp stays in place over a reload)
   await page.setViewportSize({ width: 375, height: 740 });
   await page.reload();
-  await expect(page.locator('.title-narrow')).toHaveText('Rechnung auswählen');
-  await expect(page.locator('.title-narrow')).toBeVisible();
-  await expect(page.locator('.title-wide')).toBeHidden();
+  await expect(page.locator('.dropzone .title-narrow')).toHaveText('Rechnung auswählen');
+  await expect(page.locator('.dropzone .title-narrow')).toBeVisible();
+  await expect(page.locator('.dropzone .title-wide')).toBeHidden();
+  // QU-10: the sentence above the drop zone does not say "ziehen" either
+  await expect(page.locator('.lead p').first()).toHaveText('Wählen Sie eine Rechnung aus.', {
+    useInnerText: true,
+  });
+  await page.setViewportSize({ width: 1280, height: 740 });
+  await expect(page.locator('.lead p').first()).toHaveText(
+    'Wählen Sie eine Rechnung aus oder ziehen Sie sie hierher.',
+    { useInnerText: true },
+  );
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);
 });

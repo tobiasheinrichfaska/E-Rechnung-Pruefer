@@ -18,6 +18,11 @@ test('announces the result in one short sentence and moves the focus to it', asy
   await expect(status).toHaveText('Ergebnis: E-Rechnung erkannt (XRechnung 3.0) – mit Hinweisen.');
   expect(await page.locator('[aria-live]').count()).toBe(0);
   await expect(page.getByTestId('headline')).toBeFocused();
+  // QU-13: from the box a heading leads to the invoice data, and their table is named
+  await expect(
+    page.getByRole('heading', { level: 3, name: 'Rechnungsdaten', exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole('table', { name: 'Rechnungsdaten', exact: true })).toHaveCount(1);
 
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);
@@ -58,6 +63,11 @@ test('keeps the names of sections and tables unique with several invoice XML', a
   await expect(
     page.getByRole('heading', { name: /gleich in „a\.xml“ und „b\.xml“/ }),
   ).toBeVisible();
+  // QU-13: the same data twice keep their one heading, which names the table
+  await expect(
+    page.getByRole('table', { name: /^Rechnungsdaten \(gleich in „a\.xml“ und „b\.xml“\)$/ }),
+  ).toHaveCount(1);
+  await expect(page.getByRole('heading', { name: 'Rechnungsdaten', exact: true })).toHaveCount(0);
 
   await upload(
     page,

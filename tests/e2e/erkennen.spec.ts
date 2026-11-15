@@ -251,7 +251,11 @@ test('reports a schema problem with its line and lists the technical messages', 
     'Abweichungen vom Schema UBL 2.1 (Invoice): ',
   );
   const list = page.getByTestId('schema-problems');
-  await list.locator('summary').click();
+  await expect(list).not.toHaveAttribute('open');
+  // QU-11: the jump link opens the closed messages it leads to — no second click
+  await page.getByTestId('jump-links').getByRole('link', { name: 'Technische Meldungen' }).click();
+  await expect(page).toHaveURL(/#technische-meldungen$/);
+  await expect(list).toHaveAttribute('open', '');
   await expect(list.locator('li').first()).toContainText('336,90');
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);
@@ -280,6 +284,8 @@ test('names a calculation irregularity with its rule and values', async ({ page 
   await expect(rule).toContainText('mögliche Auffälligkeit');
   await expect(rule).toContainText('Gesamtbetrag mit Umsatzsteuer (BT-112): 346,90 EUR');
   await expect(rule).toContainText('Nach der Regel erwartet: 336,90 EUR');
+  // QU-11: the fold-out names what it holds; open, it does not keep saying "anzeigen"
+  await expect(page.locator('.rules-all summary')).toHaveText(/^Weitere geprüfte Regeln \(\d+\)$/);
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);
 });
