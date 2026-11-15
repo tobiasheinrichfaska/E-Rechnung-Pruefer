@@ -88,6 +88,8 @@ export function App() {
   const [gateOpen, setGateOpen] = useState(() =>
     accessGateNeeded({ notice, protocol: location.protocol, remembered: loadAccess }),
   );
+  // The notice and its focused „Weiter“ are gone once confirmed: the tool takes the focus then
+  const [confirmed, setConfirmed] = useState(false);
 
   // While the notice is open nothing of the tool runs; a file dropped on the page must not make
   // the browser leave it and open the file either
@@ -110,6 +112,7 @@ export function App() {
           notice={notice}
           onConfirm={(remember) => {
             if (remember) saveAccess(accessToken(notice));
+            setConfirmed(true);
             setGateOpen(false);
           }}
         />
@@ -117,10 +120,11 @@ export function App() {
       </main>
     );
   }
-  return <Checker />;
+  return <Checker focusTitle={confirmed} />;
 }
 
-function Checker() {
+/** `focusTitle`: the access notice was just confirmed, so the focus starts at the title. */
+function Checker({ focusTitle = false }: { focusTitle?: boolean }) {
   const [state, setState] = useState<State>({ step: 'idle' });
   // G-4: the outcome of "Ergebnis als Text kopieren", said in the status line
   const [copied, setCopied] = useState<boolean | undefined>(undefined);
@@ -166,6 +170,13 @@ function Checker() {
 
   const busy = state.step === 'checking';
   const result = useRef<HTMLDivElement>(null);
+  const title = useRef<HTMLHeadingElement>(null);
+
+  // After „Weiter“ the focused button is gone and the focus would fall back to the page: a screen
+  // reader starts at the tool's title and reads on from there (audit QU-06, as U-04)
+  useEffect(() => {
+    if (focusTitle) title.current?.focus();
+  }, [focusTitle]);
 
   // Keyboard and screen-reader users land on the result; the button they used was disabled
   // during the check, so the focus would otherwise fall back to the page (audit 2026-11-14, U-04)
@@ -225,7 +236,9 @@ function Checker() {
 
   return (
     <main className="page">
-      <h1>{APP_NAME}</h1>
+      <h1 ref={title} tabIndex={-1}>
+        {APP_NAME}
+      </h1>
       {/* G-6: what the tool shows — only before a result, the result itself says the rest */}
       {state.step !== 'done' && (
         <div className="lead">

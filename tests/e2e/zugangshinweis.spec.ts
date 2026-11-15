@@ -16,6 +16,7 @@ const NOTICE = loadAppConfig().config.accessNotice;
 const gate = (page: Page) => page.getByRole('heading', { name: 'Bitte bestätigen' });
 const tool = (page: Page) => page.getByRole('button', { name: 'Datei auswählen' });
 const next = (page: Page) => page.getByRole('button', { name: 'Weiter', exact: true });
+const title = (page: Page) => page.getByRole('heading', { level: 1, name: 'E-Rechnung prüfen' });
 
 test('the spy allows exactly the access key and still reports every other storage access', async ({
   page,
@@ -54,6 +55,8 @@ test.describe('with the notice of the local configuration', () => {
     await page.getByRole('checkbox', { name: notice }).check();
     await next(page).click();
     await expect(tool(page)).toBeVisible();
+    // QU-06: the confirmed notice is gone; the focus lands on the tool's title, not on the page
+    await expect(title(page)).toBeFocused();
     expect(problems).toEqual([]);
     expect(await sideEffects(page)).toEqual([]);
   });
@@ -123,6 +126,8 @@ test.describe('with the notice of the local configuration', () => {
     await openApp(page);
     await expect(tool(page)).toBeVisible();
     await expect(gate(page)).toHaveCount(0);
+    // nothing was confirmed, so the focus stays where the browser puts it
+    await expect(title(page)).not.toBeFocused();
     expect(await sideEffects(page)).toEqual([]);
   });
 });

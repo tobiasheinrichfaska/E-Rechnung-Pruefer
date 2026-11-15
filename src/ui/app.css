@@ -448,8 +448,10 @@ button.primary:disabled {
   user-select: none;
 }
 
-/* The headline gets the focus when the result appears; no ring after a mouse action */
-.verdict h2:focus:not(:focus-visible) {
+/* The headline gets the focus when the result appears, the title after the access notice (QU-06);
+   no ring after a mouse action */
+.verdict h2:focus:not(:focus-visible),
+.page > h1:focus:not(:focus-visible) {
   outline: none;
 }
 
@@ -592,7 +594,8 @@ details.technical > summary {
     print-color-adjust: exact;
   }
 
-  .verdict h2:focus {
+  .verdict h2:focus,
+  .page > h1:focus {
     outline: none;
   }
 
