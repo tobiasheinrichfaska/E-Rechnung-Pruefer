@@ -63,6 +63,32 @@ test('names a file the browser cannot read in German', async ({ page }) => {
   expect(await sideEffects(page)).toEqual([]);
 });
 
+// QU-14: an error the tool does not expect — the German sentences first, the engine's message last
+// and marked as English. Simulated: the decoder that tells PDF from XML fails.
+test('shows an unexpected error in German and marks its message as English', async ({ page }) => {
+  const problems = await openApp(page);
+  await page.evaluate(() => {
+    const decode = TextDecoder.prototype.decode;
+    TextDecoder.prototype.decode = function (this: TextDecoder, ...args) {
+      if (this.encoding === 'windows-1252') throw new TypeError('Simulated decoder failure');
+      return decode.apply(this, args);
+    };
+  });
+  await upload(page, 'kaputt.xml', official(XRECHNUNG), 'application/xml');
+  await expect(page.getByTestId('headline')).toHaveText('Die Prüfung ist abgebrochen');
+  await expect(page.getByTestId('headline')).toBeFocused();
+  const box = page.getByTestId('verdict');
+  await expect(box.locator('p')).toHaveText([
+    'Bei „kaputt.xml“ ist ein unerwarteter Fehler aufgetreten.',
+    'Bitte versuchen Sie es erneut oder wenden Sie sich an Ihre Kanzlei.',
+    'Technische Meldung: Simulated decoder failure',
+  ]);
+  await expect(box.locator('[lang="en"]')).toHaveText('Simulated decoder failure');
+  await expect(page.getByRole('status')).toHaveText('Die Prüfung ist abgebrochen.');
+  expect(problems).toEqual([]);
+  expect(await sideEffects(page)).toEqual([]);
+});
+
 test('invites a drop only for files, also over the rest of the page', async ({ page }) => {
   const problems = await openApp(page);
   const zone = page.locator('.dropzone');

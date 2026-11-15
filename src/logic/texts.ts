@@ -175,6 +175,12 @@ export const TEXTS = {
   // Only the first file of a drop counts — said, not silent (audit Bedienung, A-04)
   onlyFirstFile: 'Sie haben {count} Dateien abgelegt. Geprüft wurde nur die erste.',
 
+  // An unexpected error: the German sentences first, the engine's (mostly English) message last as
+  // a technical line (G-10, audit QU-14)
+  failedHeadline: 'Die Prüfung ist abgebrochen',
+  failedWhy: 'Bei „{name}“ ist ein unerwarteter Fehler aufgetreten.',
+  failedAgain: 'Bitte versuchen Sie es erneut oder wenden Sie sich an Ihre Kanzlei.',
+
   announceChecking: '„{name}“ wird geprüft.',
   announceResult: 'Ergebnis: {headline}.',
   announceFailed: 'Die Prüfung ist abgebrochen.',

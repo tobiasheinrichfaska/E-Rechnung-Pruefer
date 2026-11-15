@@ -15,7 +15,7 @@ import type { Verdict } from '../logic/verdict';
 import { AccessGate } from './AccessGate';
 import { DropZone } from './DropZone';
 import { Footer } from './Footer';
-import { ResultView } from './ResultView';
+import { Line, ResultView } from './ResultView';
 
 /** The one short sentence a screen reader announces (never the whole result). */
 function announcement(state: State): string {
@@ -322,12 +322,16 @@ function Checker({ focusTitle = false }: { focusTitle?: boolean }) {
         {state.step === 'failed' && (
           <div className="verdict tone-bad" data-testid="verdict">
             <h2 data-testid="headline" tabIndex={-1}>
-              Die Prüfung ist abgebrochen
+              {TEXTS.failedHeadline}
             </h2>
-            <p>
-              Bei „{state.fileName}“ ist ein unerwarteter Fehler aufgetreten: {state.message}
-            </p>
-            <p>Bitte versuchen Sie es erneut oder wenden Sie sich an Ihre Kanzlei.</p>
+            <p>{fill(TEXTS.failedWhy, { name: state.fileName })}</p>
+            <p>{TEXTS.failedAgain}</p>
+            {/* the message itself last and marked as English (audit QU-14, as Z-04) */}
+            {state.message && (
+              <p>
+                <Line text={fill(TEXTS.problemMessage, { message: state.message })} />
+              </p>
+            )}
           </div>
         )}
       </div>

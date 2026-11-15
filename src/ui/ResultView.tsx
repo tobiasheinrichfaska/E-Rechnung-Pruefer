@@ -42,7 +42,7 @@ const ANCHOR = {
 } as const;
 
 /** A result line; the engine's English message inside it is marked as English (audit Z-04). */
-function Line({ text }: { text: string }) {
+export function Line({ text }: { text: string }) {
   const parts = technicalParts(text);
   if (!parts) return <>{text}</>;
   return (
