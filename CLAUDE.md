@@ -234,6 +234,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 
 | Version | Merge commit in `main` | Date       | Content                                                                                 |
 | ------- | ---------------------- | ---------- | --------------------------------------------------------------------------------------- |
+| 0.8.0   | `2374542`              | 2026-11-15 | Test page with reports without free text (test version only)                            |
 | 0.7.0   | `f342986`              | 2026-11-15 | GitHub check „Tests“, test version with „Tester einladen“, not installable              |
 | 0.6.3   | `5d906a1`              | 2026-11-15 | Not in search engines (`noindex`)                                                       |
 | 0.6.2   | `e3deb50`              | 2026-11-15 | Footer without „in Entwicklung“                                                         |
@@ -305,7 +306,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
   spec allows one, without free text); the receiving side (`/_zugang/bericht`, `app`
   `erechnung` in Testumgebung's `zugang/bereiche.json`) is built in `Testumgebung`, until then 404.
 - **E2E runs on file://**; the hosted copy is **older** than the repo (uploaded 2026-11-13 at
-  Fragebogen commit 76828a3, step 1c, version 0.1.0); the repo is at 0.7.0 (merge `f342986`, see Versioning) —
+  Fragebogen commit 76828a3, step 1c, version 0.1.0); the repo is at 0.8.0 (merge `2374542`, see Versioning) —
   upload only after Tobias' OK.
 - **Browsers:** the single inline script needs class static blocks and the CSP
   `'wasm-unsafe-eval'`, so the floor is about Chrome/Edge 98, Firefox 102, Safari 16.4 (derived from
@@ -350,6 +351,7 @@ PC session (Tobias; spec: repo `Testumgebung`, `docs/testbericht.md`, read in th
 - Open: whether the run may be kept in the browser (storage rule, ask Tobias); the PDF copy
   (optional); `app: "erechnung"` for `erechnung-test` in Testumgebung's `zugang/bereiche.json` (its
   own session builds the receiving side).
+- PR #25 merged (`2374542`).
 
 **2026-11-15 — GitHub check „Tests“ and the test version (version 0.7.0):** both tasks of the Kanzlei
 PC session (Tobias) done:
