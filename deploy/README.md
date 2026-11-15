@@ -83,8 +83,10 @@ decided“). Dort ist im Dashboard der Pull Zone eingestellt, von Hand auf dem K
 - **Offen für die Testzone:** Die Edge Rule setzt dort `Cache-Control: public, max-age=0` und
   überschreibt damit das `no-store` bzw. `private` des Login-Skripts. Für die leere 401-Antwort ist
   das gleich. Antworten nach der Anmeldung tragen aber das Cookie (`Set-Cookie`), und `public`
-  erlaubt fremden Zwischenspeichern, sie aufzuheben. Vorschlag: In der Testzone `Cache-Control`
-  nicht mehr setzen, sodass das Skript entscheidet (Kanzlei-PC, Repo `Testumgebung`).
+  erlaubt fremden Zwischenspeichern, sie aufzuheben. Tobias (15.11.2026): „ja“. Der Auftrag an
+  Claude in Chrome liegt im privaten Repo (`auslieferung/auftrag-chrome-zwischenspeicher-2026-11-15.md`):
+  In beiden Testzonen des Kanzlei-Kontos `Cache-Control: private, no-store` statt der Browser-Zeit
+  0, die CDN-Zeit bleibt 0, die Live-Zonen bleiben; Prüfung mit `curl -I`, sonst zurückstellen.
 - **Reste im Speicher:** Die Beispieldateien früherer Läufe hat Tobias am 15.11.2026 gelöscht. In
   der öffentlichen Zone antworten alle 39 Dateien von `beispiele/` mit 404 (geprüft am selben
   Abend); die Testzone lässt sich ohne Tester-Anmeldung nicht prüfen (401).
