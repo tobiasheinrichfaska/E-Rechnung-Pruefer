@@ -6,7 +6,16 @@ import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { loadAppConfig } from '../../src/build/kanzleiConfig';
-import { BUILT, BUILT_TEST, HOSTED, openApp, openHosted, sideEffects } from './helpers';
+import {
+  BUILT,
+  BUILT_TEST,
+  HOSTED,
+  openApp,
+  openHosted,
+  sideEffects,
+  TEST_VERSION_KEYS,
+} from './helpers';
+import { TEST_RUN_STORAGE } from '../../src/logic/storageKeys';
 
 const pkg = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')) as {
   version: string;
@@ -38,7 +47,13 @@ async function passNotice(page: Page) {
 
 test('the live build has no test page and no connection', async ({ page }) => {
   const live = readFileSync(BUILT, 'utf8');
-  for (const word of ['Bericht senden', 'testbericht/1', 'Testanleitung', 'MT-01']) {
+  for (const word of [
+    'Bericht senden',
+    'testbericht/1',
+    'Testanleitung',
+    'MT-01',
+    TEST_RUN_STORAGE,
+  ]) {
     expect(live, word).not.toContain(word);
   }
   const problems = await openApp(page);
@@ -68,7 +83,7 @@ test('the test version lists the manual tests beside the tool and may connect to
   // no text field anywhere on the page
   await expect(page.locator('textarea, input[type="text"], input:not([type])')).toHaveCount(0);
   expect(problems).toEqual([]);
-  expect(await sideEffects(page)).toEqual([]);
+  expect(await sideEffects(page, TEST_VERSION_KEYS)).toEqual([]);
 });
 
 test('measures the time, takes results without free text and sends the report', async ({
@@ -115,7 +130,9 @@ test('measures the time, takes results without free text and sends the report', 
   await expect(panel(page)).toContainText('1 bestanden · 1 nicht bestanden · 3 nicht getestet');
 
   await send.click();
-  await expect(panel(page).getByRole('status')).toHaveText('Bericht gesendet.');
+  await expect(panel(page).getByRole('status')).toHaveText(
+    'Bericht gesendet. Die Ergebnisse sind gelöscht, Sie können neu beginnen.',
+  );
   expect(received).toHaveLength(1);
   const report = received[0] as { stand: string };
   expect(report.stand).toMatch(/^[0-9a-f]{7,40}$/);
@@ -142,7 +159,7 @@ test('measures the time, takes results without free text and sends the report', 
   });
   // the only request left the page for its own address
   expect(problems).toEqual([]);
-  expect(await sideEffects(page)).toEqual([]);
+  expect(await sideEffects(page, TEST_VERSION_KEYS)).toEqual([]);
 });
 
 test('shows the refusal of the login script and the missing receiver', async ({ page }) => {
@@ -182,4 +199,58 @@ test('on a phone the test page and the tool are two tabs', async ({ page }) => {
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
   expect(overflow).toBeLessThanOrEqual(0);
+});
+
+test('keeps the run in this browser across a reload and clears it once sent', async ({ page }) => {
+  await openHosted(page, '/', BUILT_TEST);
+  await expect(panel(page)).toContainText('bleiben in diesem Browser gespeichert');
+  await panel(page)
+    .getByRole('button', { name: /^MT-03: / })
+    .click();
+  await panel(page).getByRole('radio', { name: 'Bestanden', exact: true }).check();
+  await panel(page).getByRole('button', { name: '← Zurück zur Liste' }).click();
+  await panel(page)
+    .getByRole('button', { name: /^MT-05: / })
+    .click();
+  await panel(page).getByRole('radio', { name: 'Nicht bestanden', exact: true }).check();
+  await panel(page).getByRole('combobox', { name: 'Schritt 2' }).selectOption('fehlt');
+
+  // MT-05 step 3 leaves the page („Zurück zur App“): after the reload everything is back
+  await page.reload();
+  await expect(panel(page).getByRole('heading', { name: /^MT-05: / })).toBeVisible();
+  await expect(panel(page).getByRole('combobox', { name: 'Schritt 2' })).toHaveValue('fehlt');
+  await panel(page).getByRole('button', { name: '← Zurück zur Liste' }).click();
+  await expect(panel(page)).toContainText('1 bestanden · 1 nicht bestanden · 3 nicht getestet');
+  expect(await sideEffects(page, TEST_VERSION_KEYS)).toEqual([]);
+
+  const received = await receiver(page, 200, 'ok');
+  await panel(page).getByRole('button', { name: 'Bericht senden' }).click();
+  await expect(panel(page).getByRole('status')).toContainText('Bericht gesendet.');
+  expect(received).toHaveLength(1);
+  await expect(panel(page)).toContainText('0 bestanden · 0 nicht bestanden · 5 nicht getestet');
+  const left = await page.evaluate(
+    (name) => Object.keys(localStorage).filter((key) => key.startsWith(name)),
+    TEST_RUN_STORAGE,
+  );
+  expect(left).toEqual([]);
+  await page.reload();
+  await expect(panel(page)).toContainText('5 nicht getestet');
+});
+
+test('„Neu beginnen“ asks once more and then deletes the run', async ({ page }) => {
+  await openHosted(page, '/', BUILT_TEST);
+  await expect(panel(page).getByRole('button', { name: 'Neu beginnen' })).toHaveCount(0);
+  await panel(page)
+    .getByRole('button', { name: /^MT-01: / })
+    .click();
+  await panel(page).getByRole('radio', { name: 'Bestanden', exact: true }).check();
+  await panel(page).getByRole('button', { name: 'Neu beginnen' }).click();
+  await panel(page).getByRole('button', { name: 'Abbrechen' }).click();
+  await expect(panel(page)).toContainText('1 bestanden');
+  await panel(page).getByRole('button', { name: 'Neu beginnen' }).click();
+  await panel(page).getByRole('button', { name: 'Ja, löschen' }).click();
+  await expect(panel(page)).toContainText('0 bestanden · 0 nicht bestanden · 5 nicht getestet');
+  await page.reload();
+  await expect(panel(page)).toContainText('5 nicht getestet');
+  expect(await sideEffects(page, TEST_VERSION_KEYS)).toEqual([]);
 });

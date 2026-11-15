@@ -3,6 +3,8 @@ import {
   buildReport,
   chooseOutcome,
   clock,
+  decodeRun,
+  encodeRun,
   leaveTest,
   openTest,
   REASONS,
@@ -134,5 +136,52 @@ describe('the report (format testbericht/1, no free text)', () => {
       'haengt',
       'darstellung',
     ]);
+  });
+});
+
+describe('the run kept in the browser (test version, Tobias 2026-11-15)', () => {
+  it('comes back as it was; an open period ends at the last save', () => {
+    let run: Run = chooseOutcome(openTest({}, 'MT-01', 0), 'MT-01', 'nicht bestanden', 50 * S);
+    run = setStepReason(run, 'MT-01', 3, 'haengt');
+    run = openTest(run, 'MT-02', 60 * S);
+    const saved = JSON.parse(JSON.stringify(encodeRun(run, 'MT-02', 90 * S))) as unknown;
+    const back = decodeRun(saved, IDS);
+    expect(back?.openId).toBe('MT-02');
+    expect(back?.run['MT-01']).toEqual({
+      ms: 50 * S,
+      outcome: 'nicht bestanden',
+      stopped: true,
+      failed: { 3: 'haengt' },
+    });
+    // MT-02 was open for 30 s until the last save; the time after it does not count
+    expect(secondsOf(at(back?.run ?? {}, 'MT-02'), 500 * S)).toBe(30);
+  });
+
+  it('drops what is broken or unknown and keeps no free text', () => {
+    const raw = {
+      format: 'testlauf/1',
+      savedAt: 10,
+      openId: 'MT-99',
+      run: {
+        'MT-01': { ms: 5, outcome: 'bestanden', stopped: true, failed: {}, notiz: 'frei' },
+        'MT-02': { ms: -1, outcome: 'bestanden', stopped: true, failed: {} },
+        'MT-03': {
+          ms: 1,
+          outcome: 'nicht bestanden',
+          stopped: true,
+          failed: { 2: 'erfunden', 120: 'fehlt', 4: 'fehlt' },
+        },
+        'MT-77': { ms: 1, outcome: 'bestanden', stopped: true, failed: {} },
+      },
+    };
+    expect(decodeRun(raw, IDS)).toEqual({
+      run: {
+        'MT-01': { ms: 5, outcome: 'bestanden', stopped: true, failed: {} },
+        'MT-03': { ms: 1, outcome: 'nicht bestanden', stopped: true, failed: { 4: 'fehlt' } },
+      },
+    });
+    expect(decodeRun({ format: 'anders', savedAt: 1, run: {} }, IDS)).toBeUndefined();
+    expect(decodeRun('kaputt', IDS)).toBeUndefined();
+    expect(decodeRun(undefined, IDS)).toBeUndefined();
   });
 });

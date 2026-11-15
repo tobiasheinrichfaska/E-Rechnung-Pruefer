@@ -4,7 +4,15 @@
 // never carry that address.
 import { expect, test } from '@playwright/test';
 import { existsSync, readFileSync } from 'node:fs';
-import { BUILT, BUILT_TEST, HOSTED, openApp, openHosted, sideEffects } from './helpers';
+import {
+  BUILT,
+  BUILT_TEST,
+  HOSTED,
+  openApp,
+  openHosted,
+  sideEffects,
+  TEST_VERSION_KEYS,
+} from './helpers';
 
 const INVITE = '/_zugang/einladen';
 const inviteLink = 'Tester einladen';
@@ -42,7 +50,7 @@ test('the test version links „Tester einladen“ in the footer, in the same ta
   });
   expect(color).toBe(accent);
   expect(problems).toEqual([]);
-  expect(await sideEffects(page)).toEqual([]);
+  expect(await sideEffects(page, TEST_VERSION_KEYS)).toEqual([]);
   // following it asks the host for exactly that page (refused here: the test serves only the app)
   await link.click();
   await expect.poll(() => problems).toContain(`request: ${HOSTED}${INVITE}`);

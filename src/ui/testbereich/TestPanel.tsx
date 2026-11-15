@@ -1,7 +1,7 @@
 // The test page beside the tool: the list of manual tests, one test with its steps, the result
 // („Bestanden“ / „Nicht bestanden“ with the failed steps and a reason each from the fixed list) and
 // „Bericht senden“. No text field anywhere (Tobias 2026-11-15, Testumgebung docs/testbericht.md).
-import { Fragment } from 'react';
+import { Fragment, useState } from 'react';
 import { inlineParts, type ManualTest } from '../../logic/manualTests';
 import {
   clock,
@@ -23,6 +23,9 @@ interface Props {
   now: number;
   problems: readonly string[];
   send: SendState;
+  /** false when the browser refuses to keep the run (private window, blocked storage) */
+  kept: boolean;
+  onStartAnew: () => void;
   onOpen: (id: string) => void;
   onBack: () => void;
   onChoose: (outcome: 'bestanden' | 'nicht bestanden') => void;
@@ -76,7 +79,9 @@ export function TestPanel(props: Props) {
             ein Ergebnis wählen.
           </p>
           <p className="test-hint">
-            Die Ergebnisse bleiben nur, bis Sie die Seite neu laden. Senden Sie den Bericht vorher.
+            {props.kept
+              ? 'Ihre Ergebnisse bleiben in diesem Browser gespeichert, bis Sie den Bericht senden oder neu beginnen.'
+              : 'Dieser Browser speichert nichts: Die Ergebnisse bleiben nur, bis Sie die Seite neu laden. Senden Sie den Bericht vorher.'}
           </p>
           <ul className="test-list">
             {tests.map(({ id, title }) => {
@@ -121,11 +126,46 @@ export function TestPanel(props: Props) {
         </button>
         <p className="test-send-status" role="status">
           {props.send.kind === 'sending' && 'Der Bericht wird gesendet …'}
-          {props.send.kind === 'sent' && 'Bericht gesendet.'}
+          {props.send.kind === 'sent' &&
+            'Bericht gesendet. Die Ergebnisse sind gelöscht, Sie können neu beginnen.'}
           {props.send.kind === 'failed' && props.send.message}
         </p>
+        <StartAnew
+          touched={counts['nicht getestet'] < tests.length}
+          onStartAnew={props.onStartAnew}
+        />
       </section>
     </div>
+  );
+}
+
+/** „Neu beginnen“ deletes every result of this browser — asked once more before it does. */
+function StartAnew({ touched, onStartAnew }: { touched: boolean; onStartAnew: () => void }) {
+  const [asking, setAsking] = useState(false);
+  if (!touched) return null;
+  return asking ? (
+    <p className="test-anew">
+      Alle Ergebnisse in diesem Browser löschen?{' '}
+      <button
+        type="button"
+        className="test-reset"
+        onClick={() => {
+          setAsking(false);
+          onStartAnew();
+        }}
+      >
+        Ja, löschen
+      </button>{' '}
+      <button type="button" className="test-reset" onClick={() => setAsking(false)}>
+        Abbrechen
+      </button>
+    </p>
+  ) : (
+    <p className="test-anew">
+      <button type="button" className="test-reset" onClick={() => setAsking(true)}>
+        Neu beginnen
+      </button>
+    </p>
   );
 }
 

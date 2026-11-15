@@ -17,6 +17,7 @@ async function refusals(code: string, filePath: string): Promise<string[]> {
 
 const STORE = 'src/io/accessStore.ts';
 const SENDER = 'src/io/testReportSend.ts';
+const RUN_STORE = 'src/io/testRunStore.ts';
 const FORBIDDEN = [
   'sessionStorage.setItem("a", "b");',
   'indexedDB.open("a");',
@@ -29,19 +30,25 @@ const FORBIDDEN = [
 ];
 
 describe('browser storage (ESLint)', () => {
-  it('allows localStorage in the access store', async () => {
+  it('allows localStorage in the access store and in the test run store', async () => {
     expect(await refusals('localStorage.setItem("a", "b");\n', STORE)).toEqual([]);
+    expect(await refusals('localStorage.setItem("a", "b");\n', RUN_STORE)).toEqual([]);
   });
 
-  it.each(['src/io/analyze.ts', 'src/ui/App.tsx', 'src/logic/accessGate.ts', 'src/config.ts'])(
-    'refuses localStorage in %s',
-    async (file) => {
-      expect(await refusals('localStorage.setItem("a", "b");\n', file)).not.toEqual([]);
-    },
-  );
+  it.each([
+    'src/io/analyze.ts',
+    'src/ui/App.tsx',
+    'src/logic/accessGate.ts',
+    'src/config.ts',
+    'src/ui/testbereich/TestShell.tsx',
+    SENDER,
+  ])('refuses localStorage in %s', async (file) => {
+    expect(await refusals('localStorage.setItem("a", "b");\n', file)).not.toEqual([]);
+  });
 
-  it.each(FORBIDDEN)('still refuses %s, also in the access store', async (code) => {
+  it.each(FORBIDDEN)('still refuses %s, also in the two stores', async (code) => {
     expect(await refusals(`${code}\n`, STORE)).not.toEqual([]);
+    expect(await refusals(`${code}\n`, RUN_STORE)).not.toEqual([]);
     expect(await refusals(`${code}\n`, 'src/io/analyze.ts')).not.toEqual([]);
   });
 });

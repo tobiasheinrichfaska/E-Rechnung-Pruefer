@@ -118,6 +118,64 @@ export function clock(seconds: number): string {
   return h > 0 ? `${h}:${two(m)}:${two(s)}` : `${m}:${two(s)}`;
 }
 
+/** What the test version keeps in the browser: the run, the open test and when it was saved. */
+export interface SavedRun {
+  format: 'testlauf/1';
+  savedAt: number;
+  openId?: string;
+  run: Run;
+}
+
+export function encodeRun(run: Run, openId: string | undefined, now: number): SavedRun {
+  return { format: 'testlauf/1', savedAt: now, ...(openId ? { openId } : {}), run };
+}
+
+const OUTCOMES: ReadonlySet<string> = new Set(['bestanden', 'nicht bestanden', 'nicht getestet']);
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+const isCount = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value) && value >= 0;
+
+/**
+ * A saved run read back, for the tests of this catalogue only; anything broken is dropped. The
+ * period of a test that was open when the page went away ends at the time of the last save — the
+ * page saves every second while a test runs, so at most a second is lost.
+ */
+export function decodeRun(
+  raw: unknown,
+  ids: readonly string[],
+): { run: Run; openId?: string } | undefined {
+  if (!isRecord(raw) || raw.format !== 'testlauf/1' || !isCount(raw.savedAt)) return undefined;
+  if (!isRecord(raw.run)) return undefined;
+  const savedAt = raw.savedAt;
+  const run: Record<string, TestState> = {};
+  for (const id of ids) {
+    const state: unknown = raw.run[id];
+    if (!isRecord(state) || !isCount(state.ms) || typeof state.outcome !== 'string') continue;
+    if (!OUTCOMES.has(state.outcome) || typeof state.stopped !== 'boolean') continue;
+    const failed: Record<number, ReasonKey> = {};
+    if (state.outcome === 'nicht bestanden' && isRecord(state.failed)) {
+      for (const [nr, reason] of Object.entries(state.failed) as [string, unknown][]) {
+        const step = Number(nr);
+        if (Number.isInteger(step) && step >= 1 && step <= 99 && REASON_KEYS.has(String(reason))) {
+          failed[step] = reason as ReasonKey;
+        }
+      }
+    }
+    const base: TestState = {
+      ms: state.ms,
+      outcome: state.outcome as Outcome,
+      stopped: state.stopped,
+      failed,
+    };
+    const since = isCount(state.since) && state.since <= savedAt ? state.since : undefined;
+    run[id] = since === undefined ? base : paused({ ...base, since }, savedAt);
+  }
+  const openId =
+    typeof raw.openId === 'string' && ids.includes(raw.openId) ? raw.openId : undefined;
+  return { run, ...(openId ? { openId } : {}) };
+}
+
 export interface ReportStep {
   nr: number;
   grund: ReasonKey;

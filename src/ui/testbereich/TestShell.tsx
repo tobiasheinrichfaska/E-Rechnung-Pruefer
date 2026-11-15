@@ -2,13 +2,18 @@
 // on a narrow screen two tabs. The tool stays mounted while the instructions are shown, so nothing
 // checked in it is lost. The page measures the time of each test itself and sends a report without
 // free text to the login script of the test zone (spec: repo Testumgebung, docs/testbericht.md).
+// The run is kept in this browser (Tobias 2026-11-15: „Ja, wie Fragebogen“), so a reload loses
+// nothing; it is cleared when the report is sent or the tester starts anew.
 import { useEffect, useState, type ReactNode } from 'react';
 import { APP_VERSION } from '../../appInfo';
 import { APP_STAND } from '../../config';
 import { sendReport } from '../../io/testReportSend';
+import { clearRun, loadRun, saveRun } from '../../io/testRunStore';
 import {
   buildReport,
   chooseOutcome,
+  decodeRun,
+  encodeRun,
   leaveTest,
   openTest,
   reportProblems,
@@ -22,12 +27,38 @@ import { TestPanel, type SendState } from './TestPanel';
 
 const IDS = TESTS.map((test) => test.id);
 
+const isEmpty = (run: Run, openId: string | undefined) =>
+  Object.keys(run).length === 0 && openId === undefined;
+
+/** The saved run of this browser; a test that was open is opened again and counts on from now. */
+function restore(): { run: Run; openId?: string } {
+  const saved = decodeRun(loadRun(), IDS);
+  if (!saved) return { run: {} };
+  return saved.openId
+    ? { run: openTest(saved.run, saved.openId, Date.now()), openId: saved.openId }
+    : saved;
+}
+
 export function TestShell({ children }: { children: ReactNode }) {
-  const [run, setRun] = useState<Run>({});
-  const [openId, setOpenId] = useState<string | undefined>(undefined);
+  const [restored] = useState(restore);
+  const [run, setRun] = useState<Run>(restored.run);
+  const [openId, setOpenId] = useState<string | undefined>(restored.openId);
   const [view, setView] = useState<'test' | 'app'>('test');
   const [now, setNow] = useState(() => Date.now());
   const [send, setSend] = useState<SendState>({ kind: 'idle' });
+  // Whether this browser keeps the run at all (a private window or blocked storage does not)
+  const [kept] = useState(() => {
+    const ok = saveRun(encodeRun(restored.run, restored.openId, Date.now()));
+    if (isEmpty(restored.run, restored.openId)) clearRun();
+    return ok;
+  });
+
+  // Kept in the browser after every change and every second while a test runs; nothing is left
+  // once the run is empty (sent or started anew)
+  useEffect(() => {
+    if (isEmpty(run, openId)) clearRun();
+    else saveRun(encodeRun(run, openId, now));
+  }, [run, openId, now]);
 
   // The shown time of the open test moves on every second
   const running = openId !== undefined && run[openId]?.since !== undefined;
@@ -63,7 +94,19 @@ export function TestShell({ children }: { children: ReactNode }) {
     if (reportProblems(toSend).length > 0) return;
     setSend({ kind: 'sending' });
     const result = await sendReport(toSend);
-    setSend(result.ok ? { kind: 'sent' } : { kind: 'failed', message: result.message });
+    if (result.ok) {
+      // sent: this run is done, the next one starts empty
+      setRun({});
+      setOpenId(undefined);
+      setSend({ kind: 'sent' });
+    } else setSend({ kind: 'failed', message: result.message });
+  };
+
+  const startAnew = () => {
+    setRun({});
+    setOpenId(undefined);
+    setNow(Date.now());
+    setSend({ kind: 'idle' });
   };
 
   return (
@@ -88,6 +131,8 @@ export function TestShell({ children }: { children: ReactNode }) {
           now={now}
           problems={problems}
           send={send}
+          kept={kept}
+          onStartAnew={startAnew}
           onOpen={open}
           onBack={back}
           onChoose={(outcome) =>
