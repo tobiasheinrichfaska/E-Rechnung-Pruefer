@@ -249,7 +249,11 @@ function Checker({ focusTitle = false }: { focusTitle?: boolean }) {
       {/* G-6: what the tool shows — only before a result, the result itself says the rest */}
       {state.step !== 'done' && (
         <div className="lead">
-          <p>{TEXTS.introLeadText}</p>
+          {/* QU-10: on a phone without "ziehen", as the drop zone's title (G-5, app.css) */}
+          <p>
+            <span className="title-wide">{TEXTS.introLeadText}</span>
+            <span className="title-narrow">{TEXTS.introLeadTextPhone}</span>
+          </p>
           <p>{TEXTS.introLead}</p>
           <ul>
             {TEXTS.introPoints.map((point) => (

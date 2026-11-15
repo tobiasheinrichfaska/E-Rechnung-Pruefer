@@ -251,9 +251,18 @@ test('shrinks the drop zone after a result and says "auswählen" on a phone (G-5
   // a phone, before a result (the spy of openApp stays in place over a reload)
   await page.setViewportSize({ width: 375, height: 740 });
   await page.reload();
-  await expect(page.locator('.title-narrow')).toHaveText('Rechnung auswählen');
-  await expect(page.locator('.title-narrow')).toBeVisible();
-  await expect(page.locator('.title-wide')).toBeHidden();
+  await expect(page.locator('.dropzone .title-narrow')).toHaveText('Rechnung auswählen');
+  await expect(page.locator('.dropzone .title-narrow')).toBeVisible();
+  await expect(page.locator('.dropzone .title-wide')).toBeHidden();
+  // QU-10: the sentence above the drop zone does not say "ziehen" either
+  await expect(page.locator('.lead p').first()).toHaveText('Wählen Sie eine Rechnung aus.', {
+    useInnerText: true,
+  });
+  await page.setViewportSize({ width: 1280, height: 740 });
+  await expect(page.locator('.lead p').first()).toHaveText(
+    'Wählen Sie eine Rechnung aus oder ziehen Sie sie hierher.',
+    { useInnerText: true },
+  );
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);
 });

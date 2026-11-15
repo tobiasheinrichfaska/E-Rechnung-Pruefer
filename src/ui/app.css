@@ -501,7 +501,8 @@ button.primary:disabled {
   padding-left: 20px;
 }
 
-/* G-5: on a phone nothing can be dragged — the title says "auswählen" */
+/* G-5: on a phone nothing can be dragged — the title says "auswählen", and so does the sentence
+   above the drop zone (QU-10) */
 .title-narrow {
   display: none;
 }

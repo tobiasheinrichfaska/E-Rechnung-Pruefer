@@ -156,6 +156,8 @@ export const TEXTS = {
   chooseFile: 'Datei auswählen',
   dropSub: 'PDF oder XML. Die Datei bleibt auf Ihrem Gerät.',
   introLeadText: 'Wählen Sie eine Rechnung aus oder ziehen Sie sie hierher.',
+  // QU-10: on a phone nothing can be dragged — the sentence says it as the title does (G-5)
+  introLeadTextPhone: 'Wählen Sie eine Rechnung aus.',
 
   // The access notice before the hosted copy opens (Tobias 2026-11-15, as in the Fragebogen); the
   // notice itself comes from the local Kanzlei configuration, never from this repo
