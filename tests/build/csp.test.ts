@@ -9,6 +9,8 @@ describe('Content-Security-Policy', () => {
     expect(policy).toContain("default-src 'none'");
     expect(policy).toContain("connect-src 'none'");
     expect(policy).toContain("worker-src 'none'");
+    // not installable: no service worker (worker-src) and no web app manifest
+    expect(policy).toContain("manifest-src 'none'");
     expect(policy).toContain("script-src 'sha256-a' 'wasm-unsafe-eval'");
     expect(policy).not.toContain("'unsafe-eval'");
     expect(policy).not.toContain("'unsafe-inline'");

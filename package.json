@@ -1,7 +1,7 @@
 {
   "name": "e-rechnung-pruefer",
   "private": true,
-  "version": "0.6.3",
+  "version": "0.7.0",
   "description": "E-Rechnungs-Prüfer: zeigt im Browser, ob eine Datei eine E-Rechnung ist, welche Pflichtangaben sie enthält und ob die Beträge zusammenpassen. Die Datei verlässt den Rechner nicht.",
   "license": "AGPL-3.0-only",
   "author": "Tobias Heinrich",
@@ -12,10 +12,11 @@
   "scripts": {
     "dev": "vite --port 5178 --strictPort",
     "build": "tsc --noEmit && vite build",
+    "build:test": "tsc --noEmit && vite build --mode testbereich --outDir dist-test",
     "preview": "vite preview --port 5178 --strictPort",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "npm run build && playwright test",
+    "test:e2e": "npm run build && npm run build:test && playwright test",
     "docs": "vitest run tests/docs --update",
     "beispiele": "vitest run tests/beispiele --mode schreiben",
     "typecheck": "tsc --noEmit",

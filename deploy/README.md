@@ -8,6 +8,28 @@ kommen nicht neben die öffentliche Fassung. Mandanten brauchen sie nicht, und T
 dem öffentlichen Repo (`beispiele/README.md` zeigt dort dieselbe Tabelle) oder aus dem lokalen
 Ordner.
 
+## Testfassung und Prüfung „Tests“ (15.11.2026)
+
+Die Testfassung läuft in einer eigenen geschützten Testzone bei bunny.net, getrennt von der
+öffentlichen Zone. Das Anmeldeskript kommt aus dem privaten Repo `Testumgebung` (`zugang/`).
+
+| Zone                 | Eintrag im Repo `Freigabe` | Build                | Hochgeladen wird                        |
+| -------------------- | -------------------------- | -------------------- | --------------------------------------- |
+| öffentlich           | `erechnung`                | `npm run build`      | `dist/index.html` als `index.html`      |
+| Testzone (geschützt) | `erechnungtest`            | `npm run build:test` | `dist-test/index.html` als `index.html` |
+
+- **Nur die Testfassung** hat unten den Link **„Tester einladen“**. Er führt im selben Tab auf
+  `/_zugang/einladen`, die Seite des Anmeldeskripts für einen Einladungslink. Die öffentliche Fassung
+  enthält diese Adresse nie; `tests/e2e/testfassung.spec.ts` prüft das an `dist/index.html`.
+- **Nicht installierbar** (Tobias, 15.11.2026): Keine der beiden Fassungen hat ein Manifest oder einen
+  Service Worker; ihre CSP verbietet beides (`manifest-src`, `worker-src`). Deshalb nie eine
+  `manifest.webmanifest` oder ein `sw.js` neben `index.html` hochladen.
+- Beide Builds brauchen vorher die Kanzlei-Konfiguration (Abschnitt „Zugangshinweis im
+  Freigabe-Lauf“).
+- **Gate:** Jeder Upload wartet auf die GitHub-Prüfung **„Tests“** (`.github/workflows/tests.yml`).
+  Sie muss für genau den hochgeladenen Commit grün sein. In beiden Einträgen von `Freigabe` gilt
+  deshalb `"gate": { "workflow": "Tests" }`.
+
 ## Kopfzeilen des Servers
 
 Die Seite bringt ihre Content-Security-Policy als `<meta>`-Tag mit (`src/build/csp.ts`). Eine

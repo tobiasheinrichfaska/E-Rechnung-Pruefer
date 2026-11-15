@@ -45,6 +45,10 @@ lokal bleibt und wie du dich mit der Cloud abstimmst.
     Upload-Werkzeug (es hat keinen Weg zu bunny.net), sondern über das private „Freigabe“-Repo mit
     GitHub Actions; jeden Lauf startet Tobias von Hand. Das gilt schon für den ersten Upload dorthin.
     Das Freigabe-Repo wird nie an eine Cloud-Sitzung angehängt; Cloud-Sitzungen laden nie hoch.
+  - **Testzone bei bunny.net** (geschützt, Anmeldeskript aus `Testumgebung`): Eintrag `erechnungtest`
+    mit `npm run build:test`, hochgeladen wird `dist-test/index.html`; nur diese Fassung hat
+    „Tester einladen“ in der Fußzeile. Beide Einträge warten auf die GitHub-Prüfung „Tests“
+    (`deploy/README.md`, „Testfassung und Prüfung ‚Tests‘“).
 - **Server-Kopfzeilen:**
   - IONOS: `frame-ancestors 'none'` und `X-Frame-Options: DENY` für `NebenprojektERechnung/`
     (`deploy/README.md`) – Server-Konfiguration in `private/Auslieferung`.

@@ -40,3 +40,23 @@ Beispielen.
    - **Danach:** Das Ergebnis erscheint. Jede Pflichtangabe steht als eigener Block: oben die
      Bezeichnung und die Marke, darunter die Werte. Sie müssen nichts seitlich verschieben, um es zu
      lesen. Notieren Sie Gerät und Browser, wenn etwas abgeschnitten oder zu klein ist.
+
+## MT-05: Tester einladen in der Testzone
+
+**Voraussetzung:** Die Testfassung liegt in der geschützten Testzone bei bunny.net, und Sie sind dort
+als Tester angemeldet. Die automatischen Tests prüfen nur den Link; die Seite dahinter gehört zum
+Anmeldeskript (Repo `Testumgebung`) und lässt sich hier nicht nachstellen.
+
+1. Öffnen Sie die Testfassung und schauen Sie ganz unten auf die Seite.
+   - **Danach:** Neben der Version steht **Tester einladen**, in derselben Farbe wie die anderen
+     Links.
+2. Klicken Sie auf **Tester einladen**.
+   - **Danach:** Im selben Tab öffnet sich die Seite für einen Einladungslink. Kein neuer Tab.
+3. Klicken Sie dort auf **Zurück zur App**.
+   - **Danach:** Das Tool erscheint wieder.
+4. Öffnen Sie die öffentliche Adresse des Tools.
+   - **Danach:** Unten steht kein **Tester einladen**.
+5. Öffnen Sie auf dem Handy und am Rechner (Chrome oder Edge) das Menü des Browsers.
+   - **Danach:** Es gibt keinen Eintrag **App installieren** für das Tool. „Zum Startbildschirm
+     hinzufügen“ oder „Verknüpfung erstellen“ darf es geben: Das ist nur ein Lesezeichen. Notieren
+     Sie Gerät und Browser, wenn „App installieren“ erscheint.
