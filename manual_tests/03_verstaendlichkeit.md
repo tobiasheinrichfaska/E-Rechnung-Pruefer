@@ -13,8 +13,9 @@ Sie lesen die Texte so, wie ein Mandant sie liest.
    - **Danach:** Die Datei liegt in Ihrem Ordner „Downloads“. Der Browser öffnet sie nicht selbst.
 2. Ziehen Sie die Datei auf die Fläche „Rechnung hierher ziehen“.
    - **Danach:** Oben steht das Ergebnis, darunter gegebenenfalls die Pflichtangaben.
-3. Lesen Sie das Ergebnis, die Erklärung darunter und jeden Hinweis in der Tabelle der
-   Pflichtangaben.
+3. Lesen Sie das Ergebnis, die Erklärung darunter, jeden Hinweis in der Tabelle der
+   Pflichtangaben und den Abschnitt „Rechnerische Prüfung“. Öffnen Sie dazu auch die zugeklappten
+   Teile („… Angaben, die nur in besonderen Fällen nötig sind – anzeigen“, „Technische Angaben“).
    - **Danach:** Notieren Sie jeden Satz, den Sie nicht beim ersten Lesen verstehen. Notieren Sie
      auch jeden Satz, der so klingt, als sei die Rechnung „in Ordnung“ oder „geprüft“ – das Tool gibt
      nur Hinweise.

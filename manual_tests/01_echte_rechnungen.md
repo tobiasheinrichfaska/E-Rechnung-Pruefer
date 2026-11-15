@@ -10,7 +10,8 @@ Sollwert – nur das PDF-Bild und Ihr Wissen über den Lieferanten.
 Programmen: ZUGFeRD- oder Factur-X-PDF, XRechnung als XML-Datei, eingescanntes PDF. Das Tool ist
 geöffnet.
 
-1. Klicken Sie auf **Datei auswählen** und wählen Sie eine Rechnung.
+1. Klicken Sie auf **Datei auswählen** (nach dem ersten Ergebnis heißt der Knopf **Andere Datei
+   prüfen**) und wählen Sie eine Rechnung.
    - **Danach:** Nach wenigen Sekunden steht oben das Ergebnis, z. B. „E-Rechnung erkannt (…)“ oder
      „Keine E-Rechnung: einfaches PDF“. Dauert es länger als etwa 5 Sekunden, notieren Sie die
      Dateigröße.

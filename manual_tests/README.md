@@ -12,9 +12,8 @@ echter Lieferanten, echte Mailprogramme, echte Handys. Was eine Maschine prüfen
 - Beispielrechnungen: lokal `beispiele/index.html`; gehostet erst nach dem nächsten Upload (die
   Adresse des Tools mit `beispiele/` am Ende). Alle Daten sind erfunden; die Dateien dürfen in
   E-Mails und auf Geräte.
-- Achtung: Die gehostete Fassung ist älter als das Repo (hochgeladen 13.11.2026, Schritt 1c). Bitte
-  notieren Sie die Versionsnummer unten auf der Seite; bis zum nächsten Upload mit neuer Nummer
-  prüfen Sie die Änderungen ab dem 13.11.2026 nur lokal.
+- Achtung: Notieren Sie die Versionsnummer unten auf der Seite (Stand des Repos: 0.3.1). Steht
+  dort eine ältere Nummer, ist der letzte Upload noch nicht erfolgt; prüfen Sie dann lokal.
 - Echte Rechnungen bleiben auf dem Rechner. Nie in das Repo legen, nie an Dritte senden. Notieren Sie
   nur Lieferant, Programm, Ergebnis und Abweichung – keine Beträge oder Namen von Mandanten.
 
@@ -42,11 +41,12 @@ echter Lieferanten, echte Mailprogramme, echte Handys. Was eine Maschine prüfen
     Screenreader vorliest, prüft das nicht.
   - Bei jedem Test: keine Netzwerkanfrage, kein Speicher- oder Cookie-Zugriff, kein Popup, kein
     Konsolenfehler.
-- **Beispielrechnungen** (`tests/beispiele/beispiele.test.ts`): jede der 30 Dateien zeigt ihr
+- **Beispielrechnungen** (`tests/beispiele/beispiele.test.ts`): jede der 35 Dateien zeigt ihr
   erwartetes Ergebnis; zusammen zeigen sie jede Überschrift (außer leerer Datei, anderer Dateiart und
   zu großer Datei), jede Fallart und jeden Hinweis. Nicht abgedeckt sind die Begründungen „nur im
   Einzelfall nötig“ und die Meldung „Die Prüfung ist abgebrochen“ (unerwarteter Fehler).
 - **Vitest** (`npm test`): alle Regeln der Pflichtangaben einschließlich Kleinunternehmer,
   Gutschrift, Leistungszeitpunkt und Anschrift (`src/logic/check.test.ts`); Erkennung und Lesen der
   Musterdateien von KoSIT und CEN; alle 33 Rechnungen der KoSIT-Testsuite jeweils als UBL und CII im Gegencheck; Hybrid-PDF auch komprimiert wie echte Factur-X-Dateien; die 61
-  FeRD-Musterrechnungen (nur lokal, nicht im Repo).
+  FeRD-Musterrechnungen und die 12 Muster zu ZUGFeRD 1.0 (aus dem privaten Repo, nicht im
+  öffentlichen).

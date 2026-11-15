@@ -52,7 +52,8 @@ lokal bleibt und wie du dich mit der Cloud abstimmst.
   Explorer, echtes Handy, Verständlichkeit. Ergebnisse an die Cloud-Sitzung geben.
 - **Arbeitsbereich außerhalb des Repos:** die zentrale `CLAUDE.md` unter
   `c:\skripte\private\general stuff\` und die Projekttabelle dort. Bitte ergänzen: das private
-  Zusatz-Repo `E-Rechnung-Pruefer-privat` (Inhalt: FeRD-Muster und FeRD-Paket, nie öffentlich).
+  Zusatz-Repo `E-Rechnung-Pruefer-privat` (Inhalt: FeRD-Muster, FeRD-Paket und das Material zu
+  ZUGFeRD 1.0, nie öffentlich).
 
 ## 4. Abstimmung
 
@@ -67,11 +68,9 @@ lokal bleibt und wie du dich mit der Cloud abstimmst.
 
   `.gitignore` schließt `tests/fixtures/lokal` aus – als Ordner und als Verknüpfung.
 
-- **Was die Cloud gerade umsetzt** (Dialog vom 14.11.2026, Antworten von Tobias): F22–F25
-  (Ergebnisbox bei fehlenden Pflichtangaben, Handlungshinweise je Ergebnis, Formatfehler-Satz mit
-  Quelle, einfachere Hinweise) und G-1 bis G-10 (Seitenlänge, technische Angaben, Druck-/Kopierknopf,
-  Ablagefläche, Startansicht, Begriffe, zwei XML). Bis das in `main` ist, nichts davon lokal
-  anfangen.
+- **Stand 15.11.2026:** Alles aus dem Dialog vom 14.11.2026 (F22–F30, G-1 bis G-10) ist in `main`
+  (Version 0.3.1); es ist keine Frage offen, die Cloud setzt gerade nichts um. Offen ist nur
+  Lokales: Upload, Server-Kopfzeilen, Handtests.
 - **Regeln:** Commits ohne Rückfrage melden; umkehrbare GitHub-Aktionen (Push auf einen Zweig,
   Pull Requests, Merge nach `main`) ohne Rückfrage, aber melden (Tobias 14.11.2026); der Upload
   auf den Server nur nach Tobias' OK; Steuerfragen entscheidet nur Tobias; keine Speicher- und keine Netzwerkzugriffe in der
