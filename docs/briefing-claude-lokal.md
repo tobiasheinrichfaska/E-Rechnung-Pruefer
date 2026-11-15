@@ -36,12 +36,22 @@ lokal bleibt und wie du dich mit der Cloud abstimmst.
 
 ## 3. Was lokal bleibt
 
-- **Upload:** `npm run hochladen` (und `npm run tester`) – sie rufen `private/Auslieferung` auf, das
-  nur auf diesem Rechner liegt. Vorher `git pull` auf `main` und `npm ci --ignore-scripts`, dann
-  `npm run build`. Hochladen nur nach Tobias' ausdrücklichem OK (unverändert).
-- **Server-Kopfzeilen:** `frame-ancestors 'none'` und `X-Frame-Options: DENY` für
-  `NebenprojektERechnung/` (`deploy/README.md`) – das ist Server-Konfiguration in
-  `private/Auslieferung`.
+- **Upload (geändert 15.11.2026, `CLAUDE.md`, „Hosting move decided“):**
+  - **Testfassung bei IONOS** (`NebenprojektERechnung/`, hinter der Anmeldung): bis zur Freigabe wie
+    bisher vom Kanzlei-PC mit `npm run hochladen` (und `npm run tester`). Beide rufen
+    `private/Auslieferung` auf, das nur auf diesem Rechner liegt. Vorher `git pull` auf `main`,
+    `npm ci --ignore-scripts`, dann `npm run build`. Hochladen nur nach Tobias' ausdrücklichem OK.
+  - **Öffentliche Fassung auf bunny.net** (eigene Subdomain der Kanzlei): nicht über das lokale
+    Upload-Werkzeug (es hat keinen Weg zu bunny.net), sondern über das private „Freigabe“-Repo mit
+    GitHub Actions; jeden Lauf startet Tobias von Hand. Das gilt schon für den ersten Upload dorthin.
+    Das Freigabe-Repo wird nie an eine Cloud-Sitzung angehängt; Cloud-Sitzungen laden nie hoch.
+- **Server-Kopfzeilen:**
+  - IONOS: `frame-ancestors 'none'` und `X-Frame-Options: DENY` für `NebenprojektERechnung/`
+    (`deploy/README.md`) – Server-Konfiguration in `private/Auslieferung`.
+  - bunny.net: Edge Rules am 15.11.2026 im Dashboard eingestellt (`deploy/README.md`, „Auf
+    bunny.net“); geprüft wird mit `curl -I` nach dem ersten Upload. Ändert sich
+    `src/build/csp.ts` bei `object-src`, `base-uri` oder `form-action`, muss die Edge Rule auf dem
+    Kanzlei-PC mitgeändert werden.
 - **Downloads hinter Formularen** (z. B. das FeRD-Paket mit Name und E-Mail): Tobias lädt sie;
   nicht weitergebbares Material kommt ins private Repo `E-Rechnung-Pruefer-privat` (dort committen und
   pushen), weitergebbares (z. B. XSD unter Apache-2.0) bitte als Hinweis an die Cloud-Sitzung, die es
@@ -69,9 +79,11 @@ lokal bleibt und wie du dich mit der Cloud abstimmst.
   `.gitignore` schließt `tests/fixtures/lokal` aus – als Ordner und als Verknüpfung.
 
 - **Stand 15.11.2026:** Alles aus dem Dialog vom 14.11.2026 (F22–F30, G-1 bis G-10) ist in `main`
-  (Version 0.3.1); es ist keine Frage offen, die Cloud setzt gerade nichts um. Offen ist nur
-  Lokales: Upload, Server-Kopfzeilen, Handtests.
+  (Version 0.3.1). Neu am 15.11.2026 (`CLAUDE.md`, „Hosting move decided“): Umzug auf bunny.net;
+  nächste Aufgabe der Cloud ist der Zugangshinweis vor dem Start (Text und Ablageort der
+  Konfiguration klärt sie mit Tobias). Lokal offen: Upload der Testfassung bei IONOS,
+  Server-Kopfzeilen, Handtests.
 - **Regeln:** Commits ohne Rückfrage melden; umkehrbare GitHub-Aktionen (Push auf einen Zweig,
   Pull Requests, Merge nach `main`) ohne Rückfrage, aber melden (Tobias 14.11.2026); der Upload
-  auf den Server nur nach Tobias' OK; Steuerfragen entscheidet nur Tobias; keine Speicher- und keine Netzwerkzugriffe in der
-  App; FeRD-Muster nie ins öffentliche Repo.
+  auf den Server nur nach Tobias' OK; Steuerfragen entscheidet nur Tobias; keine Netzwerkzugriffe in der App; Speicher nur für den
+  bestätigten Zugangshinweis (Tobias 15.11.2026), alles Weitere nur nach Rückfrage; FeRD-Muster nie ins öffentliche Repo.
