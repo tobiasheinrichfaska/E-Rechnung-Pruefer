@@ -171,6 +171,8 @@ export const TEXTS = {
   // Links at the foot of the page, addresses from the local Kanzlei configuration
   imprint: 'Impressum',
   privacy: 'Datenschutz',
+  // Said to screen readers only: these links open a new tab (audit QU-15, technique G201)
+  newTab: '(öffnet in neuem Tab)',
 
   // Only the first file of a drop counts — said, not silent (audit Bedienung, A-04)
   onlyFirstFile: 'Sie haben {count} Dateien abgelegt. Geprüft wurde nur die erste.',

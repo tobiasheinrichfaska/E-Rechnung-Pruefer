@@ -1,7 +1,7 @@
 // The foot of every page: the version (without „in Entwicklung“ since Tobias 2026-11-15) and, where
 // the local Kanzlei configuration names them, the Kanzlei's Impressum and privacy policy (Tobias
 // 2026-11-15). The addresses never come from this public repo. They open in a new tab, so a result
-// on the page is not lost. The test version adds „Tester einladen“ (Tobias 2026-11-15): a plain link
+// on the page is not lost, and say so to screen readers (audit QU-15). The test version adds „Tester einladen“ (Tobias 2026-11-15): a plain link
 // in the same tab to the login script's page, which leads back with „Zurück zur App“.
 import { Fragment } from 'react';
 import { APP_VERSION } from '../appInfo';
@@ -21,6 +21,7 @@ export function Footer() {
           {' · '}
           <a href={link.href} target="_blank" rel="noopener noreferrer">
             {link.text}
+            <span className="visually-hidden"> {TEXTS.newTab}</span>
           </a>
         </Fragment>
       ))}
