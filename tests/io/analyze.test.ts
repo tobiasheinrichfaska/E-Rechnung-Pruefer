@@ -374,14 +374,38 @@ describe('schema check (step 2b)', () => {
     }
   });
 
-  // F28: the other Factur-X profiles against their own FeRD schema; a UBL invoice keeps UBL 2.1
+  // F28: the other Factur-X profiles against their own FeRD schema; a UBL invoice keeps UBL 2.1.
+  // Not only the label: the official EN 16931 invoice carries what the smaller profiles forbid (the
+  // first message names it), and a document name (`ram:Name`, allowed by CII D16B and EXTENDED, not
+  // by EN16931) tells EN16931 from EXTENDED — so a profile pointed at another XSD fails here, without
+  // the private FeRD samples (audit 2026-11-15, QT-02/QT-03).
+  const NAMED = (text: string) =>
+    text.replace(
+      /(<rsm:ExchangedDocument>\s*<ram:ID>[^<]*<\/ram:ID>)/,
+      '$1<ram:Name>Rechnung</ram:Name>',
+    );
+  // [identifier, profile, first element refused in the official file, … with a document name]
   it.each([
-    ['urn:factur-x.eu:1p0:minimum', 'Factur-X 1.09.2 MINIMUM (FeRD)'],
-    ['urn:cen.eu:en16931:2017#compliant#urn:factur-x.eu:1p0:basic', 'Factur-X 1.09.2 BASIC (FeRD)'],
-    ['urn:cen.eu:en16931:2017', 'Factur-X 1.09.2 EN16931 (FeRD)'],
-  ])('checks CII with %s against its profile schema', async (id, schema) => {
-    const { analysis } = await check('r.xml', encode(withSpecId(CII, id)));
-    expect(analysis.invoices[0]?.schema).toMatchObject({ schema, checked: true });
+    ['urn:factur-x.eu:1p0:minimum', 'MINIMUM', 'IncludedNote', 'Name'],
+    ['urn:factur-x.eu:1p0:basicwl', 'BASIC WL', 'IncludedSupplyChainTradeLineItem', 'Name'],
+    [
+      'urn:cen.eu:en16931:2017#compliant#urn:factur-x.eu:1p0:basic',
+      'BASIC',
+      'SellerAssignedID',
+      'Name',
+    ],
+    ['urn:cen.eu:en16931:2017', 'EN16931', null, 'Name'],
+    ['urn:cen.eu:en16931:2017#conformant#urn:factur-x.eu:1p0:extended', 'EXTENDED', null, null],
+  ])('checks CII with %s against its profile schema', async (id, profile, plain, named) => {
+    const refused = async (text: string) => {
+      const { analysis } = await check('r.xml', encode(withSpecId(text, id)));
+      const schema = analysis.invoices[0]?.schema;
+      expect(schema).toMatchObject({ schema: `Factur-X 1.09.2 ${profile} (FeRD)`, checked: true });
+      const first = schema?.problems[0]?.message ?? '';
+      return schema?.count === 0 ? null : (/^Element '\{[^}]*\}(\w+)'/.exec(first)?.[1] ?? first);
+    };
+    expect(await refused(CII)).toBe(plain);
+    expect(await refused(NAMED(CII))).toBe(named);
   });
 
   it('keeps UBL 2.1 for a UBL invoice with the EN 16931 identifier', async () => {
