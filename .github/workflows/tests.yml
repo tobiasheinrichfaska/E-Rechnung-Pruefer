@@ -18,6 +18,9 @@ on:
 permissions:
   contents: read
 
+# The actions are pinned to the commit their tag named on 2026-11-15 (audit QS-06), like every npm
+# package: a moved or hijacked tag cannot change this check. No step needs the token after checkout.
+
 concurrency:
   group: tests-${{ github.ref }}
   cancel-in-progress: true
@@ -28,8 +31,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
@@ -44,8 +49,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
@@ -64,7 +71,7 @@ jobs:
           npx playwright test tests/e2e/zugangshinweis.spec.ts tests/e2e/fusszeile.spec.ts tests/e2e/farben.spec.ts --grep "of the local configuration" --reporter=list,json
           node -e "const s = require('./test-results/beispielkanzlei.json').stats; console.log(s); if (s.expected === 0 || s.skipped > 0 || s.unexpected > 0) process.exit(1);"
       - if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: e2e-fehlschlaege
           path: test-results/
