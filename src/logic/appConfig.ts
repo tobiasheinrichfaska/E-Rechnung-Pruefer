@@ -130,19 +130,25 @@ function wellFormed(text: string): boolean {
   return true;
 }
 
-/** An https address without login data — the only kind of link the page may carry. */
-function linkProblem(value: unknown): string | undefined {
-  if (typeof value !== 'string') return 'keine Adresse';
+/**
+ * An https address without login data — the only kind of link the page may carry — in the form the
+ * browser resolves it to (`new URL(…).href`), so the attribute on the page is the address that was
+ * checked. Only written as `https://…`: `https:host` or `https:/host` pass the URL parser but, as an
+ * attribute on the hosted page, point to its own address (audit 2026-11-15, QS-04).
+ */
+function parseLink(value: unknown): { href: string } | { problem: string } {
+  if (typeof value !== 'string') return { problem: 'keine Adresse' };
   let url: URL;
   try {
     url = new URL(value);
   } catch {
-    return 'keine Adresse';
+    return { problem: 'keine Adresse' };
   }
-  if (url.protocol !== 'https:') return 'nicht https://';
-  if (url.username !== '' || url.password !== '') return 'mit Zugangsdaten';
-  if (value !== value.trim() || /\s/.test(value)) return 'mit Leerzeichen';
-  return undefined;
+  if (url.protocol !== 'https:') return { problem: 'nicht https://' };
+  if (!/^https:\/\//i.test(value)) return { problem: 'nicht in der Form https://…' };
+  if (url.username !== '' || url.password !== '') return { problem: 'mit Zugangsdaten' };
+  if (value !== value.trim() || /\s/.test(value)) return { problem: 'mit Leerzeichen' };
+  return { href: url.href };
 }
 
 export function parseAppConfig(value: unknown): ConfigResult {
@@ -167,9 +173,9 @@ export function parseAppConfig(value: unknown): ConfigResult {
   for (const key of LINKS) {
     const link = record[key];
     if (link === undefined) continue;
-    const problem = linkProblem(link);
-    if (problem) issues.push(`$.${key}: ${problem}`);
-    else config[key] = link as string;
+    const parsed = parseLink(link);
+    if ('problem' in parsed) issues.push(`$.${key}: ${parsed.problem}`);
+    else config[key] = parsed.href;
   }
   if (record['colors'] !== undefined) {
     const colors = parseColors(record['colors'], issues);
