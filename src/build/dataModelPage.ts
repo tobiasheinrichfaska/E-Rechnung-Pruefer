@@ -424,6 +424,12 @@ export const FUNCTIONS: { layer: string; signature: string; purpose: string }[] 
   },
   {
     layer: 'logic',
+    signature: 'differingResults(parts): { label; values }[]',
+    purpose:
+      'Bei gleichem Kopf: Pflichtangaben (fehlende Teile, Hinweise, Werte) und Rechenregeln, die sich zwischen den Rechnungs-XML unterscheiden; nur ohne Unterschied gilt „dieselbe Rechnung“ (F27)',
+  },
+  {
+    layer: 'logic',
     signature: 'invoiceDetails(invoice, inPdf): DetailRow[]',
     purpose: 'Detailzeilen (deutsches Datum und Betrag)',
   },

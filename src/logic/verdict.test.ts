@@ -2,6 +2,7 @@ import type { Analysis, InvoicePart } from './analysis';
 import { invoiceDetails } from './details';
 import { TEXTS, fill } from './texts';
 import {
+  comparisonRows,
   differingLine,
   differingTerms,
   pflichtModel,
@@ -380,5 +381,59 @@ describe('the same invoice XML twice (audit 2026-11-15)', () => {
     expect(verdict.headline).toBe(one.headline);
     expect(verdict.explanation.slice(0, one.explanation.length)).toEqual(one.explanation);
     expect(verdict.explanation).toHaveLength(one.explanation.length + 1);
+  });
+});
+
+describe('the same header but other data in two invoice XML (audit QL-01)', () => {
+  const term = (value: string) => [{ value, raw: value }];
+  /** The header of `part()` as a model, with or without the seller's VAT id (BT-31). */
+  const withSeller = (vat?: string): NonNullable<InvoicePart['model']> =>
+    ({
+      bg: 'INVOICE',
+      terms: { 'BT-1': term('R-1'), 'BT-2': term('2026-11-13'), 'BT-5': term('EUR') },
+      groups: {
+        'BG-4': [
+          {
+            bg: 'BG-4',
+            terms: { 'BT-27': term('Muster GmbH'), ...(vat ? { 'BT-31': term(vat) } : {}) },
+            groups: {},
+          },
+        ],
+      },
+    }) as unknown as NonNullable<InvoicePart['model']>;
+  const a = { ...part({}, 'a.xml'), model: withSeller('DE123456789') };
+  const b = { ...part({}, 'b.xml'), model: withSeller() };
+
+  it('are no longer "dieselbe Rechnung", whatever the order', () => {
+    for (const invoices of [
+      [a, b],
+      [b, a],
+    ]) {
+      const verdict = verdictOf(analysis({ invoices }));
+      expect(verdict.comparison).toEqual({ same: false, differing: [] });
+      expect(verdict.headline).toBe(TEXTS.contradicting);
+      expect(verdict.tone).toBe('bad');
+    }
+    // the same data stay the same
+    const twice = verdictOf(analysis({ invoices: [a, { ...a, origin: 'b.xml' }] }));
+    expect(twice.comparison).toEqual({ same: true, differing: [] });
+  });
+
+  it('names what differs, with the value of each part', () => {
+    const line = differingLine([a, b], []);
+    expect(line).toBe(
+      'Unterschiedlich: Steuernummer oder USt-IdNr. des leistenden Unternehmers ' +
+        '(vorhanden: DE123456789 / fehlt); USt-IdNr. des leistenden Unternehmers und des ' +
+        'Leistungsempfängers (nur im Einzelfall nötig: DE123456789 / nur im Einzelfall nötig).',
+    );
+    const rows = comparisonRows([a, b]).filter((row) => row.differs);
+    expect(rows[0]).toEqual({
+      label: 'Steuernummer oder USt-IdNr. des leistenden Unternehmers',
+      values: ['vorhanden: DE123456789', 'fehlt'],
+      differs: true,
+    });
+    expect(rows).toHaveLength(2);
+    // with a differing header value only that is named, as before (E-04)
+    expect(comparisonRows([a, { ...b, header: { ...b.header, 'BT-1': ['R-2'] } }])).toHaveLength(7);
   });
 });

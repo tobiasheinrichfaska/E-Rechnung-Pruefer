@@ -125,6 +125,10 @@ export const TEXTS = {
   checkedFile: 'Geprüfte Datei: „{name}“ – geprüft am {date} um {time} Uhr',
   differingLine: 'Unterschiedlich: {items}.',
   differingItem: '{label} ({values})',
+  // QL-01: with the same header the Pflichtangaben or the rules of the parts may still differ
+  differingWithHint: 'mit Hinweis',
+  differingWithHints: 'mit {count} Hinweisen',
+  differingRules: 'Rechnerische Prüfung',
   // G-1: rows "nur im Einzelfall nötig" without a value are folded; jump links from the box
   foldedRows: '{count} Angaben, die nur in besonderen Fällen nötig sind – anzeigen',
   foldedRow: 'Eine Angabe, die nur in besonderen Fällen nötig ist – anzeigen',

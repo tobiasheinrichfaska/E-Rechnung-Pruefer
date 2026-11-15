@@ -3,7 +3,7 @@ import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { MAX_FILE_BYTES, analyzeFile, fileKindOf, tooLargeFile } from '../../src/io/analyze';
 import type { PdfJsLike } from '../../src/io/pdf';
 import { TEXTS } from '../../src/logic/texts';
-import { verdictOf } from '../../src/logic/verdict';
+import { differingLine, verdictOf } from '../../src/logic/verdict';
 import { encode, official, officialText, withInvoiceNumber, withSpecId } from '../support/fixtures';
 import { compressedPdf } from '../../src/build/compressedPdf';
 import { miniPdf } from '../../src/build/minipdf';
@@ -206,6 +206,27 @@ describe('PDF files', () => {
     expect(verdict.explanation.join(' ')).toContain('2-mal eingebettet');
   });
 
+  // Audit QL-01: the same header is not enough — what the result shows of each part must agree
+  it('calls two invoice XML with the same header but other data different, in any order', async () => {
+    const cii = officialText(XR_CII);
+    const noTaxId = cii.replace(
+      /<ram:SpecifiedTaxRegistration>[\s\S]*?<\/ram:SpecifiedTaxRegistration>/g,
+      '',
+    );
+    expect(noTaxId).not.toContain('SpecifiedTaxRegistration');
+    for (const attachments of [
+      [xml('a.xml', cii), xml('b.xml', noTaxId)],
+      [xml('b.xml', noTaxId), xml('a.xml', cii)],
+    ]) {
+      const { analysis, verdict } = await check('r.pdf', miniPdf({ attachments }));
+      expect(verdict.comparison).toEqual({ same: false, differing: [] });
+      expect(verdict.headline).toBe(TEXTS.contradicting);
+      expect(differingLine(analysis.invoices, [])).toContain(
+        'Steuernummer oder USt-IdNr. des leistenden Unternehmers',
+      );
+    }
+  });
+
   it('never picks one of two different invoices', async () => {
     const pdf = miniPdf({
       attachments: [xml('a.xml', CII), xml('b.xml', withInvoiceNumber(CII, 'ANDERE-NR'))],
@@ -360,8 +381,15 @@ describe('schema check (step 2b)', () => {
     expect(statement).toBeLessThan(technical);
   });
 
+  // an element the schema does not know: the data stay the same (a comma amount would not, QL-01)
+  const UNKNOWN = (text: string) =>
+    text.replace(
+      '</cbc:CustomizationID>',
+      '</cbc:CustomizationID>\n<cbc:Unbekannt>x</cbc:Unbekannt>',
+    );
+
   it('names the attachment and judges several XML whatever their order', async () => {
-    const bad = xml('b-xrechnung.xml', COMMA(officialText(XR_UBL)));
+    const bad = xml('b-xrechnung.xml', UNKNOWN(officialText(XR_UBL)));
     const good = xml('a-xrechnung.xml', officialText(XR_UBL));
     for (const attachments of [
       [good, bad],

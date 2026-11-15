@@ -7,6 +7,7 @@ import { decimalEquals, formatAmount, parseDecimal } from './decimal';
 import { first } from './model';
 import type { BtId, InvoiceModel } from './model';
 import { checkPflichtangaben } from './check';
+import type { RowResult } from './check';
 import { profileOf } from './profiles';
 import { adviceFor, checkRules } from './rules';
 import type { RulesResult } from './rules';
@@ -76,6 +77,96 @@ export function differingTerms(parts: readonly InvoicePart[]): BtId[] {
   });
 }
 
+/** A part's Pflichtangaben row or rule results as the client reads them, to compare the parts. */
+interface Outcome {
+  key: string;
+  label: string;
+  /** Everything the result shows of it: equal signatures, equal results */
+  signature: string;
+  /** Short, for the line "Unterschiedlich: …" and the comparison table */
+  shown: string;
+}
+
+const SHOWN_MAX = 120;
+const STATUS_TEXT: Readonly<Record<RowResult['status'], string>> = {
+  vorhanden: TEXTS.statusVorhanden,
+  fehlt: TEXTS.statusFehlt,
+  einzelfall: TEXTS.statusEinzelfall,
+};
+
+function rowShown(row: RowResult): string {
+  const values = row.values.map((v) => v.value).join(', ');
+  const hints =
+    row.hints.length === 0
+      ? ''
+      : ` (${row.hints.length === 1 ? TEXTS.differingWithHint : fill(TEXTS.differingWithHints, { count: row.hints.length })})`;
+  const text = `${STATUS_TEXT[row.status]}${values ? `: ${values}` : ''}${hints}`;
+  return text.length > SHOWN_MAX ? `${text.slice(0, SHOWN_MAX - 1)}…` : text;
+}
+
+function rulesShown(rules: RulesResult): string {
+  if (rules.auffaellig.length > 0) {
+    return `${TEXTS.ruleStatusAuffaellig}: ${rules.auffaellig.join(', ')}`;
+  }
+  return rules.notChecked > 0
+    ? `${TEXTS.ruleStatusPasst}, ${rules.notChecked} ${TEXTS.ruleStatusNichtPruefbar}`
+    : TEXTS.ruleStatusPasst;
+}
+
+/** What the result shows of one part beside its header: every Pflichtangabe and the rules. */
+function outcomesOf(invoice: InvoiceVerdict): Outcome[] {
+  const model = pflichtModel(invoice);
+  if (!model) return [];
+  const rows = checkPflichtangaben(model).rows.map((row) => ({
+    key: row.row.id,
+    label: row.row.label,
+    signature: JSON.stringify([
+      row.status,
+      row.reason ?? '',
+      row.missing,
+      row.hints,
+      row.values,
+      row.groups,
+    ]),
+    shown: rowShown(row),
+  }));
+  const rules = rulesOf(invoice);
+  return rules
+    ? [
+        ...rows,
+        {
+          key: 'rules',
+          label: TEXTS.differingRules,
+          signature: JSON.stringify(rules.results.map((r) => [r.id, r.occurrence ?? '', r.status])),
+          shown: rulesShown(rules),
+        },
+      ]
+    : rows;
+}
+
+/**
+ * F27: two invoice XML are the same invoice only if the result says the same of each — the
+ * compared header values, and also the missing Pflichtangaben, the hints, the values of every row
+ * and the rule results (audit QL-01). Not the whole model: the same invoice in UBL and CII differs
+ * in documented details (tests/io/extract.test.ts). One item per row or rule that differs.
+ */
+export function differingResults(
+  parts: readonly InvoicePart[],
+): { label: string; values: string[] }[] {
+  const outcomes = parts.map((part) => {
+    const map = new Map<string, Outcome>();
+    for (const outcome of outcomesOf(judgeInvoice(part))) map.set(outcome.key, outcome);
+    return map;
+  });
+  const keys = [...new Set(outcomes.flatMap((map) => [...map.keys()]))];
+  return keys.flatMap((key) => {
+    const each = outcomes.map((map) => map.get(key));
+    if (new Set(each.map((o) => o?.signature ?? '')).size === 1) return [];
+    const label = each.find((o) => o !== undefined)?.label ?? key;
+    return [{ label, values: each.map((o) => o?.shown ?? '–') }];
+  });
+}
+
 /** A compared value as the client reads it: German date and amount, "–" when missing. */
 function shownValue(part: InvoicePart, bt: BtId): string {
   const value = first(part.header, bt)?.trim() ?? '';
@@ -93,16 +184,24 @@ function shownValue(part: InvoicePart, bt: BtId): string {
 
 /**
  * "Unterschiedlich: Rechnungsnummer (PRG1502112 / PRG1502113)." — with the values of every part,
- * so the client sees what differs without scrolling to each part (audit Bedienung, E-04).
+ * so the client sees what differs without scrolling to each part (audit Bedienung, E-04). With
+ * the same header the differing Pflichtangaben and rules are named instead (audit QL-01).
  */
 export function differingLine(parts: readonly InvoicePart[], differing: readonly BtId[]): string {
-  const items = differing.map((bt) =>
-    fill(TEXTS.differingItem, {
-      label: termLabel(bt),
-      values: parts.map((part) => shownValue(part, bt)).join(' / '),
-    }),
-  );
-  return fill(TEXTS.differingLine, { items: items.join('; ') });
+  const items =
+    differing.length > 0
+      ? differing.map((bt) => ({
+          label: termLabel(bt),
+          values: parts.map((part) => shownValue(part, bt)),
+        }))
+      : differingResults(parts);
+  return fill(TEXTS.differingLine, {
+    items: items
+      .map((item) =>
+        fill(TEXTS.differingItem, { label: item.label, values: item.values.join(' / ') }),
+      )
+      .join('; '),
+  });
 }
 
 export interface ComparisonRow {
@@ -125,6 +224,10 @@ export function comparisonRows(parts: readonly InvoicePart[]): ComparisonRow[] {
       values: parts.map((part) => shownValue(part, bt)),
       differs: differing.has(bt),
     })),
+    // the same header: what differs beside it (audit QL-01)
+    ...(differing.size === 0
+      ? differingResults(parts).map((item) => ({ ...item, differs: true }))
+      : []),
   ];
 }
 
@@ -445,7 +548,7 @@ export function verdictOf(analysis: Analysis): Verdict {
     const differing = differingTerms(analysis.invoices);
     const names = analysis.invoices.map((p) => p.origin).join(', ');
     const format = formatErrorLines(invoices, true);
-    if (differing.length === 0) {
+    if (differing.length === 0 && differingResults(analysis.invoices).length === 0) {
       // F27: the same data twice — one part is shown, with a hint on the standard
       const same = [fill(TEXTS.sameSeveral, { count: invoices.length, names })];
       return {
