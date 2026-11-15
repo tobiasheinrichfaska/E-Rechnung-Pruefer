@@ -67,6 +67,8 @@ export const TEXTS = {
   plainPdf: 'Keine E-Rechnung: einfaches PDF',
   pdfWithoutInvoiceData: 'Keine E-Rechnung: PDF ohne Rechnungsdaten',
   plainPdfWhy: 'Das PDF enthält keine Rechnungsdaten als XML. Ein PDF allein ist keine E-Rechnung.',
+  // the names in quotes, as everywhere else (audit QU-09)
+  attachmentNoInvoice: 'Der Anhang „{name}“ enthält keine Rechnungsdaten.',
   attachmentsNoInvoice: 'Anhänge im PDF: {names}. Keiner davon enthält Rechnungsdaten.',
   pdfBrokenXml: 'PDF mit fehlerhafter XML',
   attachmentBroken: 'Der Anhang „{name}“ ist XML, lässt sich aber nicht lesen.',

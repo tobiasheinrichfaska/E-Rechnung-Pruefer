@@ -4,7 +4,7 @@ import { miniPdf } from '../../src/build/minipdf';
 import type { Attachment } from '../../src/build/minipdf';
 import { openApp, sideEffects, upload } from './helpers';
 
-// The attachments of a PDF that hold no invoice data (audit 2026-11-15, QL-06).
+// The attachments of a PDF that hold no invoice data (audit 2026-11-15, QL-06 and QU-09).
 
 const xml = (name: string, text: string): Attachment => ({
   name,
@@ -39,6 +39,34 @@ test('names an attachment the PDF does not give out, in the result and in the li
   );
   const list = page.locator('.card', { hasText: 'Weitere Anhänge im PDF' });
   await expect(list.getByRole('listitem')).toHaveText(['zweite.xml – nicht lesbar']);
+  expect(problems).toEqual([]);
+  expect(await sideEffects(page)).toEqual([]);
+});
+
+test('names a single attachment without invoice data once (QU-09)', async ({ page }) => {
+  const problems = await openApp(page);
+  const pdf = miniPdf({
+    attachments: [{ name: 'lieferschein.txt', bytes: encode('Lieferschein') }],
+  });
+  await upload(page, 'r.pdf', pdf, 'application/pdf');
+  await expect(page.getByTestId('verdict')).toContainText(
+    'Der Anhang „lieferschein.txt“ enthält keine Rechnungsdaten.',
+  );
+  // E-08a: the result names the only attachment, so there is no list of it below
+  await expect(page.getByRole('heading', { name: 'Anhänge im PDF' })).toHaveCount(0);
+
+  const two = miniPdf({
+    attachments: [
+      { name: 'lieferschein.txt', bytes: encode('Lieferschein') },
+      xml('bestellung.xml', '<Order xmlns="urn:example:order"/>'),
+    ],
+  });
+  await upload(page, 'zwei.pdf', two, 'application/pdf');
+  await expect(page.getByTestId('verdict')).toContainText(
+    // in the order of the PDF's name tree, which sorts them
+    'Anhänge im PDF: „bestellung.xml“, „lieferschein.txt“. Keiner davon enthält Rechnungsdaten.',
+  );
+  await expect(page.getByRole('heading', { name: 'Anhänge im PDF' })).toBeVisible();
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);
 });

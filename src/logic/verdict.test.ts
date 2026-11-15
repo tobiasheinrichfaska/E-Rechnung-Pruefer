@@ -92,6 +92,25 @@ describe('verdictOf', () => {
   });
 });
 
+describe('a PDF whose attachments hold no invoice data (audit QU-09)', () => {
+  it('names them in quotes, one attachment in the singular', () => {
+    const one = verdictOf(analysis({ others: [{ origin: 'lieferschein.txt', kind: 'notXml' }] }));
+    expect(one.headline).toBe(TEXTS.pdfWithoutInvoiceData);
+    expect(one.explanation[0]).toBe('Der Anhang „lieferschein.txt“ enthält keine Rechnungsdaten.');
+    const two = verdictOf(
+      analysis({
+        others: [
+          { origin: 'a.txt', kind: 'notXml' },
+          { origin: 'b.xml', kind: 'otherXml', root: { name: 'Order', namespace: 'urn:x' } },
+        ],
+      }),
+    );
+    expect(two.explanation[0]).toBe(
+      'Anhänge im PDF: „a.txt“, „b.xml“. Keiner davon enthält Rechnungsdaten.',
+    );
+  });
+});
+
 describe('differingTerms', () => {
   it('compares dates across formats and amounts by value', () => {
     const ubl = part({ 'BT-2': ['2026-11-13'], 'BT-112': ['119'] }, 'x.xml');

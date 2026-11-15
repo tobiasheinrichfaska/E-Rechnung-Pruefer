@@ -656,13 +656,18 @@ export function verdictOf(analysis: Analysis): Verdict {
       invoices: [],
     };
   }
-  if (analysis.others.length > 0) {
-    const names = analysis.others.map((o) => o.origin);
+  const [single, ...more] = analysis.others;
+  if (single) {
+    // QU-09: the names in quotes, so the list below can see that the result names them (E-08a)
     return {
       tone: 'bad',
       headline: TEXTS.pdfWithoutInvoiceData,
       explanation: [
-        fill(TEXTS.attachmentsNoInvoice, { names: names.join(', ') }),
+        more.length === 0
+          ? fill(TEXTS.attachmentNoInvoice, { name: single.origin })
+          : fill(TEXTS.attachmentsNoInvoice, {
+              names: analysis.others.map((o) => `„${o.origin}“`).join(', '),
+            }),
         TEXTS.plainPdfWhy,
         TEXTS.regimeGeneral,
       ],
