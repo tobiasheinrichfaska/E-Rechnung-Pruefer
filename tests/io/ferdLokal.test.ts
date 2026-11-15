@@ -8,7 +8,10 @@ import { rulesOf, verdictOf } from '../../src/logic/verdict';
 
 // The official FeRD ZUGFeRD 2.5.2 sample invoices may not be redistributed (AWV copyright), so they
 // live only in the gitignored tests/fixtures/lokal/ferd/. Where the folder is missing these tests
-// are SKIPPED — and a skipped test is not a pass (report it as such).
+// are SKIPPED — and a skipped test is not a pass (report it as such). Each sample: MINIMUM and
+// BASIC WL "keine E-Rechnung", all others recognised; no problem against the schema of its profile
+// (F28: each Factur-X profile its own FeRD schema, XRECHNUNG CII D16B as KoSIT); Pflichtangaben
+// built; no possible irregularity in the amounts (EXTENDED by the FeRD rules, F29).
 const ROOT = new URL('../fixtures/lokal/ferd/', import.meta.url);
 const root = decodeURIComponent(ROOT.pathname.replace(/^\/([A-Za-z]:)/, '$1'));
 const present = existsSync(root);
@@ -34,7 +37,7 @@ describe.skipIf(!present)('FeRD ZUGFeRD 2.5.2 sample invoices (local only)', () 
     const verdict = verdictOf(analysis);
     expect(analysis.problem).toBeUndefined();
     expect(analysis.invoices).toHaveLength(1);
-    // Steps 2a/2b: valid against CII D16B (as KoSIT checks it), EXTENDED against its FeRD schema
+    // Steps 2a/2b: valid against the schema of its profile
     const schema = analysis.invoices[0]?.schema;
     expect(schema?.checked).toBe(true);
     // F28: each profile against its own FeRD schema (XRECHNUNG: CII D16B, as KoSIT)
