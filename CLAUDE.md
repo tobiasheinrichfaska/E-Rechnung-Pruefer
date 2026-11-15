@@ -319,7 +319,9 @@ merged (`00e4ab0`), private repo PR #3 (`colors`) merged.
 **2026-11-15 — Impressum and privacy links (version 0.5.0):** Tobias: the release repo is made by the
 Kanzlei PC; asked what is left here. Decided: links to the Kanzlei's Impressum and privacy policy
 from the local configuration (`imprintUrl`, `privacyUrl`; `Footer.tsx`), never in this repo
-(`noBranding.test.ts` checks their host). PR #11 merged (`c2cd7a8`). The addresses are not in the private configuration yet.
+(`noBranding.test.ts` checks their host). PR #11 merged (`c2cd7a8`). Addresses found on the Kanzlei
+homepage on 2026-11-15 (Tobias: „suche die impressum und datenschutz-angaben auf der aktuellen
+homepage“): both pages answer 200 over https without a redirect; now in the private configuration.
 
 **2026-11-15 — access notice (version 0.4.0):** Tobias: straight to bunny.net, the IONOS test copy
 is not updated first. Decided: the notice text lives like the Fragebogen's (`config/kanzlei.local.json`,
@@ -391,6 +393,10 @@ the Fragebogen move **first**, and **as the Kanzlei**, not privately and not yet
 - **Kanzlei to-dos outside this repo:** a sentence on bunny.net in the Kanzlei's privacy policy (the
   CDN processes IP addresses for delivery, its logs keep none, the invoice never reaches it); the
   Kanzlei's Impressum applies. The DPA with bunny.net is accepted and filed (2026-11-15).
+  - Checked 2026-11-15 on the homepage: the privacy policy (dated 11.05.2018) covers only the website
+    itself (its server log, cookies); it names neither bunny.net nor a CDN nor the tools, its section
+    on passing data on knows only legal claims and duties, and the remembered access notice in the
+    browser (`localStorage`) is not mentioned. Whether and how to add this is the Kanzlei's call.
 - **Later, a separate step:**
   - A neutral version without the Kanzlei name for everyone, offered by the planned club on a neutral
     domain of its own.
