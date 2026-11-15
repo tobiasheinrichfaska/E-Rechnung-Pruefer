@@ -21,8 +21,14 @@ selected set of amounts adds up. Results are **hints, never an approval**.
 **Fixed frame (hand-over 2026-11-13):**
 
 - Browser only, **one HTML file**; no network at run time, no CDN; all libraries bundled.
-- **No storage at all** (no localStorage, IndexedDB, cookies): other apps live on the same origin
-  and their data and "delete all data on this device" must stay untouched.
+- **Storage (changed 2026-11-15):**
+  - Until then: no storage at all (no localStorage, IndexedDB, cookies), because other apps live on
+    the same origin and their data and "delete all data on this device" must stay untouched.
+  - Tobias 2026-11-15, „ja, Beschränkung fällt“: the ban falls, together with the move to a subdomain
+    of its own. First use: remembering the confirmed access notice (see Status).
+  - Storing anything more, such as invoices or results, only after asking him.
+  - While a copy still shares the origin: only keys of its own with an own prefix; never read or
+    clear another app's data.
 - Development phase: only in `NebenprojektERechnung/` (office IPs or tester login), not linked.
 - UI German, Sie-form, simple sentences, style like the Fragebogen app.
 - **Tax questions are never decided by Claude** — collect them in `docs/offene-fragen.md` for Tobias.
@@ -295,11 +301,12 @@ the Fragebogen move **first**, and **as the Kanzlei**, not privately and not yet
   - The text names the Kanzlei, so it must not be in this public repo. It comes from a local config,
     like the Fragebogen's `config/kanzlei.local.json`. Where exactly it lives (gitignored here plus
     the private companion) is decided with Tobias.
-  - **Open question for Tobias:** the fixed frame says "no storage at all", because other apps share
-    the origin. With a subdomain of its own that reason falls away. May the confirmation be
-    remembered in the browser (like the Fragebogen's "Antwort für die Zukunft merken"), or is it
-    asked on every visit? Changing the storage ban needs his OK; the ESLint rule and the e2e spy
-    guard it.
+  - **Decided (Tobias 2026-11-15, „ja, Beschränkung fällt“):**
+    - The confirmation may be remembered in the browser, like the Fragebogen's "Antwort für die
+      Zukunft merken": no cookie, and a changed text is asked again.
+    - Adapt the ESLint storage ban and the e2e spy so that they allow exactly this key and still
+      refuse everything else.
+    - A regression test shows that any other storage access still fails.
   - Draft text, adopt only with his OK:
 
     > Der E-Rechnungs-Prüfer ist ein kostenloses Hilfsmittel der [Kanzlei]. Er gibt Hinweise zu Form
