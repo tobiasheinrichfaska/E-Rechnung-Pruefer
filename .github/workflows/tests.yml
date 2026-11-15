@@ -1,0 +1,59 @@
+# The GitHub check „Tests“ (Kanzlei PC session, Tobias 2026-11-15): every upload of the app waits for
+# it, green for exactly the commit that is uploaded — the same way for every project, built after
+# the Fragebogen's tests.yml. Every push to main and every pull request runs typecheck, lint, format,
+# the unit tests and the e2e tests in Chromium, Firefox and WebKit (live build and test version).
+# Tests that need the private files (tests/fixtures/lokal: the FeRD samples, the Kanzlei
+# configuration) skip here — a skip is not a pass; they run in the cloud sessions, where the private
+# repo is attached. Failed e2e runs keep their files as an artifact (official sample files only).
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Typen, Lint, Format, Unit-Tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm test
+
+  e2e:
+    name: E2E in Chromium, Firefox und WebKit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - run: npm run test:e2e
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-fehlschlaege
+          path: test-results/
+          retention-days: 14
+          if-no-files-found: ignore

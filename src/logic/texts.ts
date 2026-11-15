@@ -166,6 +166,7 @@ export const TEXTS = {
   // Links at the foot of the page, addresses from the local Kanzlei configuration
   imprint: 'Impressum',
   privacy: 'Datenschutz',
+  testerInvite: 'Tester einladen',
 
   // Only the first file of a drop counts — said, not silent (audit Bedienung, A-04)
   onlyFirstFile: 'Sie haben {count} Dateien abgelegt. Geprüft wurde nur die erste.',

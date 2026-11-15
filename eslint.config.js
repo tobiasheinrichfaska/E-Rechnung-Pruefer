@@ -47,7 +47,7 @@ const NO_STORAGE_PROPERTIES = [
 export const ACCESS_STORE = 'src/io/accessStore.ts';
 
 export default defineConfig([
-  globalIgnores(['dist', 'coverage', '.tmp', 'playwright-report', 'test-results']),
+  globalIgnores(['dist', 'dist-test', 'coverage', '.tmp', 'playwright-report', 'test-results']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [js.configs.recommended, tseslint.configs.strict],

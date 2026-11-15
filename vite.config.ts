@@ -30,13 +30,19 @@ function contentSecurityPolicy(): Plugin {
   };
 }
 
-export default defineConfig({
+// The test version (`npm run build:test`, mode `testbereich`, folder dist-test/) for the protected
+// test zone links „Tester einladen“ to the page of the login script (repo Testumgebung, Tobias
+// 2026-11-15). Every other build gets null, so the address never reaches dist/index.html.
+const TESTER_INVITE = '/_zugang/einladen';
+
+export default defineConfig(({ mode }) => ({
   // Relative paths so the single file also runs from file://
   base: './',
   plugins: [react(), viteSingleFile(), contentSecurityPolicy()],
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
     __APP_CONFIG__: JSON.stringify(kanzlei.config),
+    __TESTER_INVITE__: JSON.stringify(mode === 'testbereich' ? TESTER_INVITE : null),
   },
   build: {
     target: 'es2022',
@@ -52,4 +58,4 @@ export default defineConfig({
     pool: 'forks',
     globals: true,
   },
-});
+}));

@@ -5,8 +5,9 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { ACCESS_STORAGE } from '../../src/logic/storageKeys';
 
-const BUILT = join(import.meta.dirname, '..', '..', 'dist', 'index.html');
-export const APP = pathToFileURL(BUILT).href;
+/** The live build (`npm run build`) and the test version for the test zone (`npm run build:test`). */
+export const BUILT = join(import.meta.dirname, '..', '..', 'dist', 'index.html');
+export const BUILT_TEST = join(import.meta.dirname, '..', '..', 'dist-test', 'index.html');
 
 /** An https address for the built file (the hosted copy), answered from disk by the test. */
 export const HOSTED = 'https://e-rechnung.test';
@@ -86,8 +87,11 @@ const SPY = () => {
   });
 };
 
-/** Opens the built file with the spy; the returned list collects console errors and requests. */
-export async function openApp(page: Page): Promise<string[]> {
+/**
+ * Opens the built file (the live build unless `built` names another) with the spy; the returned list
+ * collects console errors and requests.
+ */
+export async function openApp(page: Page, built = BUILT): Promise<string[]> {
   const problems: string[] = [];
   page.on('console', (message) => {
     if (message.type() === 'error') problems.push(`console: ${message.text()}`);
@@ -98,7 +102,7 @@ export async function openApp(page: Page): Promise<string[]> {
     if (!/^(file|data|blob):/.test(request.url())) problems.push(`request: ${request.url()}`);
   });
   await page.addInitScript(SPY);
-  await page.goto(APP);
+  await page.goto(pathToFileURL(built).href);
   return problems;
 }
 
@@ -106,9 +110,9 @@ export async function openApp(page: Page): Promise<string[]> {
  * Opens the built file at an https address (`path` on HOSTED) with the spy; every other address is
  * refused and listed. Returns the problems as openApp does, the refused addresses included.
  */
-export async function openHosted(page: Page, path = '/'): Promise<string[]> {
+export async function openHosted(page: Page, path = '/', built = BUILT): Promise<string[]> {
   const problems: string[] = [];
-  const html = readFileSync(BUILT);
+  const html = readFileSync(built);
   page.on('console', (message) => {
     if (message.type() === 'error') problems.push(`console: ${message.text()}`);
   });
