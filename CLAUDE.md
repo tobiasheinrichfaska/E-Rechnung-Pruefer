@@ -308,6 +308,17 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 
 ## Status / next step
 
+**Task (Kanzlei PC session, 2026-11-15, Tobias): a GitHub check named „Tests“.**
+
+- Every app's upload now waits for the app's own GitHub check **„Tests“**, green for exactly the
+  commit that is uploaded. Tobias wants one way for all projects.
+- This repo has no check yet, so the upload runs `npm test` itself as a stopgap.
+- Add `.github/workflows/tests.yml` with `name: Tests`, run on every push to main and on pull
+  requests. It runs typecheck, lint, format and unit tests, and the e2e tests where they run on
+  GitHub's runners (the Fragebogen's `tests.yml` is the model).
+- Then tell Tobias, so that the `erechnung` and `erechnungtest` entries of the repo `Freigabe` switch to
+  `"gate": { "workflow": "Tests" }`.
+
 **Task (Kanzlei PC session, 2026-11-15, Tobias): footer link „Tester einladen“ in a test build.**
 
 - The test version runs in a protected test zone of its own at bunny.net, separate from the live
