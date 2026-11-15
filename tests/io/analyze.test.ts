@@ -46,6 +46,12 @@ describe('XML files', () => {
       'E-Rechnung erkannt (XRechnung 3.0 mit Extension)',
     ],
     ['kosit/02.01a-cvd_INVOICE_ubl.xml', 'ubl-invoice', 'E-Rechnung erkannt (XRechnung 3.0, CVD)'],
+    // the CEN example behind the profile entry Peppol BIS Billing 3.0 (audit 2026-11-15, QT-13)
+    [
+      'cen/UBL_BIS3_Invoice_positive.xml',
+      'ubl-invoice',
+      'E-Rechnung erkannt (Peppol BIS Billing 3.0)',
+    ],
   ])('%s is recognised as %s', async (path, syntax, headline) => {
     const { analysis, verdict } = await check(path, official(path));
     expect(analysis.invoices.map((i) => i.syntax)).toEqual([syntax]);
