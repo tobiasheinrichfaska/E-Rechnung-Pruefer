@@ -128,6 +128,25 @@ describe('invoiceDetails', () => {
     );
   });
 
+  it('keeps the schema row technical for "keine E-Rechnung", as the result does (QL-09, QU-08)', () => {
+    const schema = {
+      schema: 'Factur-X 1.09.2 MINIMUM (FeRD)',
+      checked: true,
+      problems: [],
+      count: 2,
+    };
+    const row = (overrides: Partial<InvoicePart['header']>) => {
+      const verdict = verdictOf(analysis({ invoices: [{ ...part(overrides), schema }] }));
+      const invoice = verdict.invoices[0];
+      if (!invoice) throw new Error('no invoice');
+      return invoiceDetails(invoice, true).find((r) => r.label === 'Schema (XSD)');
+    };
+    // F19: no format error for "keine E-Rechnung", so the count stays under "Technische Angaben"
+    expect(row({ 'BT-24': ['urn:factur-x.eu:1p0:minimum'] })?.technical).toBe(true);
+    // G-2: a format error of an e-invoice stays visible
+    expect(row({})?.technical).toBe(false);
+  });
+
   it('shows missing values and keeps unreadable values as written', () => {
     const verdict = verdictOf(
       analysis({

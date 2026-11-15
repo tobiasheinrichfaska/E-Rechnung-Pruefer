@@ -158,8 +158,11 @@ function problemLine(problem: Problem | undefined): string[] {
   return problem ? [technicalLine(problem)] : [];
 }
 
-/** Schema problems count only where the XML is what counts (not for "keine E-Rechnung", F19). */
-function schemaFailed(invoice: InvoiceVerdict): boolean {
+/**
+ * Schema problems count only where the XML is what counts (not for "keine E-Rechnung", F19) — the
+ * result box and the detail row "Schema (XSD)" ask the same (audit QL-09).
+ */
+export function schemaFailed(invoice: InvoiceVerdict): boolean {
   return invoice.einordnung !== 'keineERechnung' && (invoice.part.schema?.count ?? 0) > 0;
 }
 

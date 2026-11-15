@@ -4,6 +4,7 @@ import { germanDate, isoDate } from './dates';
 import { formatAmount, parseDecimal } from './decimal';
 import { first } from './model';
 import { TEXTS, TYPE_CODES, fill } from './texts';
+import { schemaFailed } from './verdict';
 import type { InvoiceVerdict } from './verdict';
 
 export interface DetailRow {
@@ -33,7 +34,6 @@ export function invoiceDetails(invoice: InvoiceVerdict, inPdf: boolean): DetailR
   const amount = first(h, 'BT-112');
   const parsed = parseDecimal(amount);
   const currency = first(h, 'BT-5');
-  const schemaFailed = (invoice.part.schema?.count ?? 0) > 0;
   // G-2: what the client knows from the invoice first, the technical rows after it
   return [
     // an XML file's name already stands above the result ("Geprüfte Datei", audit E-08)
@@ -63,7 +63,7 @@ export function invoiceDetails(invoice: InvoiceVerdict, inPdf: boolean): DetailR
       technical: true,
     },
     { label: 'Kennung (BT-24)', value: invoice.profile.id ?? MISSING, technical: true },
-    // a format error stays visible (G-2)
-    { label: 'Schema (XSD)', value: schemaDetail(invoice), technical: !schemaFailed },
+    // a format error stays visible (G-2); "keine E-Rechnung" has none (F19, audit QL-09)
+    { label: 'Schema (XSD)', value: schemaDetail(invoice), technical: !schemaFailed(invoice) },
   ];
 }
