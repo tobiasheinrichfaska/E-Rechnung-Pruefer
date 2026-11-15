@@ -10,6 +10,11 @@ liest `vite.config.ts` über `src/build/kanzleiConfig.ts` die erste vorhandene d
    Kanzlei-PC),
 3. `config/kanzlei.example.json` – neutral und leer: Das Tool fragt dann nichts.
 
+Vor allen dreien gilt die Datei, die die Umgebungsvariable `KANZLEI_CONFIG` nennt (relativ zum Repo
+oder absolut; fehlt sie, bricht der Build ab). Die GitHub-Prüfung „Tests“ nennt dort die erfundene
+Beispielkanzlei `tests/fixtures/config/beispiel-kanzlei.json`, damit die Tests von Zugangshinweis,
+Fußzeile und Farben auch ohne die privaten Dateien laufen (`tests/fixtures/config/README.md`).
+
 ```json
 {
   "accessNotice": "Der E-Rechnungs-Prüfer ist ein kostenloses Hilfsmittel der Musterkanzlei. …",

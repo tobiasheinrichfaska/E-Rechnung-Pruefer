@@ -8,12 +8,13 @@ import { configFile, loadAppConfig } from '../../src/build/kanzleiConfig';
 // file of this public repo, nor the host of the Impressum or privacy address. Without a local configuration there is nothing that could leak — the
 // check then only confirms that the build reads the neutral example.
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
-const { config } = loadAppConfig();
+// Only the real configuration counts, never the invented one KANZLEI_CONFIG may name (QT-01).
+const { config } = loadAppConfig({});
 const notice = config.accessNotice;
 
 describe('no Kanzlei name in the public repo', () => {
   it('reads the neutral example only when no local configuration is there', () => {
-    if (notice === undefined) expect(configFile()).toBe('config/kanzlei.example.json');
+    if (notice === undefined) expect(configFile({})).toBe('config/kanzlei.example.json');
     expect(JSON.parse(readFileSync(`${ROOT}config/kanzlei.example.json`, 'utf8'))).toEqual({});
   });
 
