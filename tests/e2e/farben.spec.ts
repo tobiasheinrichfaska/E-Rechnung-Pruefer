@@ -26,6 +26,10 @@ test.describe('with the colours of the local configuration', () => {
   test('buttons, the drop zone and the notice take the Kanzlei colours', async ({ page }) => {
     const problems = await openApp(page);
     await expect(button(page)).toHaveCSS('background-color', rgb(colors.accent));
+    // the whole design: the title and the tick boxes too (Tobias 2026-11-15: „rot für das ganze
+    // design“)
+    await expect(page.getByRole('heading', { level: 1 })).toHaveCSS('color', rgb(colors.accent));
+    await expect(page.getByTestId('file-input')).toHaveCSS('accent-color', rgb(colors.accent));
     if (colors.infoBg) {
       expect(await style(page, '[data-testid="fixed-notice"]', 'background-color')).toBe(
         rgb(colors.infoBg),
@@ -46,6 +50,16 @@ test.describe('with the colours of the local configuration', () => {
     }
     expect(problems).toEqual([]);
     expect(await sideEffects(page)).toEqual([]);
+  });
+
+  test('the buttons under a result take the Kanzlei accent', async ({ page }) => {
+    await openApp(page);
+    await page
+      .getByTestId('file-input')
+      .setInputFiles({ name: 'r.xml', mimeType: 'text/xml', buffer: Buffer.from('<a/>') });
+    const print = page.getByRole('button', { name: 'Ergebnis drucken' });
+    await expect(print).toHaveCSS('color', rgb(colors.accent));
+    await expect(print).toHaveCSS('border-top-color', rgb(colors.accent));
   });
 
   test('links take the Kanzlei accent', async ({ page }) => {

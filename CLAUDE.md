@@ -314,7 +314,9 @@ integrity task can follow; `npm audit --omit=dev` 0, dev tools 9 moderate (minim
 below the reporting level); no CI workflow in this repo. Then: „Stelle die App auf die Kanzleifarben
 um (bei Fragebogen haben wir das schon getan)“ — the Fragebogen's `colors` block, copied unchanged
 into the private configuration, applied as `--kanzlei-…` variables; links now take the accent. PR #13
-merged (`00e4ab0`), private repo PR #3 (`colors`) merged.
+merged (`00e4ab0`), private repo PR #3 (`colors`) merged. **0.6.1** (Tobias: „rot für das ganze design“): the
+accent also colours the title, the tick boxes (`accent-color`) and the print/copy buttons, as in the
+Fragebogen; the status colours (ok/warn/bad) keep their meaning.
 
 **2026-11-15 — Impressum and privacy links (version 0.5.0):** Tobias: the release repo is made by the
 Kanzlei PC; asked what is left here. Decided: links to the Kanzlei's Impressum and privacy policy
