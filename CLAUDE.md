@@ -281,6 +281,49 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 
 ## Status / next step
 
+**Hosting move decided (Kanzlei PC session, 2026-11-15; nothing moved yet):** Tobias: this tool and
+the Fragebogen move **first**, and **as the Kanzlei**, not privately and not yet as the planned club.
+
+- **Where:**
+  - To bunny.net (static CDN) under the Kanzlei's bunny account, on a **Kanzlei subdomain of its
+    own**, no longer `NebenprojektERechnung/` on the Fragebogen subdomain.
+  - bunny.net has no login, so moving there means going public. Until Tobias releases the tool, the
+    test copy stays at IONOS behind its login.
+- **New task for a cloud session: an access notice before the start.**
+  - Build it like the Fragebogen's (`src/logic/accessGate.ts` there): only when a notice is
+    configured, only over https, a changed text is asked again, a downloaded file does not ask.
+  - The text names the Kanzlei, so it must not be in this public repo. It comes from a local config,
+    like the Fragebogen's `config/kanzlei.local.json`. Where exactly it lives (gitignored here plus
+    the private companion) is decided with Tobias.
+  - **Open question for Tobias:** the fixed frame says "no storage at all", because other apps share
+    the origin. With a subdomain of its own that reason falls away. May the confirmation be
+    remembered in the browser (like the Fragebogen's "Antwort für die Zukunft merken"), or is it
+    asked on every visit? Changing the storage ban needs his OK; the ESLint rule and the e2e spy
+    guard it.
+  - Draft text, adopt only with his OK:
+
+    > Der E-Rechnungs-Prüfer ist ein kostenloses Hilfsmittel der [Kanzlei]. Er gibt Hinweise zu Form
+    > und Pflichtangaben einer E-Rechnung. Er ist keine Rechts- oder Steuerberatung und keine
+    > verbindliche Prüfung, und seine Ergebnisse können unvollständig oder fehlerhaft sein. Bitte
+    > setzen Sie ihn in Absprache mit Ihrer steuerlichen Beratung ein und klären Sie Zweifelsfälle
+    > dort. Die Rechnung wird nur in Ihrem Browser geprüft und nicht übertragen.
+
+  - No liability clause of its own.
+- **Headers:**
+  - bunny.net serves no `.htaccess`. The server headers in `deploy/README.md`, including
+    `frame-ancestors`, become bunny.net edge rules.
+  - Check them by hand after the first upload (`curl -I`).
+- **Upload:**
+  - Later through a separate private "Freigabe" repo: GitHub Actions, each run started by Tobias by
+    hand. That repo is never attached to a cloud session.
+  - Until then the Kanzlei PC uploads. Cloud sessions never upload.
+- **Kanzlei to-dos outside this repo:** a sentence on bunny.net in the Kanzlei's privacy policy (the
+  CDN processes IP addresses), a DPA with bunny.net; the Kanzlei's Impressum applies.
+- **Later, a separate step:**
+  - A neutral version without the Kanzlei name for everyone, offered by the planned club on a neutral
+    domain of its own.
+  - Its notice says "soll … in Absprache" instead of reserving the tool for clients.
+
 **2026-11-14 — version 0.3.0 (Tobias' decisions in the dialogue, one question per round):** PR #2
 merged (`d8b9d76`). F22 (missing Pflichtangaben and hints make the box yellow, "– mit Hinweisen"),
 F23 (hints instead of demands, the Kanzlei only where it helps, advice by kind of rule), F24
