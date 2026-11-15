@@ -20,7 +20,8 @@ describe('no Kanzlei name in the public repo', () => {
   it('keeps the notice and the Kanzlei addresses of the local configuration out of every tracked file', () => {
     const hosts = [config.imprintUrl, config.privacyUrl]
       .filter((url): url is string => url !== undefined)
-      .map((url) => new URL(url).hostname.replace(/^www\./, ''));
+      // the registrable domain (e.g. "kanzlei-beispiel.de"), whatever subdomain a page uses
+      .map((url) => new URL(url).hostname.split('.').slice(-2).join('.'));
     const secrets = [
       ...(notice === undefined ? [] : [notice, notice.split(/(?<=\.)\s/)[0] ?? notice]),
       ...hosts,
