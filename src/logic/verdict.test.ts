@@ -335,3 +335,50 @@ describe('decisions of 2026-11-14, dialogue (F22–F27, G-3, G-7, G-10)', () => 
     expect(verdictOf(analysis({ kind: 'xml', invoices: [zf1] })).headline).toBe(TEXTS.zugferd1Xml);
   });
 });
+
+describe('the same invoice XML twice (audit 2026-11-15)', () => {
+  const schema = {
+    schema: 'UN/CEFACT CII D16B',
+    checked: true,
+    problems: [{ message: "Element 'ram:Unbekannt': This element is not expected.", line: 9 }],
+    count: 1,
+  };
+  const unknown = { 'BT-24': ['urn:example:unbekannt'] };
+  const twice = (overrides: Partial<InvoicePart['header']>, withSchema = true) =>
+    verdictOf(
+      analysis({
+        invoices: ['a.xml', 'b.xml'].map((origin) => ({
+          ...part(overrides, origin),
+          ...(withSchema ? { schema } : {}),
+        })),
+      }),
+    );
+
+  it('keeps headline and tone of one XML for "nicht beurteilt", each line once (QL-07)', () => {
+    const one = verdictOf(analysis({ invoices: [{ ...part(unknown), schema }] }));
+    const verdict = twice(unknown);
+    expect(verdict.comparison?.same).toBe(true);
+    expect(verdict.tone).toBe(one.tone);
+    expect(verdict.headline).toBe(TEXTS.nichtBeurteilt);
+    expect(new Set(verdict.explanation).size).toBe(verdict.explanation.length);
+    const at = (line: string) => verdict.explanation.indexOf(line);
+    const same = verdict.explanation.findIndex((l) => l.startsWith('Dieselbe Rechnung'));
+    expect(same).toBeGreaterThan(-1);
+    // "Dieselbe Rechnung …" before the format error, the engine's messages last (G-10)
+    expect(same).toBeLessThan(at(TEXTS.formatError));
+    expect(at(TEXTS.formatError)).toBeLessThan(at(TEXTS.kanzleiJudges));
+    expect(verdict.explanation.at(-1)).toMatch(/^Technische Meldung \(Zeile 9\): /);
+    // the German schema sentence names each part once
+    expect(verdict.explanation.filter((l) => l.includes('„a.xml“ weicht'))).toHaveLength(1);
+    expect(verdict.explanation.filter((l) => l.includes('„b.xml“ weicht'))).toHaveLength(1);
+  });
+
+  it('keeps headline and lines of "keine E-Rechnung" (QL-07)', () => {
+    const one = verdictOf(analysis({ invoices: [part(MINIMUM)] }));
+    const verdict = twice(MINIMUM, false);
+    expect(verdict.tone).toBe('bad');
+    expect(verdict.headline).toBe(one.headline);
+    expect(verdict.explanation.slice(0, one.explanation.length)).toEqual(one.explanation);
+    expect(verdict.explanation).toHaveLength(one.explanation.length + 1);
+  });
+});

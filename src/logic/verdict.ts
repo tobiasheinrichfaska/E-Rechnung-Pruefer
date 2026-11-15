@@ -282,7 +282,8 @@ function schemaParts(
         : []),
     );
   }
-  return { german, technical };
+  // the same message of two parts is shown once (audit QL-07)
+  return { german, technical: [...new Set(technical)] };
 }
 
 /** A format error: what is wrong, the F24 sentence, the transition sentence — technique last. */
@@ -304,22 +305,44 @@ function sourceLines(invoice: InvoiceVerdict, inPdf: boolean): string[] {
     : [TEXTS.xmlFile];
 }
 
-function singleVerdict(analysis: Analysis, invoice: InvoiceVerdict): Verdict {
+/** What the verdict of one invoice reads beside the invoice itself. */
+interface Context {
+  /** Every invoice XML with these data: one, or the same data several times (F27) */
+  invoices: InvoiceVerdict[];
+  /** F27: "Dieselbe Rechnung ist 2-mal eingebettet …" — after the head lines, before the rest */
+  same: string[];
+}
+
+/**
+ * The verdict of one invoice — also of the same data embedded several times (F27): then headline
+ * and tone are those of one XML, the schema result of every part is named, each line once
+ * (audit QL-07).
+ */
+function singleVerdict(
+  analysis: Analysis,
+  invoice: InvoiceVerdict,
+  context: Context = { invoices: [invoice], same: [] },
+): Verdict {
   const inPdf = analysis.kind === 'pdf';
   const profileName = invoice.profile.entry?.profile ?? invoice.specLabel;
-  const format = formatErrorLines([invoice], inPdf);
+  // the schema result of every part, never only of the first (cf. L-03)
+  const format = formatErrorLines(context.invoices, inPdf);
+  // the same data give the same rule results (differingResults), so they are named once
   const rules = rulesLines([invoice]);
+  const { same } = context;
   switch (invoice.einordnung) {
     case 'eRechnung': {
       const hint = invoice.profile.entry?.hint ? [invoice.profile.entry.hint] : [];
       if (format.german.length > 0) {
         // Step 2b: the XML does not match the official schema (F24)
+        const failed = context.invoices.find(schemaFailed) ?? invoice;
         return {
           tone: 'bad',
-          headline: fill(TEXTS.schemaErrorHeadline, { spec: invoice.specLabel }),
+          headline: fill(TEXTS.schemaErrorHeadline, { spec: failed.specLabel }),
           explanation: [
             ...sourceLines(invoice, inPdf),
             ...hint,
+            ...same,
             ...format.german,
             ...rules,
             ...format.technical,
@@ -328,13 +351,13 @@ function singleVerdict(analysis: Analysis, invoice: InvoiceVerdict): Verdict {
         };
       }
       // F22: missing Pflichtangaben and hints make an e-invoice yellow, as do calculation
-      // irregularities (step 3a); G-3: the headline says so
+      // irregularities (step 3a) and the same data twice (F27); G-3: the headline says so
       const pflicht = pflichtLines(invoice);
-      const warn = rules.length > 0 || pflicht.length > 0;
+      const warn = rules.length > 0 || pflicht.length > 0 || same.length > 0;
       return {
         tone: warn ? 'warn' : 'ok',
         headline: fill(warn ? TEXTS.eRechnungHints : TEXTS.eRechnung, { spec: invoice.specLabel }),
-        explanation: [...sourceLines(invoice, inPdf), ...hint, ...pflicht, ...rules],
+        explanation: [...sourceLines(invoice, inPdf), ...hint, ...same, ...pflicht, ...rules],
         invoices: [invoice],
       };
     }
@@ -355,6 +378,7 @@ function singleVerdict(analysis: Analysis, invoice: InvoiceVerdict): Verdict {
           zugferd1 ? TEXTS.zugferd1Reason : TEXTS.minimumReason,
           // F26: with readable dates the sentence by date, else the general one (F23)
           ...transitionLines(transitionFor([invoice]), false),
+          ...same,
         ],
         invoices: [invoice],
       };
@@ -368,6 +392,7 @@ function singleVerdict(analysis: Analysis, invoice: InvoiceVerdict): Verdict {
             ? fill(TEXTS.unknownSpec, { id: invoice.profile.id })
             : TEXTS.missingSpec,
           TEXTS.shownAnyway,
+          ...same,
           ...format.german,
           ...rules,
           TEXTS.kanzleiJudges,
@@ -419,30 +444,12 @@ export function verdictOf(analysis: Analysis): Verdict {
   if (invoices.length > 1 && only) {
     const differing = differingTerms(analysis.invoices);
     const names = analysis.invoices.map((p) => p.origin).join(', ');
-    // the schema result of every part, never only of the first (cf. L-03)
     const format = formatErrorLines(invoices, true);
     if (differing.length === 0) {
       // F27: the same data twice — one part is shown, with a hint on the standard
-      const base = singleVerdict(analysis, only);
-      const failed = format.german.length > 0;
-      const firstFailed = invoices.find(schemaFailed);
-      const eRechnung = only.einordnung === 'eRechnung';
+      const same = [fill(TEXTS.sameSeveral, { count: invoices.length, names })];
       return {
-        tone: failed ? 'bad' : base.tone === 'bad' ? 'bad' : 'warn',
-        headline: firstFailed
-          ? fill(TEXTS.schemaErrorHeadline, { spec: firstFailed.specLabel })
-          : eRechnung
-            ? fill(TEXTS.eRechnungHints, { spec: only.specLabel })
-            : base.headline,
-        explanation: [
-          ...(eRechnung ? sourceLines(only, true) : base.explanation),
-          ...(eRechnung && only.profile.entry?.hint ? [only.profile.entry.hint] : []),
-          fill(TEXTS.sameSeveral, { count: invoices.length, names }),
-          ...format.german,
-          ...(eRechnung && !failed ? pflichtLines(only) : []),
-          ...rulesLines(invoices),
-          ...format.technical,
-        ],
+        ...singleVerdict(analysis, only, { invoices, same }),
         invoices,
         comparison: { same: true, differing },
       };
