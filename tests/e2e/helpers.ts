@@ -148,13 +148,16 @@ export async function upload(page: Page, name: string, bytes: Uint8Array, mimeTy
 /**
  * What the spy saw, plus what is left in the stores afterwards: named access such as
  * `localStorage.x = 1` passes no Storage method, so the stores themselves are checked as well.
- * Allowed are only the given keys — by default the confirmed access notice; tests of the test
- * version also allow the tester's run (TEST_VERSION_KEYS), which alone may also be removed (sent or
- * started anew). The access notice is never removed, so removing it stays reported.
+ * Allowed are only the given keys — by default the confirmed access notice, and that only over
+ * https: a downloaded copy (file://) neither reads nor keeps it (config/README.md; audit 2026-11-15,
+ * QT-06). Tests of the test version also allow the tester's run (TEST_VERSION_KEYS), which alone may
+ * also be removed (sent or started anew). The access notice is never removed, so removing it stays
+ * reported.
  */
-export async function sideEffects(page: Page, allowed = [ACCESS_STORAGE]): Promise<string[]> {
+export async function sideEffects(page: Page, allowed?: string[]): Promise<string[]> {
   return page.evaluate(
-    async ({ names, run }) => {
+    async ({ given, access, run }) => {
+      const names = given ?? (location.protocol === 'https:' ? [access] : []);
       const ownTo = (list: string[]) => (key: string) =>
         list.some((name) => key === name || key.startsWith(`${name}@/`));
       const own = ownTo(names);
@@ -194,6 +197,6 @@ export async function sideEffects(page: Page, allowed = [ACCESS_STORAGE]): Promi
       }
       return seen;
     },
-    { names: allowed, run: TEST_RUN_STORAGE },
+    { given: allowed, access: ACCESS_STORAGE, run: TEST_RUN_STORAGE },
   );
 }
