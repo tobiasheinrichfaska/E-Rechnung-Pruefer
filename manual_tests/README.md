@@ -9,10 +9,12 @@ echter Lieferanten, echte Mailprogramme, echte Handys. Was eine Maschine prüfen
 - Gehostet: die Adresse des Ordners `NebenprojektERechnung/` öffnen (aus der Kanzlei ohne Anmeldung,
   sonst mit Tester-Anmeldung „E-Rechnung - Test“).
 - Lokal: `npm run build`, dann `dist/index.html` mit einem Doppelklick öffnen.
-- Beispielrechnungen: lokal `beispiele/index.html`; gehostet erst nach dem nächsten Upload (die
-  Adresse des Tools mit `beispiele/` am Ende). Alle Daten sind erfunden; die Dateien dürfen in
-  E-Mails und auf Geräte.
-- Achtung: Notieren Sie die Versionsnummer unten auf der Seite (Stand des Repos: 0.3.1). Steht
+- Beispielrechnungen: im öffentlichen Repo unter
+  https://github.com/tobiasheinrichfaska/E-Rechnung-Pruefer/tree/main/beispiele (die Tabelle „Was
+  sie zeigt“ steht unter der Dateiliste; herunterladen mit „Download raw file“), lokal
+  `beispiele/index.html`. Sie werden nicht neben dem Tool hochgeladen (Tobias, 15.11.2026). Alle
+  Daten sind erfunden; die Dateien dürfen in E-Mails und auf Geräte.
+- Achtung: Notieren Sie die Versionsnummer unten auf der Seite (Stand des Repos: 0.6.1). Steht
   dort eine ältere Nummer, ist der letzte Upload noch nicht erfolgt; prüfen Sie dann lokal.
 - Echte Rechnungen bleiben auf dem Rechner. Nie in das Repo legen, nie an Dritte senden. Notieren Sie
   nur Lieferant, Programm, Ergebnis und Abweichung – keine Beträge oder Namen von Mandanten.
