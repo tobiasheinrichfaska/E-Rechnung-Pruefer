@@ -17,6 +17,7 @@ test.describe('with the addresses of the local configuration', () => {
 
   test('links Impressum and privacy policy in a new tab, on the notice and in the tool', async ({
     page,
+    context,
   }) => {
     const problems = await openHosted(page);
     const footer = page.locator('footer');
@@ -26,13 +27,17 @@ test.describe('with the addresses of the local configuration', () => {
       await expect(anchor).toHaveAttribute('target', '_blank');
       await expect(anchor).toHaveAttribute('rel', 'noopener noreferrer');
     }
-    // the downloaded copy carries them too
-    await openApp(page);
-    for (const link of configured) {
-      await expect(page.locator('footer').getByRole('link', { name: link.name })).toBeVisible();
-    }
     expect(problems).toEqual([]);
     expect(await sideEffects(page)).toEqual([]);
+    // the downloaded copy carries them too (a page of its own: the https page refuses file://)
+    const downloaded = await context.newPage();
+    await openApp(downloaded);
+    for (const link of configured) {
+      await expect(
+        downloaded.locator('footer').getByRole('link', { name: link.name }),
+      ).toBeVisible();
+    }
+    expect(await sideEffects(downloaded)).toEqual([]);
   });
 });
 
