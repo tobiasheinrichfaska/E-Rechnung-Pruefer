@@ -58,3 +58,23 @@ Der Build nimmt ihn nur mit, wenn die Datei vor `npm run build` an einer dieser 
 Fehlt sie, entsteht ohne Fehlermeldung eine Fassung **ohne** Hinweis und ohne die Links zu
 Impressum und Datenschutz. Der Freigabe-Lauf sollte das deshalb vor dem Upload prüfen, z. B. ob
 `dist/index.html` den Anfang des Hinweises und beide Adressen enthält.
+
+## Nachweis jedes Uploads (für den täglichen Integritätsauftrag)
+
+Die Wochenprüfung (`Pruefvorgaenge`, `aufgaben/wochenpruefung.md`, Abschnitt 4) zählt ein Projekt
+als bereit für einen täglichen Vergleich der hochgeladenen Dateien, wenn sein privates Repo nach
+jedem Upload eine Datei `auslieferung/<Ziel>.json` führt, wie beim Fragebogen
+(`docs/briefing-kanzlei-pc.md`, Abschnitt 6). Der Freigabe-Lauf schreibt deshalb nach jedem
+erfolgreichen Upload nach `E-Rechnung-Pruefer-privat/auslieferung/oeffentlich.json`:
+
+```json
+{
+  "ziel": "oeffentlich",
+  "adresse": "https://…/",
+  "commit": "<Commit des hochgeladenen Stands>",
+  "zeit": "2026-11-15T10:00:00+01:00",
+  "dateien": [{ "pfad": "index.html", "sha256": "…" }]
+}
+```
+
+Darin stehen nur Adresse und Hashes, keine Zugangsdaten.

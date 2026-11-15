@@ -4,7 +4,8 @@
   --bg: #ffffff;
   --panel: #f4f6f8;
   --line: #d0d5da;
-  --accent: #0b5cad;
+  /* The Kanzlei colours from the local configuration (main.tsx), else these defaults */
+  --accent: var(--kanzlei-accent, #0b5cad);
   --ok: #1b6e3a;
   --ok-bg: #e8f4ec;
   --warn: #8a5300;
@@ -25,6 +26,12 @@
 body {
   margin: 0;
   background: var(--bg);
+}
+
+/* Links in the accent colour, so the Kanzlei colours reach them too (checked: at least 4.5:1 on
+   white, appConfig.ts) */
+a {
+  color: var(--accent);
 }
 
 .page {
@@ -53,7 +60,7 @@ h1 {
 
 .dropzone.over {
   border-color: var(--accent);
-  background: #eaf2fb;
+  background: var(--kanzlei-chosen-bg, #eaf2fb);
 }
 
 .dropzone-title {
@@ -405,7 +412,7 @@ button.primary:disabled {
 }
 
 .notice {
-  background: var(--panel);
+  background: var(--kanzlei-info-bg, var(--panel));
   border-left: 4px solid var(--accent);
   padding: 10px 14px;
   margin: 24px 0 20px;

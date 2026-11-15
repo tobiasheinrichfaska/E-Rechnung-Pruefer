@@ -14,7 +14,8 @@ liest `vite.config.ts` über `src/build/kanzleiConfig.ts` die erste vorhandene d
 {
   "accessNotice": "Der E-Rechnungs-Prüfer ist ein kostenloses Hilfsmittel der Musterkanzlei. …",
   "imprintUrl": "https://www.musterkanzlei.example/impressum",
-  "privacyUrl": "https://www.musterkanzlei.example/datenschutz"
+  "privacyUrl": "https://www.musterkanzlei.example/datenschutz",
+  "colors": { "accent": "#1f5fa8", "chosenBg": "#e4eefa", "infoBg": "#eef4fb" }
 }
 ```
 
@@ -29,6 +30,14 @@ liest `vite.config.ts` über `src/build/kanzleiConfig.ts` die erste vorhandene d
   Datenschutzerklärung der Kanzlei. Die Fußzeile verlinkt sie („Impressum“, „Datenschutz“) und öffnet
   sie in einem neuen Tab, damit ein Ergebnis auf der Seite nicht verloren geht. Nur `https://`-Adressen
   ohne Zugangsdaten und ohne Leerzeichen.
+- `colors` (freiwillig, seit 15.11.2026) übernimmt die Farben der Kanzlei, **derselbe Block wie in
+  der Fragebogen-Konfiguration**: `accent` (Knöpfe, Links, Rand der Ablagefläche beim Ziehen, Rand
+  des festen Hinweises; Pflicht, sobald `colors` da ist), `chosenBg` (Ablagefläche, während eine
+  Datei darübergezogen wird), `infoBg` (Hintergrund des festen Hinweises), `accentDark`
+  (angenommen wie im Fragebogen; das Tool hat noch keinen dunklen Modus), je als `#rrggbb`. Der
+  Build lehnt eine Farbe ab, auf der Text nicht lesbar bliebe (Kontrast unter 4,5 : 1). Gesetzt
+  werden sie beim Start als CSS-Variablen (`--kanzlei-…`); ohne `colors` gelten die Farben von
+  `src/ui/app.css`.
 - Andere Einträge, ein leerer Text, einer mit mehr als 2000 Zeichen oder eine ungültige Adresse
   brechen den Build ab.
 - Der Text des Hinweises ist von Tobias freigegeben (15.11.2026); geändert wird er nur mit seinem OK.
