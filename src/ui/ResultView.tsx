@@ -114,6 +114,15 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
   );
 }
 
+/**
+ * A browser opens a closed `<details>` for a link to something inside it, not for a link to the
+ * element itself: the jump link „Technische Meldungen“ opens it before the page jumps (QU-11).
+ */
+function openTarget(id: string) {
+  const target = document.getElementById(id);
+  if (target instanceof HTMLDetailsElement) target.open = true;
+}
+
 /** G-1: links from the result box to the sections of the (one) invoice shown below */
 function JumpLinks({ invoice }: { invoice: InvoiceVerdict | undefined }) {
   if (!invoice) return null;
@@ -129,7 +138,9 @@ function JumpLinks({ invoice }: { invoice: InvoiceVerdict | undefined }) {
       {links.map((link, index) => (
         <span key={link.href}>
           {index > 0 && ' · '}
-          <a href={`#${link.href}`}>{link.text}</a>
+          <a href={`#${link.href}`} onClick={() => openTarget(link.href)}>
+            {link.text}
+          </a>
         </span>
       ))}
     </nav>

@@ -146,7 +146,7 @@ test('folds the rows without a value, links to the sections and keeps the notice
   // G-1: rows "nur im Einzelfall nötig" without a value are closed, one click away
   const folded = page.getByTestId('folded-rows').first();
   await expect(folded.locator('summary')).toHaveText(
-    /^(\d+ Angaben, die nur in besonderen Fällen nötig sind|Eine Angabe, die nur in besonderen Fällen nötig ist) – anzeigen$/,
+    /^(\d+ Angaben, die nur in besonderen Fällen nötig sind|Eine Angabe, die nur in besonderen Fällen nötig ist)$/,
   );
   await expect(folded.locator('tbody tr').first()).toBeHidden();
   await folded.locator('summary').click();

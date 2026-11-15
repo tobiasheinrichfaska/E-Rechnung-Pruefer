@@ -125,9 +125,10 @@ export const TEXTS = {
   checkedFile: 'Geprüfte Datei: „{name}“ – geprüft am {date} um {time} Uhr',
   differingLine: 'Unterschiedlich: {items}.',
   differingItem: '{label} ({values})',
-  // G-1: rows "nur im Einzelfall nötig" without a value are folded; jump links from the box
-  foldedRows: '{count} Angaben, die nur in besonderen Fällen nötig sind – anzeigen',
-  foldedRow: 'Eine Angabe, die nur in besonderen Fällen nötig ist – anzeigen',
+  // G-1: rows "nur im Einzelfall nötig" without a value are folded; jump links from the box.
+  // A fold-out names what it holds, not "anzeigen", which stays wrong once it is open (QU-11)
+  foldedRows: '{count} Angaben, die nur in besonderen Fällen nötig sind',
+  foldedRow: 'Eine Angabe, die nur in besonderen Fällen nötig ist',
   jumpTo: 'Springen zu:',
   jumpPflicht: 'Pflichtangaben',
   jumpRules: 'Rechnerische Prüfung',
@@ -195,8 +196,8 @@ export const TEXTS = {
   rulesHint: 'Mögliche Auffälligkeit bei den Beträgen: {ids} (siehe „Rechnerische Prüfung“).',
   rulesHintIn:
     'Mögliche Auffälligkeit bei den Beträgen im Anhang „{name}“: {ids} (siehe „Rechnerische Prüfung“).',
-  rulesShowAll: 'Alle geprüften Regeln anzeigen',
-  rulesShowOthers: 'Weitere geprüfte Regeln anzeigen',
+  rulesShowAll: 'Alle geprüften Regeln',
+  rulesShowOthers: 'Weitere geprüfte Regeln',
   ruleStatusPasst: 'passt',
   ruleStatusAuffaellig: 'mögliche Auffälligkeit',
   ruleStatusNichtPruefbar: 'nicht prüfbar',
@@ -237,7 +238,7 @@ export const TEXTS = {
   statusVorhanden: 'vorhanden',
   statusFehlt: 'fehlt',
   statusEinzelfall: 'nur im Einzelfall nötig',
-  showPositions: 'Positionen anzeigen ({count})',
+  showPositions: 'Positionen ({count})',
   notInXml: '– nicht in der XML',
   noModel:
     'Für diese Rechnungsdaten zeigt das Tool keine Pflichtangaben (kein Format nach EN 16931).',

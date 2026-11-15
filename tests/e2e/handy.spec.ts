@@ -50,7 +50,7 @@ test('fits a small phone with a long file name', async ({ page }) => {
   await upload(page, name, official('kosit/paare/01.14a-INVOICE_ubl.xml'), 'application/xml');
   await expect(page.getByTestId('pflicht-summary')).toBeVisible();
   await page
-    .getByText(/^Positionen anzeigen/)
+    .getByText(/^Positionen \(\d+\)$/)
     .first()
     .click();
 
