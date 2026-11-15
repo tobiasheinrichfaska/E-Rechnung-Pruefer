@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { APP_NAME, APP_VERSION } from '../appInfo';
+import { APP_CONFIG } from '../config';
+import { loadAccess, saveAccess } from '../io/accessStore';
 import { MAX_FILE_BYTES, analyzeFile, tooLargeFile, unreadableFile } from '../io/analyze';
 import { loadPdfJs } from '../io/pdfjs';
+import { accessGateNeeded, accessToken } from '../logic/accessGate';
 import type { Analysis } from '../logic/analysis';
 import { checkPflichtangaben } from '../logic/check';
 import { germanMoment } from '../logic/dates';
@@ -9,6 +12,7 @@ import { TEXTS, fill } from '../logic/texts';
 import { pflichtModel, rulesOf, verdictOf, xmlCounts } from '../logic/verdict';
 import { resultText } from '../logic/zusammenfassung';
 import type { Verdict } from '../logic/verdict';
+import { AccessGate } from './AccessGate';
 import { DropZone } from './DropZone';
 import { ResultView } from './ResultView';
 
@@ -74,7 +78,48 @@ type State =
   | { step: 'done'; analysis: Analysis; verdict: Verdict; checkedAt: Date; count: number }
   | { step: 'failed'; fileName: string; message: string };
 
+/**
+ * The hosted copy first asks the access notice of the local configuration (Tobias 2026-11-15);
+ * without a notice, on file:// or once it is remembered, the tool opens at once.
+ */
 export function App() {
+  const notice = APP_CONFIG.accessNotice;
+  const [gateOpen, setGateOpen] = useState(() =>
+    accessGateNeeded({ notice, protocol: location.protocol, remembered: loadAccess }),
+  );
+
+  // While the notice is open nothing of the tool runs; a file dropped on the page must not make
+  // the browser leave it and open the file either
+  useEffect(() => {
+    if (!gateOpen) return;
+    const refuse = (event: DragEvent) => event.preventDefault();
+    window.addEventListener('dragover', refuse);
+    window.addEventListener('drop', refuse);
+    return () => {
+      window.removeEventListener('dragover', refuse);
+      window.removeEventListener('drop', refuse);
+    };
+  }, [gateOpen]);
+
+  if (gateOpen && notice !== undefined) {
+    return (
+      <main className="page">
+        <h1>{APP_NAME}</h1>
+        <AccessGate
+          notice={notice}
+          onConfirm={(remember) => {
+            if (remember) saveAccess(accessToken(notice));
+            setGateOpen(false);
+          }}
+        />
+        <p className="version">Version {APP_VERSION} · in Entwicklung</p>
+      </main>
+    );
+  }
+  return <Checker />;
+}
+
+function Checker() {
   const [state, setState] = useState<State>({ step: 'idle' });
   // G-4: the outcome of "Ergebnis als Text kopieren", said in the status line
   const [copied, setCopied] = useState<boolean | undefined>(undefined);

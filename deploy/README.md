@@ -44,3 +44,16 @@ decided“). Dort ist im Dashboard der Pull Zone eingestellt, von Hand auf dem K
 - **Ändert sich `src/build/csp.ts` bei `object-src`, `base-uri` oder `form-action`, muss auch die Edge
   Rule geändert werden**, sonst sperrt die Kopfzeile weiter.
 - Geprüft wird mit `curl -I` nach dem ersten Upload. Bis zur Freigabe bleibt der Speicher leer.
+
+## Zugangshinweis im Freigabe-Lauf
+
+Die Online-Fassung fragt vor dem Start den Zugangshinweis (15.11.2026). Sein Text nennt die Kanzlei
+und steht deshalb nur im privaten Repo `E-Rechnung-Pruefer-privat` (`config/kanzlei.local.json`).
+Der Build nimmt ihn nur mit, wenn die Datei vor `npm run build` an einer dieser Stellen liegt
+(`config/README.md`):
+
+- `config/kanzlei.local.json` im Checkout, oder
+- das private Repo als `tests/fixtures/lokal` (dann `tests/fixtures/lokal/config/kanzlei.local.json`).
+
+Fehlt sie, entsteht ohne Fehlermeldung eine Fassung **ohne** Hinweis. Der Freigabe-Lauf sollte das
+deshalb vor dem Upload prüfen, z. B. ob `dist/index.html` den Anfang des Hinweises enthält.

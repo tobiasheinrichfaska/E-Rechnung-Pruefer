@@ -5,10 +5,15 @@ import react from '@vitejs/plugin-react';
 import { viteSingleFile } from 'vite-plugin-singlefile';
 import type { Plugin } from 'vite';
 import { withCsp } from './src/build/csp.ts';
+import { loadAppConfig } from './src/build/kanzleiConfig.ts';
 
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
   version: string;
 };
+
+// The Kanzlei configuration (access notice) stays out of the public repo: the gitignored local
+// file or the private companion's, else the neutral example (src/build/kanzleiConfig.ts).
+const kanzlei = loadAppConfig();
 
 /** The CSP with the hashes of what the single-file step inlined — applied to the written file. */
 function contentSecurityPolicy(): Plugin {
@@ -31,6 +36,7 @@ export default defineConfig({
   plugins: [react(), viteSingleFile(), contentSecurityPolicy()],
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
+    __APP_CONFIG__: JSON.stringify(kanzlei.config),
   },
   build: {
     target: 'es2022',

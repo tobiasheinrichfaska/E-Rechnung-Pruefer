@@ -15,6 +15,9 @@ import-archiv/
 # Sample invoices whose licence forbids redistribution (FeRD Musterrechnungen) — local only
 tests/fixtures/lokal
 
+# Kanzlei configuration (access notice naming the Kanzlei): original in E-Rechnung-Pruefer-privat
+config/*.local.*
+
 # Upload tool: tester list (hashes) and generated access rules — local only
 deploy/.local/
 

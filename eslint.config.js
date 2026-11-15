@@ -6,9 +6,11 @@ import tseslint from 'typescript-eslint';
 import prettier from 'eslint-config-prettier';
 import { defineConfig, globalIgnores } from 'eslint/config';
 
-// Fixed frame (hand-over 2026-11-13): the file never leaves the computer and nothing is stored —
-// other apps share this origin. The browser's CSP blocks the network; these rules keep the code
-// from even trying.
+// Fixed frame (hand-over 2026-11-13): the file never leaves the computer and nothing is stored.
+// The browser's CSP blocks the network; these rules keep the code from even trying. Changed
+// 2026-11-15 (Tobias, „ja, Beschränkung fällt“): one exception, the remembered access notice —
+// localStorage in src/io/accessStore.ts only (ACCESS_STORE below); anything else stays refused
+// (tests/static/storageBan.test.ts).
 const NO_STORAGE_OR_NETWORK = [
   'localStorage',
   'sessionStorage',
@@ -41,6 +43,9 @@ const NO_STORAGE_PROPERTIES = [
   { object: 'window', property: 'name' },
 ];
 
+/** The only file allowed to use localStorage (the remembered access notice). */
+export const ACCESS_STORE = 'src/io/accessStore.ts';
+
 export default defineConfig([
   globalIgnores(['dist', 'coverage', '.tmp', 'playwright-report', 'test-results']),
   {
@@ -56,6 +61,16 @@ export default defineConfig([
     rules: {
       'no-restricted-globals': ['error', ...NO_STORAGE_OR_NETWORK],
       'no-restricted-properties': ['error', ...NO_STORAGE_PROPERTIES],
+    },
+  },
+  {
+    // The one place that may keep something in the browser: the confirmed access notice
+    files: [ACCESS_STORE],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        ...NO_STORAGE_OR_NETWORK.filter((name) => name !== 'localStorage'),
+      ],
     },
   },
   {
