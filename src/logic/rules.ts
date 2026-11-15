@@ -357,21 +357,24 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
 
     const rule = BREAKDOWN_RULES[category];
     if (!rule) continue;
-    const sameRate = (group: Source, ratePath: string) => {
-      if (!rule.perRate) return true;
-      const own = one(group, ratePath);
-      return Boolean(own && rate && decimalEquals(own, rate));
+    // Per rate, a rate that is missing in the breakdown or no number in a part of this category
+    // cannot be compared: the part would drop out of the sum unseen (audit QL-02)
+    const rateUnknown = rule.perRate && (rate === null || rate === undefined);
+    const ofThis = (groupPath: string, categoryPath: string, ratePath: string) => {
+      const groups = groupsOf(model, groupPath).filter((g) => code(g, categoryPath) === category);
+      if (!rule.perRate) return groups;
+      if (rateUnknown || groups.some((g) => one(g, ratePath) === undefined)) return undefined;
+      return groups.filter((g) => {
+        const own = one(g, ratePath);
+        return Boolean(own && rate && decimalEquals(own, rate));
+      });
     };
-    const ofThis = (groupPath: string, categoryPath: string, ratePath: string) =>
-      groupsOf(model, groupPath).filter(
-        (g) => code(g, categoryPath) === category && sameRate(g, ratePath),
-      );
     const theLines = ofThis('BG-25', 'BG-30/BT-151', 'BG-30/BT-152');
     const theCharges = ofThis('BG-21', 'BT-102', 'BT-103');
     const theAllowances = ofThis('BG-20', 'BT-95', 'BT-96');
-    const amountsOf = (groups: ModelGroup[], path: string) => {
-      const values = groups.map((g) => one(g, path));
-      return values.every((v): v is Decimal => v !== null && v !== undefined)
+    const amountsOf = (groups: ModelGroup[] | undefined, path: string) => {
+      const values = groups?.map((g) => one(g, path));
+      return values?.every((v): v is Decimal => v !== null && v !== undefined)
         ? sum(values)
         : undefined;
     };
@@ -385,22 +388,31 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
     let ok: boolean | undefined;
     if (expected && base) {
       ok = rule.perRate
-        ? theLines.length + theCharges.length > 0 && within(base, expected, ONE)
+        ? (theLines?.length ?? 0) + (theCharges?.length ?? 0) > 0 && within(base, expected, ONE)
         : decimalEquals(base, expected);
     }
     add_(
       rule.id,
       ok,
-      [
-        { label: TEXTS.ruleLineSum, value: lineSum ? money(lineSum) : TEXTS.ruleNoNumber },
-        { label: TEXTS.ruleSumCharges, value: chargeSum ? money(chargeSum) : TEXTS.ruleNoNumber },
-        {
-          label: TEXTS.ruleSumAllowances,
-          value: allowanceSum ? money(allowanceSum) : TEXTS.ruleNoNumber,
-        },
-        { label: named('BT-116'), value: money(base) },
-        ...expectedValue(expected),
-      ],
+      // without a rate of the breakdown there are no sums per rate: the rate is shown instead
+      rateUnknown
+        ? [
+            { label: named('BT-116'), value: money(base) },
+            { label: named('BT-119'), value: money(rate) },
+          ]
+        : [
+            { label: TEXTS.ruleLineSum, value: lineSum ? money(lineSum) : TEXTS.ruleNoNumber },
+            {
+              label: TEXTS.ruleSumCharges,
+              value: chargeSum ? money(chargeSum) : TEXTS.ruleNoNumber,
+            },
+            {
+              label: TEXTS.ruleSumAllowances,
+              value: allowanceSum ? money(allowanceSum) : TEXTS.ruleNoNumber,
+            },
+            { label: named('BT-116'), value: money(base) },
+            ...expectedValue(expected),
+          ],
       occurrence,
       RULE_LABELS.BREAKDOWN,
     );

@@ -138,6 +138,55 @@ describe('calculation rules (step 3a)', () => {
     expect(two.summary).toMatch(/ \d Regeln ließen sich nicht prüfen \(siehe unten\)\.$/);
   });
 
+  it('cannot check a breakdown per rate whose rates are missing or no number (QL-02)', () => {
+    const lines = BASE['BG-25'] as Spec[];
+    const s08 = (over: Spec) => {
+      const result = rules(over).results.find((r) => r.id === 'BR-S-08');
+      return { status: result?.status, values: result?.values ?? [] };
+    };
+    // a line of the category whose rate is no number: never left out silently (was "0,00 EUR")
+    const lineRate = s08({
+      'BG-25': [
+        lines[0] ?? {},
+        { 'BT-131': '50.00', 'BG-30': [{ 'BT-151': 'S', 'BT-152': '19,00' }] },
+      ],
+    });
+    expect(lineRate.status).toBe('nichtPruefbar');
+    expect(lineRate.values).toContainEqual({ label: TEXTS.ruleLineSum, value: TEXTS.ruleNoNumber });
+    // the rate of the breakdown is no number, or missing
+    const breakdown = (rate?: string) => ({
+      'BG-23': [
+        {
+          'BT-116': '140.00',
+          'BT-117': '26.60',
+          'BT-118': 'S',
+          ...(rate ? { 'BT-119': rate } : {}),
+        },
+      ],
+    });
+    expect(s08(breakdown('19,00')).status).toBe('nichtPruefbar');
+    expect(s08(breakdown()).status).toBe('nichtPruefbar');
+    expect(s08(breakdown()).values).toContainEqual({
+      label: 'Umsatzsteuersatz (BT-119)',
+      value: TEXTS.ruleMissing,
+    });
+    // an allowance or a charge of the category whose rate is no number
+    expect(s08({ 'BG-20': [{ 'BT-92': '20.00', 'BT-95': 'S', 'BT-96': '19%' }] }).status).toBe(
+      'nichtPruefbar',
+    );
+    expect(s08({ 'BG-21': [{ 'BT-99': '10.00', 'BT-102': 'S', 'BT-103': 'x' }] }).status).toBe(
+      'nichtPruefbar',
+    );
+    // a rate that is no number in another category does not matter
+    const other = {
+      'BG-21': [
+        { 'BT-99': '10.00', 'BT-102': 'S', 'BT-103': '19' },
+        { 'BT-99': '0', 'BT-102': 'E', 'BT-103': 'x' },
+      ],
+    };
+    expect(s08(other).status).toBe('passt');
+  });
+
   it('applies BR-CO-14 only where BT-110 is given, as the CEN Schematron does', () => {
     const base = BASE['BG-22'] as Spec[];
     const withoutVat = Object.fromEntries(
