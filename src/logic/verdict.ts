@@ -437,8 +437,6 @@ interface Context {
   invoices: InvoiceVerdict[];
   /** F27: "Dieselbe Rechnung ist 2-mal eingebettet …" — after the head lines, before the rest */
   same: string[];
-  /** Attachments not read beside them (QL-06): after the German lines, before the technical */
-  unread: string[];
 }
 
 /**
@@ -449,7 +447,7 @@ interface Context {
 function singleVerdict(
   analysis: Analysis,
   invoice: InvoiceVerdict,
-  context: Context = { invoices: [invoice], same: [], unread: unreadLines(analysis) },
+  context: Context = { invoices: [invoice], same: [] },
 ): Verdict {
   const inPdf = analysis.kind === 'pdf';
   const profileName = invoice.profile.entry?.profile ?? invoice.specLabel;
@@ -457,7 +455,9 @@ function singleVerdict(
   const format = formatErrorLines(context.invoices, inPdf);
   // the same data give the same rule results (differingResults), so they are named once
   const rules = rulesLines([invoice]);
-  const { same, unread } = context;
+  const { same } = context;
+  // attachments not read beside it (QL-06): after the German lines, before the technical ones
+  const unread = unreadLines(analysis);
   switch (invoice.einordnung) {
     case 'eRechnung': {
       const hint = invoice.profile.entry?.hint ? [invoice.profile.entry.hint] : [];
@@ -588,7 +588,7 @@ export function verdictOf(analysis: Analysis): Verdict {
       // F27: the same data twice — one part is shown, with a hint on the standard
       const same = [fill(TEXTS.sameSeveral, { count: invoices.length, names })];
       return {
-        ...singleVerdict(analysis, only, { invoices, same, unread: unreadLines(analysis) }),
+        ...singleVerdict(analysis, only, { invoices, same }),
         invoices,
         comparison: { same: true, differing },
       };

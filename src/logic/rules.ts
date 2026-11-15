@@ -505,9 +505,13 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
     // CII rounds each part sum before adding them (round(Σ) + round(Σ) − round(Σ))
     const partSum = (value: Decimal | undefined) =>
       value && rule.roundParts ? round2(value) : value;
-    const [lines_, charges_, allowances_] = [lineSum, chargeSum, allowanceSum].map(partSum);
+    const [linesPart, chargesPart, allowancesPart] = [lineSum, chargeSum, allowanceSum].map(
+      partSum,
+    );
     const expected =
-      lines_ && charges_ && allowances_ ? subtract(add(lines_, charges_), allowances_) : undefined;
+      linesPart && chargesPart && allowancesPart
+        ? subtract(add(linesPart, chargesPart), allowancesPart)
+        : undefined;
     const ownParts =
       (theLines?.length ?? 0) + (theCharges?.length ?? 0) + (theAllowances?.length ?? 0);
     let ok: boolean | undefined;
@@ -524,14 +528,14 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
             { label: named('BT-119'), value: money(rate) },
           ]
         : [
-            { label: TEXTS.ruleLineSum, value: lines_ ? money(lines_) : TEXTS.ruleNoNumber },
+            { label: TEXTS.ruleLineSum, value: linesPart ? money(linesPart) : TEXTS.ruleNoNumber },
             {
               label: TEXTS.ruleSumCharges,
-              value: charges_ ? money(charges_) : TEXTS.ruleNoNumber,
+              value: chargesPart ? money(chargesPart) : TEXTS.ruleNoNumber,
             },
             {
               label: TEXTS.ruleSumAllowances,
-              value: allowances_ ? money(allowances_) : TEXTS.ruleNoNumber,
+              value: allowancesPart ? money(allowancesPart) : TEXTS.ruleNoNumber,
             },
             { label: named('BT-116'), value: money(base) },
             ...expectedValue(expected),
