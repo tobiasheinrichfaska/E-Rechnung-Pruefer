@@ -75,7 +75,18 @@ decided“). Dort ist im Dashboard der Pull Zone eingestellt, von Hand auf dem K
 - Der zweite Name leitet mit 301 auf die Subdomain weiter, der Pfad bleibt erhalten.
 - **Ändert sich `src/build/csp.ts` bei `object-src`, `base-uri` oder `form-action`, muss auch die Edge
   Rule geändert werden**, sonst sperrt die Kopfzeile weiter.
-- Geprüft wird mit `curl -I` nach dem ersten Upload. Bis zur Freigabe bleibt der Speicher leer.
+- **Geprüft am 15.11.2026** mit `curl -I` (Kanzlei-PC, Ausgabe im privaten Repo unter
+  `auslieferung/kopfzeilen-2026-11-15.txt`): Die öffentliche Zone sendet alle acht Kopfzeilen oben
+  und `Cache-Control: public, max-age=0`. Die Testzone antwortet 401 vom Login-Skript mit
+  `frame-ancestors`, `base-uri` und `object-src` auf `'none'`, ohne `connect-src` (so darf
+  „Bericht senden“ verbinden) und ohne `form-action` (Einladungen des Login-Skripts).
+- **Offen für die Testzone:** Die Edge Rule setzt dort `Cache-Control: public, max-age=0` und
+  überschreibt damit das `no-store` bzw. `private` des Login-Skripts. Für die leere 401-Antwort ist
+  das gleich. Antworten nach der Anmeldung tragen aber das Cookie (`Set-Cookie`), und `public`
+  erlaubt fremden Zwischenspeichern, sie aufzuheben. Vorschlag: In der Testzone `Cache-Control`
+  nicht mehr setzen, sodass das Skript entscheidet (Kanzlei-PC, Repo `Testumgebung`).
+- **Reste im Speicher:** Von früheren Läufen liegen noch Beispieldateien (`beispiele/`) in beiden
+  Zonen; der Lauf meldet sie, löscht sie aber nicht. Tobias entfernt sie im Dateimanager von bunny.
 - **Nicht in Suchmaschinen** (Tobias, 15.11.2026): Die Seite trägt `<meta name="robots"
 content="noindex">` (`index.html`). Mandanten kommen über den Link der Kanzlei. Keine `robots.txt`
   mit `Disallow` hochladen: Eine gesperrte Seite liest die Suchmaschine nicht und sieht dann auch das

@@ -257,7 +257,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 
 ## Known Limitations
 
-- **In development** — all steps of the plan are built (1a–3a) plus the access notice, the Impressum/privacy links and the Kanzlei colours; version 0.9.0 not online yet.
+- **In development** — all steps of the plan are built (1a–3a) plus the access notice, the Impressum/privacy links and the Kanzlei colours. **Online since 2026-11-15** (Freigabe run, bunny.net): the public zone carries **0.6.3** (uploaded 17:27 Berlin time, read back the same evening); 0.7.0 … 0.9.0 come with the next upload.
 - **Calculation rules (3a)** are a selection (BR-CO-10 … -17, breakdown per category/rate), not a
   validator: no BR-DE/XRechnung rules, no line-level rules (price × quantity), no currency
   conversion (BT-111). For **Factur-X EXTENDED** the FeRD forms are rebuilt (F29,
@@ -312,9 +312,8 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
   tester sees a run not yet sent. No PDF copy for the tester yet (the spec allows one, without free
   text); the receiving side (`/_zugang/bericht`, `app`
   `erechnung` in Testumgebung's `zugang/bereiche.json`) is built in `Testumgebung`, until then 404.
-- **E2E runs on file://**; the hosted copy is **older** than the repo (uploaded 2026-11-13 at
-  Fragebogen commit 76828a3, step 1c, version 0.1.0); the repo is at 0.9.0 (merge `949c453`, see Versioning) —
-  upload only after Tobias' OK.
+- **E2E runs on file://**; the public copy at bunny.net is 0.6.3 (2026-11-15), the repo is at 0.9.0
+  (merge `949c453`, see Versioning). Uploads run only through the repo `Freigabe`, started by Tobias.
 - **Browsers:** the single inline script needs class static blocks and the CSP
   `'wasm-unsafe-eval'`, so the floor is about Chrome/Edge 98, Firefox 102, Safari 16.4 (derived from
   MDN data, not tested in those versions). Above it XML and PDF work (pdf.js legacy build, e2e test
@@ -336,6 +335,21 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 ---
 
 ## Status / next step
+
+**2026-11-15 evening — the Kanzlei PC answered the request** (private repo
+`E-Rechnung-Pruefer-privat`, `auslieferung/antwort-2026-11-15.md`; repo `Freigabe` commit `1bf81a1`):
+
+- All eight points done: gate „Tests“ for both zones, `build:test` for the test zone, the
+  configuration laid over the checkout before the build (the run stops without it and checks the
+  notice and both links in the built file), only `index.html`, upload records
+  `auslieferung/oeffentlich.json` / `test.json` from the next upload on, the test zone's CSP header
+  without `connect-src`, `curl -I` of both zones, the workspace entry.
+- **The public zone is online with 0.6.3** (uploaded 2026-11-15 17:27 Berlin time; read back here:
+  `noindex`, `connect-src 'none'`, no test page). S-11 closed: all eight security headers present.
+- Open: the test zone's edge rule sets `Cache-Control: public, max-age=0` over the login script's
+  own value (`deploy/README.md`, proposal there); old sample files still lie in both storages
+  (Tobias removes them by hand); the privacy policy of the Kanzlei now matters, since the tool is
+  public (Tobias: later).
 
 **2026-11-15 — test page with reports without free text (version 0.8.0):** the task of the Kanzlei
 PC session (Tobias; spec: repo `Testumgebung`, `docs/testbericht.md`, read in this session) done:
