@@ -1,7 +1,7 @@
 // One file → what is in it (logic/analysis.ts). The file type is taken from the content, never
 // from the name; XML among PDF attachments as well. Every XML document is disposed right after
 // its values are read.
-import type { XmlDocument } from 'libxml2-wasm';
+import type { XmlDocument, XmlNode } from 'libxml2-wasm';
 import type {
   Analysis,
   ExtendedAmounts,
@@ -46,13 +46,8 @@ function schemaCheck(
     return { schema, checked: false, reason: TEXTS.schemaOwnProfile, problems: [], count: 0 };
   }
   const validator = xsdValidator(SCHEMA_ENTRIES[own?.entry ?? syntax.schema.entry], SCHEMA_FILES);
-  const problems = schemaProblems(doc, validator);
-  return {
-    schema,
-    checked: true,
-    problems: problems.slice(0, MAX_SCHEMA_PROBLEMS),
-    count: problems.length,
-  };
+  const { problems, count } = schemaProblems(doc, validator, MAX_SCHEMA_PROBLEMS);
+  return { schema, checked: true, problems, count };
 }
 
 /** Above this size a file is not even read into memory (the larger of the two limits). */
@@ -94,22 +89,27 @@ const CII_SETTLEMENT = `${CII_TX}/ram:ApplicableHeaderTradeSettlement`;
 
 /**
  * F29: for Factur-X EXTENDED the line status, the logistics charges and the financial adjustments
- * its calculation rules use (FeRD Schematron 1.09.2, BR-FXEXT-CO-10 … -16 and -08b).
+ * its calculation rules use (FeRD Schematron 1.09.2, BR-FXEXT-CO-10 … -16 and -08b). Each line and
+ * charge is selected once and read relative to its node: a positional XPath per line
+ * (`…LineItem[i]/…`) walks the siblings up to i every time, so 20 000 lines froze the tab for
+ * many seconds (audit 2026-11-15, QS-01).
  */
-function extendedAmounts(doc: XmlDocument, ns: Readonly<Record<string, string>>): ExtendedAmounts {
-  const text = (xpath: string) => (valuesAt(doc, `string(${xpath})`, ns)[0] ?? '').trim();
-  const count = (xpath: string) => Number(valuesAt(doc, `count(${xpath})`, ns)[0] ?? 0);
-  const range = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
-  const lines = `${CII_TX}/ram:IncludedSupplyChainTradeLineItem`;
-  const logistics = `${CII_SETTLEMENT}/ram:SpecifiedLogisticsServiceCharge`;
+export function extendedAmounts(
+  doc: XmlDocument,
+  ns: Readonly<Record<string, string>>,
+): ExtendedAmounts {
+  const text = (node: XmlNode, xpath: string) =>
+    (valuesAt(node, `string(${xpath})`, ns)[0] ?? '').trim();
+  const lines = doc.find(`${CII_TX}/ram:IncludedSupplyChainTradeLineItem`, { ...ns });
+  const logistics = doc.find(`${CII_SETTLEMENT}/ram:SpecifiedLogisticsServiceCharge`, { ...ns });
   return {
-    lineStatus: range(count(lines)).map((i) =>
-      text(`${lines}[${i}]/ram:AssociatedDocumentLineDocument/ram:LineStatusReasonCode`),
+    lineStatus: lines.map((line) =>
+      text(line, 'ram:AssociatedDocumentLineDocument/ram:LineStatusReasonCode'),
     ),
-    logistics: range(count(logistics)).map((i) => ({
-      amount: text(`${logistics}[${i}]/ram:AppliedAmount`),
-      category: text(`${logistics}[${i}]/ram:AppliedTradeTax/ram:CategoryCode`),
-      rate: text(`${logistics}[${i}]/ram:AppliedTradeTax/ram:RateApplicablePercent`),
+    logistics: logistics.map((charge) => ({
+      amount: text(charge, 'ram:AppliedAmount'),
+      category: text(charge, 'ram:AppliedTradeTax/ram:CategoryCode'),
+      rate: text(charge, 'ram:AppliedTradeTax/ram:RateApplicablePercent'),
     })),
     adjustments: valuesAt(
       doc,

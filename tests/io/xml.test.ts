@@ -1,5 +1,16 @@
-import { readFileSync } from 'node:fs';
-import { readXml, rootOf, schemaProblems, valuesAt, xsdValidator } from '../../src/io/xml';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+import { XmlLibError } from 'libxml2-wasm';
+import type { XmlDocument, XsdValidator } from 'libxml2-wasm';
+import {
+  ENGINE_VERSION,
+  readXml,
+  rootOf,
+  schemaProblems,
+  valuesAt,
+  xsdValidator,
+} from '../../src/io/xml';
+import type { XmlProblem } from '../../src/io/xml';
 import { SCHEMA_ENTRIES, SCHEMA_FILES } from '../../src/io/schemas';
 
 const CEN = new URL('../fixtures/offiziell/cen/', import.meta.url);
@@ -85,20 +96,24 @@ describe('XSD validation from bundled schemas', () => {
 
   it('accepts the official CII example against CII D16B', () => {
     const doc = read(fixture('CII_example1.xml'));
-    expect(schemaProblems(doc, xsdValidator(SCHEMA_ENTRIES.ciiD16B, SCHEMA_FILES))).toEqual([]);
+    expect(schemaProblems(doc, xsdValidator(SCHEMA_ENTRIES.ciiD16B, SCHEMA_FILES))).toEqual({
+      problems: [],
+      count: 0,
+    });
     doc.dispose();
   });
 
   it('accepts the official UBL invoice and credit note (imports resolved in memory)', () => {
     const invoice = read(fixture('UBL_ubl-tc434-example1.xml'));
-    expect(schemaProblems(invoice, xsdValidator(SCHEMA_ENTRIES.ublInvoice, SCHEMA_FILES))).toEqual(
-      [],
-    );
+    expect(schemaProblems(invoice, xsdValidator(SCHEMA_ENTRIES.ublInvoice, SCHEMA_FILES))).toEqual({
+      problems: [],
+      count: 0,
+    });
     invoice.dispose();
     const credit = read(fixture('UBL_ubl-tc434-creditnote1.xml'));
     expect(
       schemaProblems(credit, xsdValidator(SCHEMA_ENTRIES.ublCreditNote, SCHEMA_FILES)),
-    ).toEqual([]);
+    ).toEqual({ problems: [], count: 0 });
     credit.dispose();
   });
 
@@ -106,10 +121,156 @@ describe('XSD validation from bundled schemas', () => {
     const text = new TextDecoder().decode(fixture('CII_example1.xml'));
     const broken = text.replace(/<ram:ID>/, '<ram:Unbekannt>x</ram:Unbekannt><ram:ID>');
     const doc = read(encode(broken));
-    const problems = schemaProblems(doc, xsdValidator(SCHEMA_ENTRIES.ciiD16B, SCHEMA_FILES));
-    expect(problems.length).toBeGreaterThan(0);
+    const { problems, count } = schemaProblems(
+      doc,
+      xsdValidator(SCHEMA_ENTRIES.ciiD16B, SCHEMA_FILES),
+    );
+    expect(count).toBeGreaterThan(0);
     expect(problems[0]?.message).toMatch(/Unbekannt/);
     expect(problems[0]?.line).toBeGreaterThan(0);
     doc.dispose();
+  });
+});
+
+// schemaProblems collects the messages itself, through internals of libxml2-wasm, because the
+// public XsdValidator.validate computes the XPath of every message's node — quadratic in the number
+// of messages (audit 2026-11-15, QS-02). These tests fail loudly when the library changes.
+describe('schemaProblems (own collector of the schema messages)', () => {
+  const FIXTURES = new URL('../fixtures/', import.meta.url).pathname.replace(
+    /^\/([A-Za-z]:)/,
+    '$1',
+  );
+  const PROFILES = [
+    'ciiD16B',
+    'facturxMinimum',
+    'facturxBasicWl',
+    'facturxBasic',
+    'facturxEn16931',
+    'facturxExtended',
+  ] as const;
+
+  /** What the public API reports, in the form schemaProblems gives. */
+  function reference(doc: XmlDocument, validator: XsdValidator): XmlProblem[] {
+    try {
+      validator.validate(doc);
+      return [];
+    } catch (error) {
+      if (!(error instanceof XmlLibError)) throw error;
+      return error.details.map((d) => ({
+        message: d.message.trim(),
+        ...(d.line > 0 ? { line: d.line } : {}),
+        ...(d.col > 0 ? { col: d.col } : {}),
+      }));
+    }
+  }
+
+  function xmlFiles(dir: string): string[] {
+    if (!existsSync(dir)) return [];
+    return readdirSync(dir).flatMap((name) => {
+      const path = join(dir, name);
+      if (statSync(path).isDirectory()) return xmlFiles(path);
+      return /\.xml$/i.test(name) ? [path] : [];
+    });
+  }
+
+  /** The file and broken forms of it: comma amounts, a wrong date, an unknown element. */
+  function variants(text: string): string[] {
+    const amount = /(Amount[^>]*>-?\d+)\.(\d+<)/;
+    return [
+      text,
+      text.replace(amount, '$1,$2'),
+      text.replace(new RegExp(amount.source, 'g'), '$1,$2'),
+      text.replace(/(<(?:cbc:IssueDate|udt:DateTimeString[^>]*)>)\d{4}-?\d{2}/, '$1xx'),
+      text.replace(/(<ram:ID>|<cbc:ID>)/, '<ram:Unbekannt/>$1'),
+    ];
+  }
+
+  it(`runs on libxml2-wasm ${ENGINE_VERSION}, the version whose internals it uses`, () => {
+    const installed = JSON.parse(
+      readFileSync(
+        new URL('../../node_modules/libxml2-wasm/package.json', import.meta.url),
+        'utf8',
+      ),
+    ) as { version: string };
+    const pinned = JSON.parse(
+      readFileSync(new URL('../../package.json', import.meta.url), 'utf8'),
+    ) as {
+      dependencies: Record<string, string>;
+    };
+    // another version: re-check src/io/xml.ts (schemaProblems) against the library's own collector
+    expect(installed.version).toBe(ENGINE_VERSION);
+    expect(pinned.dependencies['libxml2-wasm']).toBe(ENGINE_VERSION);
+  });
+
+  it('gives the messages, lines and count of XsdValidator.validate on every official file and broken forms of it', () => {
+    const files = [
+      ...xmlFiles(join(FIXTURES, 'offiziell')),
+      // the FeRD samples where the private repo is attached
+      ...xmlFiles(join(FIXTURES, 'lokal', 'ferd')),
+    ];
+    let compared = 0;
+    let withProblems = 0;
+    const differing: string[] = [];
+    for (const path of files) {
+      for (const [v, text] of variants(readFileSync(path, 'utf8')).entries()) {
+        const result = readXml(encode(text));
+        if (!result.ok) continue;
+        const root = rootOf(result.doc).name;
+        const entries =
+          root === 'CrossIndustryInvoice'
+            ? PROFILES.map((p) => SCHEMA_ENTRIES[p])
+            : root === 'Invoice'
+              ? [SCHEMA_ENTRIES.ublInvoice]
+              : root === 'CreditNote'
+                ? [SCHEMA_ENTRIES.ublCreditNote]
+                : [];
+        for (const entry of entries) {
+          const validator = xsdValidator(entry, SCHEMA_FILES);
+          const all = reference(result.doc, validator);
+          const own = schemaProblems(result.doc, validator, 20);
+          compared += 1;
+          if (all.length > 0) withProblems += 1;
+          const expected = { problems: all.slice(0, 20), count: all.length };
+          if (JSON.stringify(own) !== JSON.stringify(expected)) {
+            differing.push(`${path.slice(FIXTURES.length)} #${v} ${entry}`);
+          }
+        }
+        result.doc.dispose();
+      }
+    }
+    expect(differing).toEqual([]);
+    expect(compared).toBeGreaterThan(1000);
+    expect(withProblems).toBeGreaterThan(500);
+  });
+
+  it('keeps every message without a limit, and counts beyond it', () => {
+    const text = new TextDecoder().decode(fixture('CII_example1.xml'));
+    const doc = read(encode(text.replaceAll('<ram:ID>', '<ram:Unbekannt/><ram:ID>')));
+    const validator = xsdValidator(SCHEMA_ENTRIES.facturxBasic, SCHEMA_FILES);
+    const all = reference(doc, validator);
+    expect(all.length).toBeGreaterThan(20);
+    expect(schemaProblems(doc, validator)).toEqual({ problems: all, count: all.length });
+    expect(schemaProblems(doc, validator, 3)).toEqual({
+      problems: all.slice(0, 3),
+      count: all.length,
+    });
+    doc.dispose();
+  });
+
+  // 80 000 messages took 38 s through the public API (the node path per message), about 0.2 s here
+  it('collects 80 000 messages in linear time', () => {
+    const text = new TextDecoder().decode(fixture('CII_example1.xml'));
+    const lines =
+      /<ram:IncludedSupplyChainTradeLineItem>[\s\S]*<\/ram:IncludedSupplyChainTradeLineItem>/;
+    const doc = read(
+      encode(text.replace(lines, '<ram:IncludedSupplyChainTradeLineItem/>'.repeat(80_000))),
+    );
+    const started = performance.now();
+    const result = schemaProblems(doc, xsdValidator(SCHEMA_ENTRIES.ciiD16B, SCHEMA_FILES), 20);
+    const seconds = (performance.now() - started) / 1000;
+    doc.dispose();
+    expect(result.count).toBe(80_000);
+    expect(result.problems).toHaveLength(20);
+    expect(seconds).toBeLessThan(4);
   });
 });

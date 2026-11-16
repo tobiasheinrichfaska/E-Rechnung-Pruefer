@@ -16,21 +16,39 @@ function files(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
     const path = join(dir, name);
     if (statSync(path).isDirectory()) return name === 'fixtures' ? [] : files(path);
-    return /\.(ts|tsx|js|css|html|md|json|xml|txt)$/.test(name) ? [path] : [];
+    return /\.(ts|tsx|js|css|html|md|json|xml|txt|ya?ml)$/.test(name) ? [path] : [];
   });
 }
 
 describe('source files', () => {
   it('contain no invisible characters', () => {
     const root = new URL('.', ROOT).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+    // the root files and the dotfiles (.gitattributes, .gitignore …; not .git, not a local .env)
     const top = readdirSync(root)
-      .filter((name) => /\.(ts|js|html|md|json)$/.test(name) && name !== 'package-lock.json')
-      .map((name) => join(root, name));
-    const found = ['src', 'tests', 'docs', 'manual_tests', 'beispiele', 'deploy']
+      .filter(
+        (name) =>
+          (/\.(ts|js|html|md|json)$/.test(name) && name !== 'package-lock.json') ||
+          (name.startsWith('.') && name !== '.git' && !name.startsWith('.env')),
+      )
+      .map((name) => join(root, name))
+      .filter((path) => statSync(path).isFile());
+    // config/, .github/ (the check „Tests“ itself) and schemas/ — its XSD by their extension not
+    // (official files, unchanged), its README and licence texts yes (audit 2026-11-15, QT-14)
+    const dirs = ['src', 'tests', 'docs', 'manual_tests', 'beispiele', 'deploy'];
+    const scanned = [...dirs, 'config', 'schemas', '.github']
       .flatMap((dir) => files(join(root, dir)))
-      .concat(top)
-      .filter((path) => pattern.test(readFileSync(path, 'utf8')));
-    expect(top).toContain(join(root, 'CLAUDE.md'));
+      .concat(top);
+    const found = scanned.filter((path) => pattern.test(readFileSync(path, 'utf8')));
+    expect(top).toEqual(
+      expect.arrayContaining(['CLAUDE.md', '.gitattributes'].map((n) => join(root, n))),
+    );
+    expect(scanned).toEqual(
+      expect.arrayContaining(
+        ['config/README.md', 'schemas/README.md', '.github/workflows/tests.yml'].map((n) =>
+          join(root, n),
+        ),
+      ),
+    );
     expect(found).toEqual([]);
   });
 });

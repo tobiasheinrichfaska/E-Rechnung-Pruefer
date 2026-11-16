@@ -6,7 +6,7 @@ import { openApp, sideEffects, upload } from './helpers';
 
 const CII = officialText('cen/CII_example1.xml');
 
-test('the spy notices storage and cookie access (so an empty list means something)', async ({
+test('the spy notices every way it records: storage, cookies, IndexedDB, beacons, WebRTC, workers, popups, CSP violations (so an empty list means something)', async ({
   page,
 }) => {
   const problems = await openApp(page);
@@ -22,11 +22,47 @@ test('the spy notices storage and cookie access (so an empty list means somethin
     void document.cookie;
     new BroadcastChannel('probe').close();
     window.open('about:blank');
+    // every other way the spy records, once each (audit 2026-11-15, QT-15); the CSP refuses most of
+    // them, which is no reason not to record the attempt
+    const w = window as unknown as Record<string, unknown>;
+    const attempt = (action: () => unknown) => {
+      try {
+        void Promise.resolve(action()).catch(() => undefined);
+      } catch {
+        // refused at once — the attempt is still recorded
+      }
+    };
+    attempt(() => navigator.sendBeacon('https://example.invalid/beacon', 'x'));
+    attempt(() => indexedDB.open('probe'));
+    document.cookie = 'probe=1';
+    attempt(() => (w['cookieStore'] as { get: (name: string) => Promise<unknown> }).get('probe'));
+    attempt(() => new RTCPeerConnection().close());
+    attempt(() => new Worker('data:text/javascript,'));
+    attempt(() => new (w['SharedWorker'] as new (url: string) => object)('data:text/javascript,'));
+    // an image from outside: a CSP violation (img-src), reported by its event
+    const image = document.createElement('img');
+    image.src = 'https://example.invalid/probe.png';
+    document.body.append(image);
   });
-  const seen = await sideEffects(page);
-  const expected = ['storage.setItem:probe', 'cookie.get', 'BroadcastChannel', 'window.open'];
+  const expected = [
+    'storage.setItem:probe',
+    'cookie.get',
+    'BroadcastChannel',
+    'window.open',
+    'sendBeacon',
+    'indexedDB.open',
+    'cookie.set',
+    'cookieStore.get',
+    'RTCPeerConnection',
+    'Worker',
+    'SharedWorker',
+  ];
   if (await page.evaluate(() => window.localStorage.length > 0)) expected.push('left:localStorage');
-  expect(seen).toEqual(expect.arrayContaining(expected));
+  await expect
+    .poll(() => sideEffects(page))
+    .toEqual(
+      expect.arrayContaining([...expected, expect.stringMatching(/^csp:img-src:https:\/\//)]),
+    );
   await expect.poll(() => problems.some((p) => p.startsWith('popup:'))).toBe(true);
   await page.evaluate(() => window.localStorage.clear());
 });

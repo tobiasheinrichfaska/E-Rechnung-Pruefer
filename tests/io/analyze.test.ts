@@ -1,6 +1,14 @@
 import { readdirSync } from 'node:fs';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { MAX_FILE_BYTES, analyzeFile, fileKindOf, tooLargeFile } from '../../src/io/analyze';
+import {
+  MAX_FILE_BYTES,
+  analyzeFile,
+  extendedAmounts,
+  fileKindOf,
+  tooLargeFile,
+} from '../../src/io/analyze';
+import { readXml, rootOf } from '../../src/io/xml';
+import { syntaxOf } from '../../src/logic/syntax';
 import type { PdfJsLike } from '../../src/io/pdf';
 import { TEXTS, fill } from '../../src/logic/texts';
 import { differingLine, verdictOf } from '../../src/logic/verdict';
@@ -46,6 +54,12 @@ describe('XML files', () => {
       'E-Rechnung erkannt (XRechnung 3.0 mit Extension)',
     ],
     ['kosit/02.01a-cvd_INVOICE_ubl.xml', 'ubl-invoice', 'E-Rechnung erkannt (XRechnung 3.0, CVD)'],
+    // the CEN example behind the profile entry Peppol BIS Billing 3.0 (audit 2026-11-15, QT-13)
+    [
+      'cen/UBL_BIS3_Invoice_positive.xml',
+      'ubl-invoice',
+      'E-Rechnung erkannt (Peppol BIS Billing 3.0)',
+    ],
   ])('%s is recognised as %s', async (path, syntax, headline) => {
     const { analysis, verdict } = await check(path, official(path));
     expect(analysis.invoices.map((i) => i.syntax)).toEqual([syntax]);
@@ -458,14 +472,38 @@ describe('schema check (step 2b)', () => {
     }
   });
 
-  // F28: the other Factur-X profiles against their own FeRD schema; a UBL invoice keeps UBL 2.1
+  // F28: the other Factur-X profiles against their own FeRD schema; a UBL invoice keeps UBL 2.1.
+  // Not only the label: the official EN 16931 invoice carries what the smaller profiles forbid (the
+  // first message names it), and a document name (`ram:Name`, allowed by CII D16B and EXTENDED, not
+  // by EN16931) tells EN16931 from EXTENDED — so a profile pointed at another XSD fails here, without
+  // the private FeRD samples (audit 2026-11-15, QT-02/QT-03).
+  const NAMED = (text: string) =>
+    text.replace(
+      /(<rsm:ExchangedDocument>\s*<ram:ID>[^<]*<\/ram:ID>)/,
+      '$1<ram:Name>Rechnung</ram:Name>',
+    );
+  // [identifier, profile, first element refused in the official file, … with a document name]
   it.each([
-    ['urn:factur-x.eu:1p0:minimum', 'Factur-X 1.09.2 MINIMUM (FeRD)'],
-    ['urn:cen.eu:en16931:2017#compliant#urn:factur-x.eu:1p0:basic', 'Factur-X 1.09.2 BASIC (FeRD)'],
-    ['urn:cen.eu:en16931:2017', 'Factur-X 1.09.2 EN16931 (FeRD)'],
-  ])('checks CII with %s against its profile schema', async (id, schema) => {
-    const { analysis } = await check('r.xml', encode(withSpecId(CII, id)));
-    expect(analysis.invoices[0]?.schema).toMatchObject({ schema, checked: true });
+    ['urn:factur-x.eu:1p0:minimum', 'MINIMUM', 'IncludedNote', 'Name'],
+    ['urn:factur-x.eu:1p0:basicwl', 'BASIC WL', 'IncludedSupplyChainTradeLineItem', 'Name'],
+    [
+      'urn:cen.eu:en16931:2017#compliant#urn:factur-x.eu:1p0:basic',
+      'BASIC',
+      'SellerAssignedID',
+      'Name',
+    ],
+    ['urn:cen.eu:en16931:2017', 'EN16931', null, 'Name'],
+    ['urn:cen.eu:en16931:2017#conformant#urn:factur-x.eu:1p0:extended', 'EXTENDED', null, null],
+  ])('checks CII with %s against its profile schema', async (id, profile, plain, named) => {
+    const refused = async (text: string) => {
+      const { analysis } = await check('r.xml', encode(withSpecId(text, id)));
+      const schema = analysis.invoices[0]?.schema;
+      expect(schema).toMatchObject({ schema: `Factur-X 1.09.2 ${profile} (FeRD)`, checked: true });
+      const first = schema?.problems[0]?.message ?? '';
+      return schema?.count === 0 ? null : (/^Element '\{[^}]*\}(\w+)'/.exec(first)?.[1] ?? first);
+    };
+    expect(await refused(CII)).toBe(plain);
+    expect(await refused(NAMED(CII))).toBe(named);
   });
 
   it('keeps UBL 2.1 for a UBL invoice with the EN 16931 identifier', async () => {
@@ -506,5 +544,51 @@ describe('schema check (step 2b)', () => {
     const { verdict } = await check('r.xml', encode(minimum));
     expect(verdict.headline).toMatch(/Profil MINIMUM: keine E-Rechnung/);
     expect(verdict.explanation.join(' ')).not.toContain('Schema');
+  });
+});
+
+describe('the amounts of Factur-X EXTENDED (F29)', () => {
+  const EXTENDED = 'urn:cen.eu:en16931:2017#conformant#urn:factur-x.eu:1p0:extended';
+  const LINES =
+    /<ram:IncludedSupplyChainTradeLineItem>[\s\S]*?<\/ram:IncludedSupplyChainTradeLineItem>/g;
+  const base = withSpecId(CII, EXTENDED);
+  const line = base.match(LINES)?.[0] ?? '';
+  /** The official invoice with these lines instead of its 20 */
+  const withLines = (lines: string) => {
+    let first = true;
+    return base.replace(LINES, () => (first ? ((first = false), lines) : ''));
+  };
+  const amountsOf = (text: string) => {
+    const read = readXml(encode(text));
+    if (!read.ok) throw new Error('not read');
+    try {
+      const syntax = syntaxOf(rootOf(read.doc));
+      if (!syntax) throw new Error('no syntax');
+      const started = performance.now();
+      const amounts = extendedAmounts(read.doc, syntax.namespaces);
+      return { amounts, seconds: (performance.now() - started) / 1000 };
+    } finally {
+      read.doc.dispose();
+    }
+  };
+
+  it('reads the status of each line in document order', () => {
+    const status = (code: string) =>
+      line.replace(
+        '<ram:AssociatedDocumentLineDocument>',
+        `<ram:AssociatedDocumentLineDocument><ram:LineStatusReasonCode>${code}</ram:LineStatusReasonCode>`,
+      );
+    const { amounts } = amountsOf(withLines(status('GROUP') + line + status('DETAIL')));
+    expect(amounts.lineStatus).toEqual(['GROUP', '', 'DETAIL']);
+  });
+
+  // A positional XPath per line walked the siblings up to it every time: 20 000 lines took 15 s
+  // here and froze the tab (audit 2026-11-15, QS-01); read node by node they take about 0.15 s
+  it('reads 20 000 lines in linear time', () => {
+    const { amounts, seconds } = amountsOf(
+      withLines('<ram:IncludedSupplyChainTradeLineItem/>'.repeat(20_000)),
+    );
+    expect(amounts.lineStatus).toHaveLength(20_000);
+    expect(seconds).toBeLessThan(3);
   });
 });
