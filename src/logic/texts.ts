@@ -270,7 +270,8 @@ export const TEXTS = {
   missingParts: 'davon fehlen:',
   addressCity: 'Ort',
   addressPostcodeOrStreet: 'Postleitzahl oder Straße/Postfach',
-  noGroup: 'keine Angabe „{group}“',
+  // the group itself, so the row reads „davon fehlt: Aufschlüsselung der Umsatzsteuer“ (R3-L-06)
+  noGroup: '{group}',
   statusVorhanden: 'vorhanden',
   statusFehlt: 'fehlt',
   statusEinzelfall: 'nur im Einzelfall nötig',

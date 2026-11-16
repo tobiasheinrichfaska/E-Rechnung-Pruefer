@@ -346,8 +346,13 @@ describe('tax rate, tax amount and exemption (§ 14 Abs. 4 Nr. 7, 8 UStG)', () =
     const result = checkPflichtangaben(model({ 'BG-23': [] as Spec[] }));
     expect(row(result, 'entgelt-aufgeschluesselt')).toMatchObject({
       status: 'fehlt',
-      missing: ['keine Angabe „Aufschlüsselung der Umsatzsteuer“'],
+      missing: ['Aufschlüsselung der Umsatzsteuer'],
     });
+    // the group itself is named, never „davon fehlt: keine Angabe …“ (audit R3-L-06)
+    expect(result.missingListed).toContain(
+      'Entgelt, aufgeschlüsselt nach Steuersätzen und Steuerbefreiungen (davon fehlt: Aufschlüsselung der Umsatzsteuer)',
+    );
+    expect(result.summary).not.toMatch(/keine Angabe/);
   });
 });
 
