@@ -723,6 +723,25 @@ describe('two invoice XML of the same invoice, written another way', () => {
     );
   });
 
+  // Audit R4-U-01 (P6): a due amount that is no number read „336,90 EUR / 336,90“, only „EUR“
+  // told them apart; it is marked as in the rules, and the same writing twice stays the same (P5)
+  it('marks a due amount that is no number, and sees it twice as the same', async () => {
+    const comma = replaced(cii, '<ram:DuePayableAmount>336.9<', '<ram:DuePayableAmount>336,90<');
+    const once = await check(
+      'r.pdf',
+      miniPdf({ attachments: [xml('a.xml', cii), xml('b.xml', comma)] }),
+    );
+    expect(once.verdict.comparison).toEqual({ same: false, differing: [] });
+    expect(differingLine(once.analysis.invoices, [])).toContain(
+      `(Fälliger Betrag: 336,90 EUR / Fälliger Betrag: 336,90 ${TEXTS.ruleNoNumber})`,
+    );
+    const twice = await check(
+      'r.pdf',
+      miniPdf({ attachments: [xml('a.xml', comma), xml('b.xml', comma)] }),
+    );
+    expect(twice.verdict.comparison).toEqual({ same: true, differing: [] });
+  });
+
   // Audit R3-T-04: a difference only in a hint, or only in the status of a rule, is F27 too
   it.each([
     [

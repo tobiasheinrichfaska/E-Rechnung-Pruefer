@@ -1,9 +1,20 @@
 import { expect, test } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { loadAppConfig } from '../../src/build/kanzleiConfig';
 import { miniPdf } from '../../src/build/minipdf';
+import { TEXTS } from '../../src/logic/texts';
 import { encode, official, officialText, withInvoiceNumber } from '../support/fixtures';
-import { brokenCodes, openApp, sideEffects, upload } from './helpers';
+import {
+  brokenCodes,
+  BUILT_TEST,
+  openApp,
+  openHosted,
+  sideEffects,
+  TEST_VERSION_KEYS,
+  upload,
+} from './helpers';
 
 // Phone width (small iPhone). app.css stacks each Pflichtangabe below 640px: label and status on
 // the first line, the values below across the full width – and nothing may scroll sideways.
@@ -158,4 +169,122 @@ test('keeps codes, rates and margin numbers on one line, also on a phone', async
   await expect(page.getByText('BT-112').first()).toBeVisible();
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);
+});
+
+/**
+ * The words of the comparison table broken inside a word, apart from the attachment names and the
+ * identifier of the specification (BT-24), which have no break opportunity and must break.
+ */
+function brokenWords(page: Page, root = 'main'): Promise<string[]> {
+  return page.evaluate((selector) => {
+    const found = new Set<string>();
+    for (const row of document.querySelectorAll(`${selector} .comparison tbody tr`)) {
+      if (row.querySelector('th')?.textContent?.includes('(BT-24)')) continue;
+      const walker = document.createTreeWalker(row, NodeFilter.SHOW_TEXT);
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        const text = node as Text;
+        if (text.parentElement?.closest('.part-name')) continue;
+        for (const match of text.data.matchAll(/\p{L}{4,}/gu)) {
+          const tops: number[] = [];
+          for (let i = 0; i < match[0].length; i += 1) {
+            const range = document.createRange();
+            range.setStart(text, match.index + i);
+            range.setEnd(text, match.index + i + 1);
+            const rect = [...range.getClientRects()].find((r) => r.width > 0);
+            if (rect) tops.push(Math.round(rect.top));
+          }
+          if (tops.length > 0 && Math.max(...tops) > Math.min(...tops) + 2) found.add(match[0]);
+        }
+      }
+    }
+    return [...found];
+  }, root);
+}
+
+/** Two invoice XML that differ only in one VAT rate (7 → 19), under the given attachment names. */
+function ratePair(names: readonly [string, string]): Uint8Array {
+  const cii = officialText('kosit/paare/01.01a-INVOICE_uncefact.xml');
+  const rate19 = cii.replace(
+    /(<ram:BasisAmount>314\.86<\/ram:BasisAmount>\s*<ram:CategoryCode>S<\/ram:CategoryCode>\s*<ram:RateApplicablePercent>)7(<\/ram:RateApplicablePercent>)/,
+    '$119$2',
+  );
+  if (rate19 === cii) throw new Error('no rate to change');
+  const xml = (name: string, data: string) => ({ name, bytes: encode(data), mime: 'text/xml' });
+  return miniPdf({
+    attachments: [xml(names[0], cii), xml(names[1], rate19)],
+  });
+}
+
+/** Attachment names without a break opportunity, longer than their column */
+const LONG_NAMES = [
+  'Rechnung_2026_000123_Lieferant_Mustermann_factur-x.xml',
+  'Rechnungsdaten_zweite_Fassung_derselben_Rechnung.xml',
+] as const;
+
+// Two XML with another VAT rate (audit R4-L-02, R4-U-03): „7“ / „%“ broke in the line
+// „Unterschiedlich“ and the table, collapsing the whitespace had taken the no-break space; the
+// automatic table layout squeezed the columns until „Umsatzsteuerkategorie“ broke inside on a tablet
+// and on paper, and long attachment names without a break opportunity pushed the page sideways.
+test('keeps rates, words and the page width in the comparison of another rate', async ({
+  page,
+}) => {
+  const problems = await openApp(page);
+  const broken: string[] = [];
+  const sideways: string[] = [];
+  const measure = async (at: string) => {
+    broken.push(...(await brokenCodes(page)).map((code) => `${at}: ${code}`));
+    broken.push(...(await brokenWords(page)).map((word) => `${at}: ${word}`));
+    const wider = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    if (wider > 0) sideways.push(`${at}: ${wider} px`);
+  };
+  for (const [kind, names] of [
+    ['short', ['a.xml', 'b.xml']],
+    ['long', LONG_NAMES],
+  ] as const) {
+    for (const width of [320, 375, 641, 700, 768, 820, 900, 1024, 1100, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      await upload(page, `${kind}-${width}.pdf`, ratePair(names), 'application/pdf');
+      await expect(page.getByTestId('differing')).toContainText('Umsatzsteuersatz: 19\u00a0%');
+      await measure(`${kind} names, ${width} px`);
+    }
+    // on paper (A4 is about 700 px wide)
+    await page.setViewportSize({ width: 700, height: 900 });
+    await page.emulateMedia({ media: 'print' });
+    await measure(`${kind} names, print`);
+    await page.emulateMedia({ media: 'screen' });
+  }
+  expect(broken).toEqual([]);
+  expect(sideways).toEqual([]);
+  // the names that must break still stand whole in the text
+  await expect(page.getByRole('columnheader', { name: LONG_NAMES[1] })).toHaveCount(1);
+  expect(problems).toEqual([]);
+  expect(await sideEffects(page)).toEqual([]);
+});
+
+// The test version at 1280 px: beside the test page the tool's container moved sideways by 261 px
+// under long attachment names (audit R4-U-03); at 960 px the tool takes its phone layout there
+test('keeps the comparison inside the tool beside the test page', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const problems = await openHosted(page, '/', BUILT_TEST);
+  const notice = loadAppConfig().config.accessNotice;
+  if (notice !== undefined) {
+    await page.getByRole('checkbox', { name: notice }).check();
+    await page.getByRole('button', { name: TEXTS.accessContinue, exact: true }).click();
+  }
+  const tool = page.locator('.tr-app');
+  const sideways = (selector: string) =>
+    page.locator(selector).evaluate((element) => element.scrollWidth - element.clientWidth);
+  for (const width of [1280, 960]) {
+    await page.setViewportSize({ width, height: 900 });
+    await upload(page, `lang-${width}.pdf`, ratePair(LONG_NAMES), 'application/pdf');
+    await expect(tool.getByTestId('comparison')).toBeVisible();
+    expect(await sideways('.tr-app'), `${width} px`).toBeLessThanOrEqual(0);
+    expect(await sideways('html'), `${width} px`).toBeLessThanOrEqual(0);
+    expect(await brokenWords(page, '.tr-app'), `${width} px`).toEqual([]);
+    expect(await brokenCodes(page, '.tr-app'), `${width} px`).toEqual([]);
+  }
+  expect(problems).toEqual([]);
+  expect(await sideEffects(page, TEST_VERSION_KEYS)).toEqual([]);
 });
