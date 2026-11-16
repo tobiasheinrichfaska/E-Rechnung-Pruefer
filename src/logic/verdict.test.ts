@@ -511,6 +511,49 @@ describe('the same header but other data in two invoice XML (audit QL-01)', () =
         values: ['Name des Lieferanten: Muster GmbH', 'Name des Lieferanten: MUSTER GMBH'],
       },
     ]);
+    // a no-break space in one copy only is no other name either (audit R4-L-02)
+    const unbroken = { ...part({}, 'b.xml'), model: named('Muster\u00a0GmbH') };
+    expect(differingResults([one, unbroken])).toEqual([]);
+    expect(verdictOf(analysis({ invoices: [one, unbroken] })).comparison?.same).toBe(true);
+  });
+
+  // Audit R4-L-02: collapsing the whitespace (R3-L-03) took the no-break space before „%“
+  // (R3-U-10), so „7“ and „%“ could stand on two lines in the comparison
+  it('keeps the no-break space before „%“ in the values it shows', () => {
+    const rated = (rate: string) => {
+      const seller = withSeller('DE123456789');
+      return {
+        ...seller,
+        groups: {
+          ...seller.groups,
+          'BG-23': [
+            {
+              bg: 'BG-23',
+              terms: {
+                'BT-116': term('100.00'),
+                'BT-117': term('7.00'),
+                'BT-118': term('S'),
+                'BT-119': term(rate),
+              },
+              groups: {},
+            },
+          ],
+        },
+      } as unknown as NonNullable<InvoicePart['model']>;
+    };
+    const parts = [
+      { ...part({}, 'a.xml'), model: rated('7') },
+      { ...part({}, 'b.xml'), model: rated('7.5') },
+    ];
+    const line = differingLine(parts, []);
+    expect(line).toContain('Umsatzsteuersatz: 7\u00a0%');
+    expect(line).toContain('Umsatzsteuersatz: 7,5\u00a0%');
+    expect(line).not.toMatch(/\d %/);
+    const shown = comparisonRows(parts)
+      .filter((row) => row.differs)
+      .flatMap((row) => row.values);
+    expect(shown.join(' / ')).toContain('Umsatzsteuersatz: 7,5\u00a0%');
+    expect(shown.filter((value) => / %/.test(value))).toEqual([]);
   });
 });
 

@@ -105,8 +105,12 @@ const RULE_STATUS_TEXT: Readonly<Record<RuleStatus, string>> = {
 const shorten = (text: string) =>
   text.length > SHOWN_MAX ? `${text.slice(0, SHOWN_MAX - 1)}…` : text;
 
-/** Whitespace collapsed: two spaces are no other value (audit R3-L-03); the case is kept (G-22) */
-const collapse = (text: string) => text.replace(/\s+/g, ' ');
+/**
+ * Whitespace collapsed: two spaces are no other value (audit R3-L-03); the case is kept (G-22).
+ * `\s` takes the no-break space too, so the one before „%“ (R3-U-10) is set again after — on every
+ * part alike, so what compares equal stays the same (audit R4-L-02).
+ */
+const collapse = (text: string) => text.replace(/\s+/g, ' ').replace(/(\d) %/g, '$1\u00a0%');
 const tidyValue = (v: ShownValue): ShownValue => ({ label: v.label, value: collapse(v.value) });
 const tidyRow = (row: RowResult): RowResult => ({
   ...row,
