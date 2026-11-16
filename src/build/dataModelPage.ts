@@ -443,9 +443,10 @@ export const FUNCTIONS: { layer: string; signature: string; purpose: string }[] 
   },
   {
     layer: 'logic',
-    signature: 'scanProlog(text) / looksLikeXml(bytes) / looksLikeHtml(bytes)',
+    signature:
+      'scanProlog(text) / looksLikeXml(bytes) / looksLikeHtml(bytes) / looksLikeSvg(bytes)',
     purpose:
-      'XML am Inhalt erkennen, DOCTYPE finden; eine Webseite (Wurzelelement html) ist kein XML, das das Tool liest',
+      'XML am Inhalt erkennen, DOCTYPE finden; eine Webseite (Wurzelelement html) und ein SVG-Bild (Wurzelelement svg im SVG-Namensraum, auch nach einer DOCTYPE-Angabe ohne interne Teilmenge) sind kein XML, das das Tool liest',
   },
   {
     layer: 'logic',

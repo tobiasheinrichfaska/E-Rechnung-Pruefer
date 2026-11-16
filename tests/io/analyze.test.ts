@@ -258,6 +258,45 @@ describe('PDF files', () => {
     expect(analysis.others).toEqual([{ origin: 'x.xml', kind: 'doctypeXml' }]);
   });
 
+  // Audit R3-L-05: a logo as SVG beside the invoice is „kein XML“, also with the usual DOCTYPE of
+  // SVG 1.1 — never „nicht gelesen“, which made a sound e-invoice yellow
+  it('lists an SVG attachment as no XML, with or without a plain DOCTYPE', async () => {
+    const invoice = xml('factur-x.xml', officialText('kosit/paare/01.02a-INVOICE_uncefact.xml'));
+    const svg11 =
+      '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">';
+    const logo = (text: string) => ({
+      name: 'logo.svg',
+      bytes: encode(text),
+      mime: 'image/svg+xml',
+    });
+    const alone = await check('r.pdf', miniPdf({ attachments: [invoice] }));
+    expect(alone.verdict.tone).toBe('ok');
+    for (const picture of [
+      `<?xml version="1.0"?>${svg11}<svg xmlns="http://www.w3.org/2000/svg"/>`,
+      '<svg xmlns="http://www.w3.org/2000/svg"><circle r="1"/></svg>',
+    ]) {
+      const { analysis, verdict } = await check(
+        'r.pdf',
+        miniPdf({ attachments: [invoice, logo(picture)] }),
+      );
+      expect(analysis.others).toEqual([{ origin: 'logo.svg', kind: 'notXml' }]);
+      expect(verdict.tone).toBe('ok');
+      expect(verdict.headline).toBe(alone.verdict.headline);
+    }
+    // with an internal subset it is not read, as before
+    const subset = `<!DOCTYPE svg [<!ENTITY ns "x">]><svg xmlns="http://www.w3.org/2000/svg"/>`;
+    const { analysis, verdict } = await check(
+      'r.pdf',
+      miniPdf({ attachments: [invoice, logo(subset)] }),
+    );
+    expect(analysis.others).toEqual([{ origin: 'logo.svg', kind: 'doctypeXml' }]);
+    expect(verdict.tone).toBe('warn');
+    // an invoice root behind the DOCTYPE of SVG is still not read, and named
+    const hidden = `${svg11}${officialText(XR_UBL).replace(/^<\?xml[^>]*\?>/, '')}`;
+    const behind = await check('r.pdf', miniPdf({ attachments: [xml('x.xml', hidden)] }));
+    expect(behind.analysis.others).toEqual([{ origin: 'x.xml', kind: 'doctypeXml' }]);
+  });
+
   it('reports a broken XML attachment as a format error', async () => {
     const pdf = miniPdf({ attachments: [xml('factur-x.xml', '<?xml version="1.0"?><a><b></a>')] });
     const { verdict } = await check('r.pdf', pdf);
