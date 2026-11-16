@@ -1,9 +1,9 @@
 // The test version (`npm run build:test`, mode `testbereich`): the shared test frame of the repo
 // Testumgebung (src/testrahmen/, a copy) beside the tool, two tabs on a narrow screen. It lists the
 // manual tests, measures the time, takes results without free text, sends the report to the test
-// zone's own address and offers „Tester einladen“. main.tsx loads this module only in that mode;
-// every other build resolves it to src/testAreaStub.ts (vite.config.ts), so the live file carries
-// neither the frame nor its style nor the manual tests.
+// zone's own address and offers „Tester einladen“ (the tool's footer no longer does). main.tsx
+// calls it only in that mode; every other build resolves this module to src/testAreaStub.ts
+// (vite.config.ts), so the live file carries neither the frame nor its style nor the manual tests.
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { APP_NAME, APP_VERSION } from './appInfo';

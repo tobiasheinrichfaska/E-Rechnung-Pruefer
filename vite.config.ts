@@ -60,11 +60,6 @@ const TEST_AREA_ONLY = [
 ];
 const TEST_AREA_STUB = fileURLToPath(new URL('./src/testAreaStub.ts', import.meta.url));
 
-// The test version (`npm run build:test`, mode `testbereich`, folder dist-test/) for the protected
-// test zone links „Tester einladen“ to the page of the login script (repo Testumgebung, Tobias
-// 2026-11-15). Every other build gets null, so the address never reaches dist/index.html.
-const TESTER_INVITE = '/_zugang/einladen';
-
 export default defineConfig(({ command, mode }) => ({
   // Relative paths so the single file also runs from file://
   base: './',
@@ -78,7 +73,6 @@ export default defineConfig(({ command, mode }) => ({
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
     __APP_CONFIG__: JSON.stringify(kanzlei.config),
-    __TESTER_INVITE__: JSON.stringify(mode === 'testbereich' ? TESTER_INVITE : null),
     __APP_STAND__: JSON.stringify(standOf(mode === 'testbereich')),
   },
   build: {
