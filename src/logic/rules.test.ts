@@ -421,10 +421,13 @@ describe('the forms of the CEN Schematron per syntax (audit QL-03)', () => {
 });
 
 // Audit R2-T-02: every entry of RULE_FORMS.breakdown pinned by its behaviour. The expectations are
-// written out here, not read from RULE_FORMS, so a changed id, tolerance, rounding or condition fails
+// written out here, not read from RULE_FORMS, so a changed id, tolerance, rounding or condition, or
+// sums per rate instead of per category (and back), fails (audit R3-T-01)
 describe('the breakdown rule of every category, per syntax (audit R2-T-02)', () => {
   const RATE: Readonly<Record<string, string>> = { S: '19', L: '7', M: '7' };
   const rateOf = (category: string) => RATE[category] ?? '0';
+  /** A second rate of the category, for probe 7 */
+  const SECOND: Readonly<Record<string, string>> = { S: '7', L: '3', M: '4' };
   const occurrence = (category: string, rate: string) => `Kategorie ${category}, ${rate} %`;
   /** Two positions of the category (100 + 50 or as given), a breakdown with this base */
   const of = (category: string, base: string, amounts = ['100.00', '50.00']) => ({
@@ -461,30 +464,53 @@ describe('the breakdown rule of every category, per syntax (audit R2-T-02)', () 
         at: occurrence(c, rate),
       };
     },
+    // 7: a position of 100 at the first rate and one of 50 at a second, one breakdown each — per
+    // rate the base of 100 fits its position, per category it misses the sum of both (150)
+    (c) => {
+      const [rate, second] = [rateOf(c), SECOND[c] ?? '5'];
+      return {
+        spec: {
+          'BG-20': [],
+          'BG-21': [],
+          'BG-23': [
+            { 'BT-116': '100.00', 'BT-117': '0', 'BT-118': c, 'BT-119': rate },
+            { 'BT-116': '50.00', 'BT-117': '0', 'BT-118': c, 'BT-119': second },
+          ],
+          'BG-25': [
+            ['100.00', rate],
+            ['50.00', second],
+          ].map(([amount = '', own = '']) => ({
+            'BT-131': amount,
+            'BG-30': [{ 'BT-151': c, 'BT-152': own }],
+          })),
+        },
+        at: occurrence(c, rate),
+      };
+    },
   ];
   const P = 'passt';
   const A = 'auffaellig';
   const TABLE: [string, string, string | null, string[]][] = [
     // UBL: S and L/M below 1, the others exactly; no part sum rounded; S needs a part of its rate
-    ['ubl-invoice', 'S', 'BR-S-08', [P, P, A, P, A, A]],
-    ['ubl-invoice', 'Z', 'BR-Z-08', [P, A, A, A, A, P]],
-    ['ubl-invoice', 'E', 'BR-E-08', [P, A, A, A, A, P]],
-    ['ubl-invoice', 'AE', 'BR-AE-08', [P, A, A, A, A, P]],
-    ['ubl-invoice', 'K', 'BR-IC-08', [P, A, A, A, A, P]],
-    ['ubl-invoice', 'G', 'BR-G-08', [P, A, A, A, A, P]],
-    ['ubl-invoice', 'O', 'BR-O-08', [P, A, A, A, A, P]],
-    ['ubl-invoice', 'L', 'BR-IG-08', [P, P, A, P, A, P]],
-    ['ubl-invoice', 'M', 'BR-IP-08', [P, P, A, P, A, P]],
+    ['ubl-invoice', 'S', 'BR-S-08', [P, P, A, P, A, A, P]],
+    ['ubl-invoice', 'Z', 'BR-Z-08', [P, A, A, A, A, P, A]],
+    ['ubl-invoice', 'E', 'BR-E-08', [P, A, A, A, A, P, A]],
+    ['ubl-invoice', 'AE', 'BR-AE-08', [P, A, A, A, A, P, A]],
+    ['ubl-invoice', 'K', 'BR-IC-08', [P, A, A, A, A, P, A]],
+    ['ubl-invoice', 'G', 'BR-G-08', [P, A, A, A, A, P, A]],
+    ['ubl-invoice', 'O', 'BR-O-08', [P, A, A, A, A, P, A]],
+    ['ubl-invoice', 'L', 'BR-IG-08', [P, P, A, P, A, P, P]],
+    ['ubl-invoice', 'M', 'BR-IP-08', [P, P, A, P, A, P, P]],
     // CII: S and O exactly, the others below 1; every part sum rounded; L and M never fail there
-    ['cii', 'S', 'BR-S-08', [P, A, A, P, A, P]],
-    ['cii', 'Z', 'BR-Z-08', [P, P, A, P, P, P]],
-    ['cii', 'E', 'BR-E-08', [P, P, A, P, P, P]],
-    ['cii', 'AE', 'BR-AE-08', [P, P, A, P, P, P]],
-    ['cii', 'K', 'BR-IC-08', [P, P, A, P, P, P]],
-    ['cii', 'G', 'BR-G-08', [P, P, A, P, P, P]],
-    ['cii', 'O', 'BR-O-08', [P, A, A, P, A, P]],
-    ['cii', 'L', null, [P, P, P, P, P, P]],
-    ['cii', 'M', null, [P, P, P, P, P, P]],
+    ['cii', 'S', 'BR-S-08', [P, A, A, P, A, P, P]],
+    ['cii', 'Z', 'BR-Z-08', [P, P, A, P, P, P, A]],
+    ['cii', 'E', 'BR-E-08', [P, P, A, P, P, P, A]],
+    ['cii', 'AE', 'BR-AE-08', [P, P, A, P, P, P, A]],
+    ['cii', 'K', 'BR-IC-08', [P, P, A, P, P, P, A]],
+    ['cii', 'G', 'BR-G-08', [P, P, A, P, P, P, A]],
+    ['cii', 'O', 'BR-O-08', [P, A, A, P, A, P, A]],
+    ['cii', 'L', null, [P, P, P, P, P, P, P]],
+    ['cii', 'M', null, [P, P, P, P, P, P, P]],
   ];
 
   it.each(TABLE)('%s, category %s: %s', (syntax, category, id, expected) => {
