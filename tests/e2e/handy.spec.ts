@@ -1,7 +1,9 @@
 import { expect, test } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { miniPdf } from '../../src/build/minipdf';
 import { encode, official, officialText, withInvoiceNumber } from '../support/fixtures';
-import { openApp, sideEffects, upload } from './helpers';
+import { brokenCodes, openApp, sideEffects, upload } from './helpers';
 
 // Phone width (small iPhone). app.css stacks each Pflichtangabe below 640px: label and status on
 // the first line, the values below across the full width – and nothing may scroll sideways.
@@ -113,6 +115,47 @@ test('names the attachment of each compared value on a phone', async ({ page }) 
   await page.setViewportSize({ width: 1280, height: 800 });
   await expect(comparison.locator('.part-name:visible')).toHaveCount(0);
   await expect(cells.nth(1)).toHaveText('X-2', { useInnerText: true });
+  expect(problems).toEqual([]);
+  expect(await sideEffects(page)).toEqual([]);
+});
+
+// A code broke after its hyphen („BT-“ / „112“, „BR-S-“ / „08“) and a rate or a margin number at its
+// space („19“ / „%“, „Rn.“ / „6a“): measured over the lines of every match on wide and narrow
+// screens (audit R3-U-10). Now the codes stand in spans that do not wrap, and „%“ and „Rn.“ have a
+// no-break space before their number.
+test('keeps codes, rates and margin numbers on one line, also on a phone', async ({ page }) => {
+  const problems = await openApp(page);
+  const sample = (name: string) =>
+    new Uint8Array(readFileSync(join(import.meta.dirname, '../../beispiele', name)));
+  const cii = officialText('cen/CII_example1.xml');
+  const xml = (name: string, data: string) => ({ name, bytes: encode(data), mime: 'text/xml' });
+  const files = [
+    {
+      name: '07.xml',
+      bytes: sample('07_Anschriften_ohne_Strasse_Fiskalvertreter_unvollstaendig.xml'),
+      mime: 'application/xml',
+    },
+    { name: '29.xml', bytes: sample('29_XRechnung_mit_Formatfehler.xml'), mime: 'application/xml' },
+    { name: '30.xml', bytes: sample('30_XRechnung_mit_Rechenfehler.xml'), mime: 'application/xml' },
+    {
+      name: 'zwei.pdf',
+      bytes: miniPdf({
+        attachments: [xml('a.xml', cii), xml('b.xml', withInvoiceNumber(cii, 'X-2'))],
+      }),
+      mime: 'application/pdf',
+    },
+  ];
+  const broken: string[] = [];
+  for (const width of [1280, 375, 320]) {
+    await page.setViewportSize({ width, height: 800 });
+    for (const file of files) {
+      await upload(page, file.name, file.bytes, file.mime);
+      broken.push(...(await brokenCodes(page)).map((code) => `${width} px, ${file.name}: ${code}`));
+    }
+  }
+  expect(broken).toEqual([]);
+  // the codes stay what they are: the browser's search for „BT-112“ finds them
+  await expect(page.getByText('BT-112').first()).toBeVisible();
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);
 });

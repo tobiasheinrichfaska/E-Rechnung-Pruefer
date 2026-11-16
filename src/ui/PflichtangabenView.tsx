@@ -2,6 +2,7 @@ import { useId } from 'react';
 import { sentence } from '../logic/check';
 import type { GroupDisplay, PflichtResult, RowResult, Status } from '../logic/check';
 import { TEXTS, fill } from '../logic/texts';
+import { Codes } from './Codes';
 
 const STATUS_TEXT: Readonly<Record<Status, string>> = {
   vorhanden: TEXTS.statusVorhanden,
@@ -17,7 +18,9 @@ function GroupValues({ display }: { display: GroupDisplay }) {
         <summary>{fill(TEXTS.showPositions, { count: display.items.length })}</summary>
         <ol>
           {display.items.map((items, index) => (
-            <li key={index}>{items.map((v) => `${v.label}: ${v.value}`).join(' · ')}</li>
+            <li key={index}>
+              <Codes text={items.map((v) => `${v.label}: ${v.value}`).join(' · ')} />
+            </li>
           ))}
         </ol>
       </details>
@@ -26,7 +29,9 @@ function GroupValues({ display }: { display: GroupDisplay }) {
   return (
     <ul className="occurrences">
       {display.items.map((items, index) => (
-        <li key={index}>{items.map((v) => `${v.label}: ${v.value}`).join(' · ')}</li>
+        <li key={index}>
+          <Codes text={items.map((v) => `${v.label}: ${v.value}`).join(' · ')} />
+        </li>
       ))}
     </ul>
   );
@@ -38,14 +43,19 @@ function Row({ result }: { result: RowResult }) {
     <tr data-testid={`pflicht-${result.row.id}`} className={`status-${result.status}`}>
       {/* A row header: a screen reader names the Angabe with its status (audit 2026-11-14, U-13) */}
       <th scope="row">
-        {result.row.label}
+        <Codes text={result.row.label} />
         <br />
-        <small className="norm">{result.row.norm}</small>
+        <small className="norm">
+          <Codes text={result.row.norm} />
+        </small>
       </th>
       <td>
         {result.values.map((v, i) => (
           <div key={i}>
-            <span className="value-label">{v.label}:</span> {v.value}
+            <span className="value-label">
+              <Codes text={v.label} />:
+            </span>{' '}
+            <Codes text={v.value} />
           </div>
         ))}
         {result.groups.map((g) => (
@@ -54,14 +64,18 @@ function Row({ result }: { result: RowResult }) {
         {!hasValues && <span className="muted">{TEXTS.notInXml}</span>}
         {result.missing.length > 0 && (
           <div className="missing">
-            {sentence(fill(TEXTS.missingList, { list: result.missing.join('; ') }))}
+            <Codes text={sentence(fill(TEXTS.missingList, { list: result.missing.join('; ') }))} />
           </div>
         )}
-        {result.reason && <div className="muted">{result.reason}</div>}
+        {result.reason && (
+          <div className="muted">
+            <Codes text={result.reason} />
+          </div>
+        )}
         {result.hints.map((hint) => (
           <div key={hint} className="row-hint" data-testid="row-hint">
             <strong>{TEXTS.rowHintLabel} </strong>
-            {hint}
+            <Codes text={hint} />
           </div>
         ))}
       </td>
@@ -129,7 +143,11 @@ export function PflichtangabenView({ result, id }: { result: PflichtResult; id?:
   return (
     <section className="pflicht" aria-labelledby={headingId} id={id}>
       <h3 id={headingId}>{TEXTS.pflichtHeading}</h3>
-      {result.modeText && <p className="mode">{result.modeText}</p>}
+      {result.modeText && (
+        <p className="mode">
+          <Codes text={result.modeText} />
+        </p>
+      )}
       <p
         className={`summary ${
           result.missingLabels.length > 0
@@ -140,7 +158,7 @@ export function PflichtangabenView({ result, id }: { result: PflichtResult; id?:
         }`}
         data-testid="pflicht-summary"
       >
-        {result.summary}
+        <Codes text={result.summary} />
       </p>
       <Rows rows={main} labelledBy={headingId} />
       {special.length > 0 && (

@@ -14,6 +14,7 @@ import { ACCESS_STORAGE } from '../../src/logic/storageKeys';
 import { TEXTS } from '../../src/logic/texts';
 import { official } from '../support/fixtures';
 import {
+  brokenCodes,
   BUILT,
   BUILT_TEST,
   FRAME_STORAGE,
@@ -434,6 +435,32 @@ test('beside the test page the tool stacks each Pflichtangabe by its own width',
     page.locator(selector).evaluate((element) => element.scrollWidth - element.clientWidth);
   expect(await sideways('.tr-app')).toBeLessThanOrEqual(0);
   expect(await sideways('html')).toBeLessThanOrEqual(0);
+  expect(problems).toEqual([]);
+  expect(await sideEffects(page, TEST_VERSION_KEYS)).toEqual([]);
+});
+
+// Beside the test page the tool is narrow even in a wide window: „Gesamtbetrag mit Umsatzsteuer
+// (BT-“ / „112)“ broke in the table „Rechnungsdaten“ at 1280 px (audit R3-U-10).
+test('beside the test page the tool keeps codes and rates on one line', async ({ page }) => {
+  const problems = await openHosted(page, '/', BUILT_TEST);
+  await passNotice(page);
+  const sample29 = new Uint8Array(
+    readFileSync(join(ROOT, 'beispiele', '29_XRechnung_mit_Formatfehler.xml')),
+  );
+  const broken: string[] = [];
+  for (const width of [1280, 960]) {
+    await page.setViewportSize({ width, height: 800 });
+    for (const [name, bytes] of [
+      [SAMPLE_07, sample07()],
+      ['29.xml', sample29],
+    ] as const) {
+      await upload(page, name, bytes, 'application/xml');
+      broken.push(
+        ...(await brokenCodes(page, '.tr-app')).map((code) => `${width}, ${name}: ${code}`),
+      );
+    }
+  }
+  expect(broken).toEqual([]);
   expect(problems).toEqual([]);
   expect(await sideEffects(page, TEST_VERSION_KEYS)).toEqual([]);
 });

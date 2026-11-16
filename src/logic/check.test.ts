@@ -529,7 +529,7 @@ describe('display', () => {
   it('formats dates, amounts, rates, categories and units for German readers', () => {
     expect(displayValue('BT-2', '2026-11-13', undefined)).toBe('13.11.2026');
     expect(displayValue('BT-112', '1190.5', 'EUR')).toBe('1.190,50 EUR');
-    expect(displayValue('BT-119', '7.5', undefined)).toBe('7,5 %');
+    expect(displayValue('BT-119', '7.5', undefined)).toBe('7,5\u00a0%');
     expect(displayValue('BT-118', 'AE', undefined)).toBe(
       'AE – Steuerschuldnerschaft des Leistungsempfängers',
     );
@@ -541,15 +541,15 @@ describe('display', () => {
   // Audit R2-L-01: the same value written another way reads the same — so two XML of one invoice
   // compare equal; a text that is no number stays as written
   it('shows rates, quantities and amounts by their value', () => {
-    expect(displayValue('BT-119', '7.00', undefined)).toBe('7 %');
-    expect(displayValue('BT-119', '19', undefined)).toBe('19 %');
-    expect(displayValue('BT-152', '7.50', undefined)).toBe('7,5 %');
+    expect(displayValue('BT-119', '7.00', undefined)).toBe('7\u00a0%');
+    expect(displayValue('BT-119', '19', undefined)).toBe('19\u00a0%');
+    expect(displayValue('BT-152', '7.50', undefined)).toBe('7,5\u00a0%');
     expect(displayValue('BT-129', '1.0000', undefined)).toBe('1');
     expect(displayValue('BT-129', '30.00000000000', undefined)).toBe('30');
     expect(displayValue('BT-129', '245.11', undefined)).toBe('245,11');
     expect(displayValue('BT-109', '314.860', 'EUR')).toBe('314,86 EUR');
     expect(displayValue('BT-109', '100.004', 'EUR')).toBe('100,004 EUR');
-    expect(displayValue('BT-119', '19,00', undefined)).toBe('19,00 %');
+    expect(displayValue('BT-119', '19,00', undefined)).toBe('19,00\u00a0%');
     expect(displayValue('BT-129', 'eins', undefined)).toBe('eins');
   });
 

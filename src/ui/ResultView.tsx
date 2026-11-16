@@ -14,6 +14,7 @@ import {
   technicalParts,
 } from '../logic/verdict';
 import type { InvoiceVerdict, Verdict } from '../logic/verdict';
+import { Codes } from './Codes';
 import { PflichtangabenView } from './PflichtangabenView';
 import { RulesView } from './RulesView';
 
@@ -42,13 +43,16 @@ const ANCHOR = {
   schema: 'technische-meldungen',
 } as const;
 
-/** A result line; the engine's English message inside it is marked as English (audit Z-04). */
+/**
+ * A result line; the engine's English message inside it is marked as English (audit Z-04), codes
+ * such as „BR-CO-15“ stay on one line (R3-U-10).
+ */
 export function Line({ text }: { text: string }) {
   const parts = technicalParts(text);
-  if (!parts) return <>{text}</>;
+  if (!parts) return <Codes text={text} />;
   return (
     <>
-      {parts.prefix}
+      <Codes text={parts.prefix} />
       <span lang="en">{parts.message}</span>
     </>
   );
@@ -106,8 +110,12 @@ function DetailTable({ rows, labelledBy }: { rows: DetailRow[]; labelledBy?: str
       <tbody>
         {rows.map((row) => (
           <tr key={row.label}>
-            <th scope="row">{row.label}</th>
-            <td>{row.value}</td>
+            <th scope="row">
+              <Codes text={row.label} />
+            </th>
+            <td>
+              <Codes text={row.value} />
+            </td>
           </tr>
         ))}
       </tbody>
@@ -175,13 +183,15 @@ function Comparison({ analysis }: { analysis: Analysis }) {
         <tbody>
           {rows.slice(1).map((row) => (
             <tr key={row.label} className={row.differs ? 'differs' : undefined}>
-              <th scope="row">{row.label}</th>
+              <th scope="row">
+                <Codes text={row.label} />
+              </th>
               {row.values.map((value, index) => (
                 <td key={index}>
                   <span className="part-name" aria-hidden="true">
                     {names[index]}:{' '}
                   </span>
-                  {value}
+                  <Codes text={value} />
                 </td>
               ))}
             </tr>
@@ -269,7 +279,7 @@ export function ResultView({ analysis, verdict, notice, actions }: Props) {
             {/* what differs, right after the sentence that says the XML differ (F27) */}
             {index === 0 && comparison && !comparison.same && (
               <p data-testid="differing">
-                {differingLine(analysis.invoices, comparison.differing)}
+                <Codes text={differingLine(analysis.invoices, comparison.differing)} />
               </p>
             )}
           </Fragment>

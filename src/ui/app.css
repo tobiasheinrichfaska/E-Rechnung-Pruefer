@@ -109,6 +109,12 @@ button.primary:disabled {
   margin: 0 0 8px;
 }
 
+/* A code such as „BT-112“ or „BR-S-08“ (src/ui/Codes.tsx) is not broken after its hyphen
+   (audit R3-U-10) */
+.code {
+  white-space: nowrap;
+}
+
 /* Long values without break opportunities (file names with underscores, IBANs, long names) wrap
    instead of widening the page; labels keep whole words (audit 2026-11-14, U-12). */
 .status,

@@ -132,7 +132,7 @@ describe('XML files', () => {
     expect(doctype.analysis.problem?.kind).toBe('xmlDoctype');
     const broken = await check('b.xml', encode('<?xml version="1.0"?>\n<a>\n<b></a>'));
     expect(broken.verdict.headline).toBe('Die XML-Datei ist fehlerhaft');
-    expect(broken.verdict.explanation.join(' ')).toMatch(/Rn\. 6a/);
+    expect(broken.verdict.explanation.join(' ')).toMatch(/Rn\.\s6a/);
     expect(broken.verdict.explanation.join(' ')).toMatch(/Technische Meldung \(Zeile \d+\):/);
     // G-10: the German sentence first (F24), the engine's message last
     expect(broken.verdict.explanation[0]).toBe(TEXTS.formatError);
@@ -250,7 +250,7 @@ describe('PDF files', () => {
       expect(beside.verdict.explanation.join(' ')).not.toContain('agb.xml');
       const alone = await check('r.pdf', miniPdf({ attachments: [agb] }));
       expect(alone.verdict.headline).toBe('Keine E-Rechnung: PDF ohne Rechnungsdaten');
-      expect(alone.verdict.explanation.join(' ')).not.toContain('Rn. 6a');
+      expect(alone.verdict.explanation.join(' ')).not.toMatch(/Rn\.\s6a/);
     }
     // an XML with a DOCTYPE html but an invoice root is still not read, and named
     const hidden = `<!DOCTYPE html>${officialText(XR_UBL).replace(/^<\?xml[^>]*\?>/, '')}`;
@@ -262,7 +262,7 @@ describe('PDF files', () => {
     const pdf = miniPdf({ attachments: [xml('factur-x.xml', '<?xml version="1.0"?><a><b></a>')] });
     const { verdict } = await check('r.pdf', pdf);
     expect(verdict.headline).toBe('PDF mit fehlerhafter XML');
-    expect(verdict.explanation.join(' ')).toContain('Rn. 6a');
+    expect(verdict.explanation.join(' ')).toMatch(/Rn\.\s6a/);
   });
 
   it('sees the same invoice in UBL and CII as one invoice embedded twice', async () => {
@@ -347,7 +347,7 @@ describe('PDF files', () => {
     expect(verdict.tone).toBe('warn');
     expect(verdict.headline).toBe('PDF nicht vollständig geprüft');
     expect(verdict.explanation.join(' ')).toContain('Dokumenttyp-Angabe');
-    expect(verdict.explanation.join(' ')).not.toContain('Rn. 6a');
+    expect(verdict.explanation.join(' ')).not.toMatch(/Rn\.\s6a/);
   });
 
   // Audit QL-06: what the tool did not read could be a second invoice XML (F27)
@@ -408,7 +408,7 @@ describe('PDF files', () => {
     expect(analysis.others).toEqual([{ origin: 'a.xml', kind: 'tooLargeXml' }]);
     expect(verdict.headline).toBe('PDF nicht vollständig geprüft');
     expect(verdict.explanation.join(' ')).toContain('größer als 20 MB');
-    expect(verdict.explanation.join(' ')).not.toContain('Rn. 6a');
+    expect(verdict.explanation.join(' ')).not.toMatch(/Rn\.\s6a/);
   });
 
   it('does not say "no e-invoice" when attachments beyond the first 50 were not read', async () => {

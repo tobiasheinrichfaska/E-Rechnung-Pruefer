@@ -1,6 +1,7 @@
 import { useId } from 'react';
 import type { RuleResult, RuleStatus, RulesResult } from '../logic/rules';
 import { TEXTS } from '../logic/texts';
+import { Codes } from './Codes';
 
 const STATUS_TEXT: Readonly<Record<RuleStatus, string>> = {
   passt: TEXTS.ruleStatusPasst,
@@ -20,16 +21,23 @@ function Rule({ rule }: { rule: RuleResult }) {
     <li className={`rule rule-${rule.status}`} data-testid={`rule-${rule.id}`}>
       <div className="rule-head">
         <span>
-          <strong>{rule.id}</strong>
+          <strong>
+            <Codes text={rule.id} />
+          </strong>
           {rule.occurrence && <span className="muted"> · {rule.occurrence}</span>}
         </span>
         <span className={`badge ${BADGE[rule.status]}`}>{STATUS_TEXT[rule.status]}</span>
       </div>
-      <div className="muted">{rule.label}</div>
+      <div className="muted">
+        <Codes text={rule.label} />
+      </div>
       <div className="rule-values">
         {rule.values.map((v) => (
           <span key={v.label}>
-            <span className="value-label">{v.label}:</span> {v.value}
+            <span className="value-label">
+              <Codes text={v.label} />:
+            </span>{' '}
+            <Codes text={v.value} />
           </span>
         ))}
       </div>
@@ -54,17 +62,17 @@ export function RulesView({ result, id }: { result: RulesResult; id?: string }) 
         }`}
         data-testid="rules-summary"
       >
-        {result.summary}
+        <Codes text={result.summary} />
       </p>
       {/* F23: what the client could do, by the kind of the irregular rules */}
       {result.advice.map((line) => (
         <p key={line} className="rule-advice">
-          {line}
+          <Codes text={line} />
         </p>
       ))}
       {result.note && (
         <p className="muted" data-testid="rules-note">
-          {result.note}
+          <Codes text={result.note} />
         </p>
       )}
       {irregular.length > 0 && (

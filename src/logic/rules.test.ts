@@ -422,7 +422,7 @@ describe('the forms of the CEN Schematron per syntax (audit QL-03)', () => {
 describe('the breakdown rule of every category, per syntax (audit R2-T-02)', () => {
   const RATE: Readonly<Record<string, string>> = { S: '19', L: '7', M: '7' };
   const rateOf = (category: string) => RATE[category] ?? '0';
-  const occurrence = (category: string, rate: string) => `Kategorie ${category}, ${rate} %`;
+  const occurrence = (category: string, rate: string) => `Kategorie ${category}, ${rate}\u00a0%`;
   /** Two positions of the category (100 + 50 or as given), a breakdown with this base */
   const of = (category: string, base: string, amounts = ['100.00', '50.00']) => ({
     spec: {
