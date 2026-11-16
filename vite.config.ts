@@ -39,8 +39,12 @@ function contentSecurityPolicy(testArea: boolean): Plugin {
 /**
  * The folder of each build follows from its mode: the test version (test frame, `connect-src
  * 'self'`) goes to dist-test/ for the protected test zone, every other build to dist/, the file of
- * the public zone. A test version named into dist/ (`--outDir dist`) stops the build, so it can
- * never take the live file's place (audit 2026-11-15, R2-S-04; tests/build/viteConfig.test.ts).
+ * the public zone. A test version named into dist/ (`--outDir dist`, `./dist/`) stops the build
+ * (audit 2026-11-15, R2-S-04; tests/build/viteConfig.test.ts). The check compares the resolved
+ * paths as text, so a link to dist/ or another spelling on a case-blind file system gets past it
+ * (audit 2026-11-16, R3-S-03); what keeps any test version out of the public zone is the release
+ * run's check of the built file's content (`connect-src 'none'`, no `tr-huelle`, no `_zugang`;
+ * deploy/README.md).
  */
 const outDirOf = (testArea: boolean) => (testArea ? 'dist-test' : 'dist');
 
