@@ -6,7 +6,8 @@ echter Lieferanten, echte Mailprogramme, echte Handys. Was eine Maschine prüfen
 
 ## Vorbereitung
 
-- Gehostet: die **Testzone** öffnen (Adresse von Tobias; Anmeldung „E-Rechnung - Test“ mit Ihrem
+- Gehostet: die **Testzone** öffnen (Adresse von Tobias, zusammen mit der öffentlichen Adresse, die
+  MT-05 braucht; Anmeldung „E-Rechnung - Test“ mit Ihrem
   Tester-Zugang, danach erkennt der Browser das Gerät wieder). Dort steht neben dem Tool die
   **Testseite** mit diesen Handtests (Tobias, 15.11.2026: Handtests über die Testumgebung):
   - Öffnen Sie dort einen Test. Die Zeit läuft von selbst, solange er offen ist, und endet, wenn Sie
