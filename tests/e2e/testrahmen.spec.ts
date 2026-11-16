@@ -591,6 +591,9 @@ test('lists the manual tests in order; each step names a reason the page offers'
   page,
 }) => {
   const problems = await openHosted(page, '/', BUILT_TEST);
+  // the frame draws its list after the start; read it only once every test is there (Firefox read
+  // it too early once, an empty list)
+  await expect(panel(page).locator('button.tr-test')).toHaveCount(IDS.length);
   const listed = await panel(page)
     .locator('button.tr-test')
     .evaluateAll((list) => list.map((button) => (button as HTMLElement).dataset['id']));
