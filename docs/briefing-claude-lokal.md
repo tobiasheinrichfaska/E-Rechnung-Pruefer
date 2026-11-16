@@ -46,7 +46,7 @@ lokal bleibt und wie du dich mit der Cloud abstimmst.
     Das Freigabe-Repo wird nie an eine Cloud-Sitzung angehängt; Cloud-Sitzungen laden nie hoch.
   - **Testzone bei bunny.net** (geschützt, Anmeldeskript aus `Testumgebung`): Eintrag `erechnungtest`
     mit `npm run build:test`, hochgeladen wird `dist-test/index.html`; nur diese Fassung hat
-    „Tester einladen“ in der Fußzeile. Beide Einträge warten auf die GitHub-Prüfung „Tests“
+    „Tester einladen“ (seit 0.10.0 im Kopf des gemeinsamen Testrahmens). Beide Einträge warten auf die GitHub-Prüfung „Tests“
     (`deploy/README.md`, „Testfassung und Prüfung ‚Tests‘“).
 - **Server-Kopfzeilen:**
   - bunny.net: Edge Rules am 15.11.2026 im Dashboard eingestellt (`deploy/README.md`, „Auf
@@ -106,7 +106,8 @@ Keine Zugangsdaten, keine Zonen-IDs in dieses öffentliche Repo.
    - Der Notbehelf „der Upload führt selbst `npm test` aus“ kann dann wegfallen.
 2. **Build der Testzone** (`erechnungtest`): `npm run build:test` statt `npm run build`; hochgeladen
    wird `dist-test/index.html` als `index.html`.
-   - Nur diese Fassung hat „Tester einladen“, ab 0.8.0 die Testseite mit „Bericht senden“ und in
+   - Nur diese Fassung hat „Tester einladen“, ab 0.8.0 die Testseite mit „Bericht senden“ (seit
+     0.10.0 der gemeinsame Testrahmen) und in
      ihrer CSP `connect-src 'self'`. Die öffentliche Zone (`erechnung`) bekommt weiter
      `npm run build` und `dist/index.html`.
    - Der Testbuild braucht `git` im Checkout: Er setzt den Commit als `stand` in den Bericht ein
