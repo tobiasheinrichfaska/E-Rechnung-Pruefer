@@ -33,3 +33,6 @@ deploy/.local/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Temporary probes of audit agents (never committed)
+tests/audit-tmp/
