@@ -293,6 +293,11 @@ export const TEXTS = {
   addressPostcodeOrStreet: 'Postleitzahl oder Straße/Postfach',
   // the group itself, so the row reads „davon fehlt: Aufschlüsselung der Umsatzsteuer“ (R3-L-06)
   noGroup: '{group}',
+  // BT-110 is defined in the invoice currency: without BT-5 the tool reads none, though the XML
+  // may hold the amount — the gap named as it is (audit R4-L-01; whether BT-5 is a Pflichtangabe
+  // of its own is F33)
+  taxTotalNoCurrency:
+    'Summe der Umsatzsteuer in Rechnungswährung – die Rechnung nennt keine Rechnungswährung (BT-5)',
   statusVorhanden: 'vorhanden',
   statusFehlt: 'fehlt',
   statusEinzelfall: 'nur im Einzelfall nötig',

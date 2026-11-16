@@ -207,6 +207,16 @@ function matchesFilter(group: ModelGroup, filter: OccurrenceFilter | undefined):
   return valuesOf(group, filter.path).some((v) => filter.values.includes(v.value.toUpperCase()));
 }
 
+/**
+ * A missing term as a row names it. BT-110 is read only in the invoice currency (binding), so
+ * without BT-5 the amount may be in the XML: then the gap is named as it is, the currency, not the
+ * amount (audit R4-L-01). The status stays until F33 decides whether BT-5 is a Pflichtangabe.
+ */
+function gapName(model: InvoiceModel, path: string): string {
+  const bt = lastSegment(path);
+  return bt === 'BT-110' && !has(model, 'BT-5') ? TEXTS.taxTotalNoCurrency : termLabel(bt);
+}
+
 interface PresenceResult {
   ok: boolean;
   missing: string[];
@@ -295,7 +305,7 @@ export function present(model: InvoiceModel, presence: Presence): PresenceResult
         if (r.ok) return [];
         if (r.missing.length > 0) return r.missing;
         if (part?.kind === 'any' && part.paths.length === 1 && part.paths[0]) {
-          return [termLabel(lastSegment(part.paths[0]))];
+          return [gapName(model, part.paths[0])];
         }
         if (part?.kind === 'address')
           return [GROUP_LABEL.get(lastSegment(part.group)) ?? part.group];

@@ -399,10 +399,13 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
     ]);
   }
 
-  // Without the invoice currency (BT-5) the tool cannot tell which amount is BT-110: both CEN
-  // Schematrons count it in the invoice currency and then report only BR-05 (`every $Currency in
-  // <BT-5> satisfies …` holds over nothing). BR-CO-14 and BR-CO-15 are not checked and say why,
-  // a BT-110 not read is not shown (audit R3-L-01)
+  // Without the invoice currency (BT-5) the tool cannot tell which amount is BT-110 (it reads it
+  // only in BT-5). The CEN Schematrons differ there: BR-CO-15 holds over nothing in both (`every
+  // $Currency in <BT-5> satisfies …`), and so does BR-CO-14 in CII (context `TaxTotalAmount` with
+  // `@currencyID` = BT-5) — they report only BR-05. UBL computes BR-CO-14 without BT-5 too, in the
+  // context `$Tax_Total` (every `cac:TaxTotal`, EN16931-UBL-model.sch), and reports a wrong sum.
+  // The tool checks neither BR-CO-14 nor BR-CO-15 there and says why: less than CEN for UBL
+  // BR-CO-14, never a false hint. A BT-110 not read is not shown (audit R3-L-01, R4-L-01)
   const noCurrency: RuleValue[] = currency
     ? []
     : [{ label: TEXTS.ruleCurrency, value: TEXTS.ruleMissing }];
