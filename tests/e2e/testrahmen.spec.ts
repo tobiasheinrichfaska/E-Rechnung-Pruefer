@@ -554,6 +554,53 @@ test('the manual tests link the samples and name what the test version shows', a
   await expect(panel(page)).toContainText(`„${TEXTS.dropTitle}“`);
   await expect(panel(page)).toContainText(`„${TEXTS.anotherFile}“`);
   await expect(panel(page)).toContainText(`„${TEXTS.statusEinzelfall}“`);
+  // and the closed parts that hold the descriptions of the rules (audit R3-U-11)
+  await expect(panel(page)).toContainText(`„${TEXTS.rulesShowAll}“`);
+  await expect(panel(page)).toContainText(`„${TEXTS.rulesShowOthers}“`);
+  await expect(panel(page)).toContainText(`„${TEXTS.technicalDetails}“`);
+  expect(problems).toEqual([]);
+  expect(await sideEffects(page, TEST_VERSION_KEYS)).toEqual([]);
+});
+
+// The manual tests in the order of their ids: MT-05 stood in 02_geraete.md, so the list ran MT-01,
+// MT-02, MT-03, MT-05, MT-04 and „Nächster ›“ went from MT-05 back to MT-04 (audit R3-U-11). And no
+// step asks the tester to note something down: the page has no text field and does not show the
+// README that said what to do instead (R3-U-01). Each step names a reason of the page's own list.
+test('lists the manual tests in order; each step names a reason the page offers', async ({
+  page,
+}) => {
+  const problems = await openHosted(page, '/', BUILT_TEST);
+  const listed = await panel(page)
+    .locator('button.tr-test')
+    .evaluateAll((list) => list.map((button) => (button as HTMLElement).dataset['id']));
+  expect(listed).toEqual(['MT-01', 'MT-02', 'MT-03', 'MT-04', 'MT-05']);
+
+  // the reasons a failed step can get
+  await caseButton(page, 'MT-04').click();
+  await panel(page).locator('[data-aktion="ergebnis"][data-wert="nicht bestanden"]').click();
+  const offered = await panel(page)
+    .locator('select[data-aktion="schritt"]')
+    .first()
+    .locator('option')
+    .allTextContents();
+  // from MT-04 the next test is MT-05
+  await panel(page).locator('[data-fokus="naechster"]').click();
+  await expect(panel(page).getByRole('heading', { name: /^MT-05 / })).toBeVisible();
+
+  let named = 0;
+  for (const id of IDS) {
+    await panel(page).locator('[data-aktion="uebersicht"]').click();
+    await caseButton(page, id).click();
+    await expect(panel(page).getByRole('heading', { name: new RegExp(`^${id} `) })).toBeVisible();
+    const text = (await panel(page).textContent()) ?? '';
+    expect(text, id).not.toMatch(/notier/i);
+    expect(text, id).toContain('sagen Sie Tobias direkt');
+    for (const [, reason = ''] of text.matchAll(/dem Grund „([^“]+)“/g)) {
+      expect(offered, `${id}: „${reason}“`).toContain(reason);
+      named += 1;
+    }
+  }
+  expect(named).toBeGreaterThanOrEqual(IDS.length);
   expect(problems).toEqual([]);
   expect(await sideEffects(page, TEST_VERSION_KEYS)).toEqual([]);
 });
