@@ -233,6 +233,10 @@ export const TEXTS = {
   ruleSumAllowances: 'Summe der Nachlässe auf Dokumentebene (BT-92)',
   ruleSumCharges: 'Summe der Zuschläge auf Dokumentebene (BT-99)',
   ruleSumTaxes: 'Summe der Steuerbeträge je Kategorie (BT-117)',
+  // The sums of one VAT breakdown, named apart from the document totals (audit R3-U-07):
+  // „Summe der Positionen mit diesem Satz (BT-131)“, „… dieser Kategorie (BT-131)“
+  ruleOfRate: 'mit diesem Satz',
+  ruleOfCategory: 'dieser Kategorie',
   // What the rule computes from the other values — the client compares it with the invoice
   // (audit Bedienung, V-04)
   ruleExpected: 'Nach der Regel erwartet',

@@ -314,7 +314,10 @@ describe('the forms of the CEN Schematron per syntax (audit QL-03)', () => {
     };
     expect(both(parts, {}, 'BR-S-08')).toEqual({ ubl: ['passt'], cii: ['passt'] });
     const s08 = rules(parts, {}, CII).results.find((r) => r.id === 'BR-S-08');
-    expect(s08?.values).toContainEqual({ label: TEXTS.ruleLineSum, value: '150,01 EUR' });
+    expect(s08?.values).toContainEqual({
+      label: 'Summe der Positionen mit diesem Satz (BT-131)',
+      value: '150,01 EUR',
+    });
     expect(s08?.label).toBe(RULE_LABELS.BREAKDOWN);
   });
 
@@ -660,10 +663,13 @@ describe('missing values and the names of the values (audit R2-L-07, R2-L-08)', 
     const withoutAmount = rules({
       'BG-25': [lines[0] ?? {}, { 'BG-30': [{ 'BT-151': 'S', 'BT-152': '19' }] }],
     });
-    for (const id of ['BR-CO-10', 'BR-S-08']) {
+    for (const [id, label] of [
+      ['BR-CO-10', TEXTS.ruleLineSum],
+      ['BR-S-08', 'Summe der Positionen mit diesem Satz (BT-131)'],
+    ] as const) {
       expect(find(withoutAmount, id)?.status).toBe('nichtPruefbar');
       expect(find(withoutAmount, id)?.values).toContainEqual({
-        label: TEXTS.ruleLineSum,
+        label,
         value: TEXTS.ruleMissing,
       });
     }
@@ -684,6 +690,34 @@ describe('missing values and the names of the values (audit R2-L-07, R2-L-08)', 
       label: TEXTS.ruleSumAllowances,
       value: TEXTS.ruleMissing,
     });
+  });
+
+  it('names the sums of a breakdown apart from the document totals (R3-U-07)', () => {
+    const result = rules({
+      'BG-23': [
+        { 'BT-116': '140.00', 'BT-117': '26.60', 'BT-118': 'S', 'BT-119': '19' },
+        { 'BT-116': '0.00', 'BT-117': '0.00', 'BT-118': 'E', 'BT-119': '0' },
+      ],
+    });
+    expect(find(result, 'BR-CO-10')?.values[0]?.label).toBe('Summe der Positionen (BT-131)');
+    expect(
+      find(result, 'BR-S-08')
+        ?.values.slice(0, 3)
+        .map((v) => v.label),
+    ).toEqual([
+      'Summe der Positionen mit diesem Satz (BT-131)',
+      'Summe der Zuschläge auf Dokumentebene mit diesem Satz (BT-99)',
+      'Summe der Nachlässe auf Dokumentebene mit diesem Satz (BT-92)',
+    ]);
+    expect(
+      find(result, 'BR-E-08')
+        ?.values.slice(0, 3)
+        .map((v) => v.label),
+    ).toEqual([
+      'Summe der Positionen dieser Kategorie (BT-131)',
+      'Summe der Zuschläge auf Dokumentebene dieser Kategorie (BT-99)',
+      'Summe der Nachlässe auf Dokumentebene dieser Kategorie (BT-92)',
+    ]);
   });
 
   it('names the second value of BR-CO-11 and BR-CO-12 as every other value', () => {

@@ -262,6 +262,13 @@ export interface RulesOptions {
   syntax?: SyntaxId | undefined;
 }
 
+/**
+ * A sum of one VAT breakdown, named apart from the document total of the same name (BR-CO-10 …
+ * -12): "Summe der Positionen mit diesem Satz (BT-131)" — per rate or per category (audit R3-U-07).
+ */
+const ofBreakdown = (label: string, perRate: boolean) =>
+  label.replace(' (', ` ${perRate ? TEXTS.ruleOfRate : TEXTS.ruleOfCategory} (`);
+
 /** Names of the sums the FeRD rules compare (F29) */
 const EXTENDED_VALUE_LABELS: Readonly<Record<string, string>> = {
   lineSum: TEXTS.ruleLineSumDetail,
@@ -596,11 +603,21 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
             { label: named('BT-119'), value: money(rate) },
           ]
         : [
-            partShown(theLines, TEXTS.ruleLineSum, TEXTS.ruleLineRate, linesPart),
-            partShown(theCharges, TEXTS.ruleSumCharges, TEXTS.ruleChargeRate, chargesPart),
+            partShown(
+              theLines,
+              ofBreakdown(TEXTS.ruleLineSum, rule.perRate),
+              TEXTS.ruleLineRate,
+              linesPart,
+            ),
+            partShown(
+              theCharges,
+              ofBreakdown(TEXTS.ruleSumCharges, rule.perRate),
+              TEXTS.ruleChargeRate,
+              chargesPart,
+            ),
             partShown(
               theAllowances,
-              TEXTS.ruleSumAllowances,
+              ofBreakdown(TEXTS.ruleSumAllowances, rule.perRate),
               TEXTS.ruleAllowanceRate,
               allowancesPart,
             ),
@@ -633,10 +650,17 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
         : {}),
       status: c.ok === undefined ? 'nichtPruefbar' : c.ok ? 'passt' : 'auffaellig',
       values: [
-        ...c.values.map(([key, value]) => ({
-          label: EXTENDED_VALUE_LABELS[key] ?? named(key),
-          value: key === 'BT-119' && value ? percent(value) : money(value),
-        })),
+        ...c.values.map(([key, value]) => {
+          const sumLabel = EXTENDED_VALUE_LABELS[key];
+          return {
+            label: sumLabel
+              ? c.breakdown
+                ? ofBreakdown(sumLabel, c.breakdown.perRate)
+                : sumLabel
+              : named(key),
+            value: key === 'BT-119' && value ? percent(value) : money(value),
+          };
+        }),
         ...(c.expected ? [{ label: TEXTS.ruleExpected, value: money(c.expected) }] : []),
       ],
     }));

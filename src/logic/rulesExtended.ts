@@ -36,8 +36,8 @@ export interface ExtendedCheck {
   /** label → value; `null` missing, `undefined` no number */
   values: [string, Decimal | null | undefined][];
   expected?: Decimal | undefined;
-  /** For the rules per VAT breakdown: category and rate */
-  breakdown?: { category: string; rate: Decimal | null | undefined };
+  /** For the rules per VAT breakdown: category and rate, and whether its sums are per rate */
+  breakdown?: { category: string; rate: Decimal | null | undefined; perRate: boolean };
 }
 
 /** The breakdown rule of FeRD per VAT category (ids as in the Schematron). */
@@ -289,7 +289,7 @@ export function checkExtendedRules(model: InvoiceModel, ext: ExtendedAmounts): E
       ofThis(allowances).length +
       ofThis(charges).length +
       ofThis(logistics).length;
-    const breakdownOf = { category, rate };
+    const breakdownOf = { category, rate, perRate };
 
     if (category === 'S') {
       const expectedTax =
