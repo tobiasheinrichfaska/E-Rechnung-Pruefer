@@ -97,7 +97,7 @@ function SchemaProblems({ invoice }: { invoice: InvoiceVerdict }) {
       </ol>
       {schema.count > schema.problems.length && (
         <p className="muted">
-          {fill(TEXTS.schemaMore, { count: schema.count - schema.problems.length })}
+          {fill(TEXTS.schemaMoreNotShown, { count: schema.count - schema.problems.length })}
         </p>
       )}
     </details>

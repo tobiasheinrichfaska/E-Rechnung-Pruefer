@@ -124,6 +124,8 @@ export const TEXTS = {
   schemaMismatchIn:
     'Der Anhang „{name}“ weicht vom offiziellen Schema {schema} ab (technische Meldungen: {count}).',
   schemaMore: 'Weitere technische Meldungen: {count} (siehe unten).',
+  // At the end of the list itself nothing follows: these messages are counted, not shown
+  schemaMoreNotShown: 'Weitere technische Meldungen, die hier nicht einzeln stehen: {count}.',
   schemaOwnProfile:
     'Für ZUGFeRD 2.0 im Profil EXTENDED gilt ein eigenes Schema von FeRD, das das Tool nicht enthält.',
   schemaNone: 'keine Abweichung vom Schema {schema}',
