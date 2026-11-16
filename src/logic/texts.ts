@@ -135,9 +135,10 @@ export const TEXTS = {
   differingWithHints: 'mit {count} Hinweisen',
   differingRules: 'Rechnerische Prüfung',
   // G-1: rows "nur im Einzelfall nötig" without a value are folded; jump links from the box.
-  // A fold-out names what it holds, not "anzeigen", which stays wrong once it is open (QU-11)
-  foldedRows: '{count} Angaben, die nur in besonderen Fällen nötig sind',
-  foldedRow: 'Eine Angabe, die nur in besonderen Fällen nötig ist',
+  // A fold-out names what it holds, not "anzeigen", which stays wrong once it is open (QU-11), and
+  // with the word of its rows' badges: „in besonderen Fällen“ is the section below (R2-U-07)
+  foldedRows: '{count} Angaben „nur im Einzelfall nötig“ (nicht in der XML)',
+  foldedRow: 'Eine Angabe „nur im Einzelfall nötig“ (nicht in der XML)',
   jumpTo: 'Springen zu:',
   jumpPflicht: 'Pflichtangaben',
   jumpRules: 'Rechnerische Prüfung',
