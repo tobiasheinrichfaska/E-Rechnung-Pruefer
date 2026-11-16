@@ -63,7 +63,8 @@ const has = (group: ModelGroup, path: string) => valuesOf(group, path).length > 
 /**
  * A value as the client reads it. Numbers by their value, not as written: "7" and "7.00", "1" and
  * "1.0000", "314.86" and "314.860" give the same text, so the same invoice in two XML reads the same
- * (audit R2-L-01); a text that is no number stays as written.
+ * (audit R2-L-01); a text that is no number stays as written, an amount marked „– keine Zahl“ as in
+ * the rules (audit R4-U-01): „336,90“ beside „336,90 EUR“ differed only in „EUR“.
  */
 export function displayValue(bt: string, value: string, currency: string | undefined): string {
   const kind = KIND.get(bt);
@@ -73,7 +74,9 @@ export function displayValue(bt: string, value: string, currency: string | undef
   }
   if (kind === 'amount') {
     const amount = parseDecimal(value);
-    return amount ? `${formatAmount(normalize(amount))}${currency ? ` ${currency}` : ''}` : value;
+    return amount
+      ? `${formatAmount(normalize(amount))}${currency ? ` ${currency}` : ''}`
+      : `${value} ${TEXTS.ruleNoNumber}`;
   }
   if (kind === 'percent' || kind === 'quantity') {
     const number = parseDecimal(value);

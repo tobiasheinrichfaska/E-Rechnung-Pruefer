@@ -68,10 +68,13 @@ export function invoiceDetails(
     { label: 'Lieferant (BT-27)', value: first(h, 'BT-27') ?? MISSING },
     {
       label: 'Gesamtbetrag mit Umsatzsteuer (BT-112)',
-      // by its value, as the Pflichtangaben and rules show it: "336.900" as "336,90" (R3-U-05)
+      // by its value, as the Pflichtangaben and rules show it: "336.900" as "336,90" (R3-U-05),
+      // one that is no number marked as there (R4-U-01)
       value: parsed
         ? `${formatAmount(normalize(parsed))}${currency ? ` ${currency}` : ''}`
-        : (amount ?? MISSING),
+        : amount
+          ? `${amount} ${TEXTS.ruleNoNumber}`
+          : MISSING,
     },
     ...technicalRows(same.includes(invoice) ? same : [invoice, ...same]),
   ];

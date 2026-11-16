@@ -1,4 +1,4 @@
-import { readdirSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { analyzeFile } from '../../src/io/analyze';
 import type { PdfJsLike } from '../../src/io/pdf';
@@ -184,6 +184,23 @@ describe('an invoice without the invoice currency (audit R3-L-01)', () => {
     expect(row?.status).toBe('vorhanden');
     const before = verdictOf(await analyzeFile('r.xml', encode(text), load));
     expect([verdict.tone, verdict.explanation]).toEqual([before.tone, before.explanation]);
+  });
+});
+
+// Audit R4-U-01: sample 29 has the due amount with a comma, a frequent real format error. The rule
+// showed „Fälliger Betrag (BT-115): – keine Zahl“ under „Nach der Regel erwartet: 336,90 EUR“;
+// now the value as written, as the comparison of two XML shows it
+it('shows the due amount of sample 29 as written, marked as no number', async () => {
+  const bytes = readFileSync(
+    new URL('../../beispiele/29_XRechnung_mit_Formatfehler.xml', import.meta.url),
+  );
+  const [invoice] = verdictOf(await analyzeFile('29.xml', new Uint8Array(bytes), load)).invoices;
+  if (!invoice) throw new Error('no invoice');
+  const rule = rulesOf(invoice)?.results.find((r) => r.id === 'BR-CO-16');
+  expect(rule?.status).toBe('nichtPruefbar');
+  expect(rule?.values).toContainEqual({
+    label: 'Fälliger Betrag (BT-115)',
+    value: `336,90 ${TEXTS.ruleNoNumber}`,
   });
 });
 

@@ -191,7 +191,8 @@ describe('invoiceDetails', () => {
     const rows = Object.fromEntries(invoiceDetails(invoice, false).map((r) => [r.label, r.value]));
     expect(rows['Rechnungsnummer (BT-1)']).toBe('– (fehlt)');
     expect(rows['Rechnungsdatum (BT-2)']).toBe('13.11.2026');
-    expect(rows['Gesamtbetrag mit Umsatzsteuer (BT-112)']).toBe('1.000,00');
+    // as written, marked as in the Pflichtangaben and the rules (audit R4-U-01)
+    expect(rows['Gesamtbetrag mit Umsatzsteuer (BT-112)']).toBe(`1.000,00 ${TEXTS.ruleNoNumber}`);
   });
 });
 

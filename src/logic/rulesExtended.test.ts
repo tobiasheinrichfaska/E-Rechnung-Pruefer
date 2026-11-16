@@ -159,4 +159,26 @@ describe('FeRD rules for Factur-X EXTENDED (F29)', () => {
     expect(zf20.results.map((r) => r.id)).toEqual(['BR-CO-14']);
     expect(zf20.note).toBe(TEXTS.rulesOwnRules);
   });
+
+  // Audit R4-U-01: a value that is no number as written, as in the CEN rules
+  it('shows a document total or a term of a breakdown that is no number as written', () => {
+    const result = checkRules(
+      model(
+        { 'BT-115': '172,55' },
+        { 'BG-23': [{ 'BT-116': '145,00', 'BT-117': '27.55', 'BT-118': 'S', 'BT-119': '19' }] },
+      ),
+      { ownRules: true, extended: EXT },
+    );
+    const values = (id: string) => result.results.find((r) => r.id === id)?.values;
+    expect(values('BR-FXEXT-CO-16')).toContainEqual({
+      label: 'Fälliger Betrag (BT-115)',
+      value: `172,55 ${TEXTS.ruleNoNumber}`,
+    });
+    for (const id of ['BR-FXEXT-S-09b', 'BR-FXEXT-S08b']) {
+      expect(values(id), id).toContainEqual({
+        label: 'Steuerbemessungsgrundlage (BT-116)',
+        value: `145,00 ${TEXTS.ruleNoNumber}`,
+      });
+    }
+  });
 });
