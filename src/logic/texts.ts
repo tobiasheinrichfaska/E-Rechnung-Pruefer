@@ -181,6 +181,8 @@ export const TEXTS = {
   accessTitle: 'Bitte bestätigen',
   accessRemember: 'Antwort für die Zukunft merken',
   accessRememberNote: 'Gemerkt wird nur in diesem Browser.',
+  // the browser keeps nothing (blocked site data): no offer that does nothing (audit R3-U-12)
+  accessCannotRemember: 'In diesem Browser lässt sich die Antwort nicht merken.',
   accessContinue: 'Weiter',
   // Links at the foot of the page, addresses from the local Kanzlei configuration
   imprint: 'Impressum',

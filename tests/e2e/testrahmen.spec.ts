@@ -653,5 +653,10 @@ test('with blocked storage the frame says once that it keeps nothing, not on eve
   await expect(panel(page).locator('[role="alert"], [role="status"], [aria-live]')).toHaveCount(0);
   expect(await page.evaluate(() => (window as unknown as { __alerts: number }).__alerts)).toBe(0);
   await expect(announcer(page)).toContainText('speichert die Ergebnisse nicht');
+  // beside it the tool's access notice offers no answer to remember either (audit R3-U-12)
+  if (loadAppConfig().config.accessNotice !== undefined) {
+    await expect(tool(page).getByTestId('cannot-remember')).toBeVisible();
+    await expect(tool(page).getByRole('checkbox', { name: TEXTS.accessRemember })).toHaveCount(0);
+  }
   expect(problems).toEqual([]);
 });

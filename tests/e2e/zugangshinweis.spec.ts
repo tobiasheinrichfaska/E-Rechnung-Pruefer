@@ -8,6 +8,7 @@ import type { Page } from '@playwright/test';
 import { loadAppConfig } from '../../src/build/kanzleiConfig';
 import { accessToken } from '../../src/logic/accessGate';
 import { ACCESS_STORAGE } from '../../src/logic/storageKeys';
+import { TEXTS } from '../../src/logic/texts';
 import { miniPdf } from '../../src/build/minipdf';
 import { openApp, openHosted, sideEffects } from './helpers';
 
@@ -71,6 +72,8 @@ test.describe('with the notice of the local configuration', () => {
     await expect(gate(page)).toBeVisible();
 
     await page.getByRole('checkbox', { name: notice }).check();
+    // a browser that keeps data offers the box (only blocked site data hide it, R3-U-12)
+    await expect(page.getByTestId('cannot-remember')).toHaveCount(0);
     await page.getByRole('checkbox', { name: 'Antwort für die Zukunft merken' }).check();
     await next(page).click();
     await page.reload();
@@ -81,6 +84,34 @@ test.describe('with the notice of the local configuration', () => {
     expect(await page.evaluate((key) => localStorage.getItem(key), ACCESS_STORAGE)).toBe(
       accessToken(notice),
     );
+    expect(await sideEffects(page)).toEqual([]);
+  });
+
+  // Blocked site data (the getter of localStorage throws): the box „Antwort für die Zukunft merken“
+  // did nothing, and the next visit asked again without saying why (audit R3-U-12). The tool asks
+  // only the getter whether there is a storage — no probe write, nothing for the spy to see.
+  test('with blocked site data the notice offers no answer to remember', async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(window, 'localStorage', {
+        configurable: true,
+        get() {
+          throw new DOMException('Die Website-Daten sind gesperrt.', 'SecurityError');
+        },
+      });
+    });
+    const problems = await openHosted(page);
+    await expect(gate(page)).toBeVisible();
+    await expect(page.getByRole('checkbox')).toHaveCount(1);
+    await expect(page.getByRole('checkbox', { name: TEXTS.accessRemember })).toHaveCount(0);
+    await expect(page.getByText(TEXTS.accessRememberNote)).toHaveCount(0);
+    await expect(page.getByTestId('cannot-remember')).toHaveText(TEXTS.accessCannotRemember);
+    await page.getByRole('checkbox', { name: notice }).check();
+    await next(page).click();
+    await expect(tool(page)).toBeVisible();
+    // as the page said: asked again on the next visit
+    await page.reload();
+    await expect(gate(page)).toBeVisible();
+    expect(problems).toEqual([]);
     expect(await sideEffects(page)).toEqual([]);
   });
 

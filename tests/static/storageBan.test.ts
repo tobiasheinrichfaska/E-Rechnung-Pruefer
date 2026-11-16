@@ -35,6 +35,8 @@ const FORBIDDEN = [
 const ELSEWHERE = [
   'src/io/analyze.ts',
   'src/ui/App.tsx',
+  // the notice asks the access store whether the browser can keep the answer (audit R3-U-12)
+  'src/ui/AccessGate.tsx',
   'src/logic/accessGate.ts',
   'src/logic/testBinding.ts',
   'src/config.ts',
