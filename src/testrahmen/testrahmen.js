@@ -1,5 +1,5 @@
 // GENERATED from Testumgebung (testrahmen/) by `npm run rahmen` — do not edit here: change it
-// there and copy it again. Stand 607eeea. Checked by pruefen.mjs against testrahmen.json.
+// there and copy it again. Stand 1037e8e. Checked by pruefen.mjs against testrahmen.json.
 // Test reports without free text (Tobias 2026-11-15, docs/testbericht.md). Pure and import-free:
 // the build puts it into every script ahead of logik.ts, which answers the routes
 // (`POST /_zugang/bericht`, `/_zugang/berichte`).
@@ -642,6 +642,7 @@ const REASON_KEYS                    = Object.keys(REASONS);
                 
  
 
+/** Version and commit in the form a report needs. */
 const isBuild = (b         )             =>
   typeof b === 'object' && b !== null &&
   typeof (b         ).version === 'string' && /^\d{1,3}\.\d{1,3}\.\d{1,3}$/.test((b         ).version) &&
@@ -729,6 +730,8 @@ function checkpoint(run         , id        , now        )          {
  */
 function setResult(run         , id        , result         , now        , version         , build        )          {
   const entry = entryOf(run, id);
+  // A build that does not know its version or commit takes no result: it could never be sent under it.
+  if (build !== undefined && !isBuild(build)) return run;
   const given = isBuild(build) ? { version: build.version, stand: build.stand } : undefined;
   if (given && fromOlderBuild(entry, given)) return run;
   // The same result for the same text on the same build again changes nothing: a sent one is not
@@ -907,7 +910,10 @@ function markReported(run         , ids                   , now        )        
 /** What the page says after sending, from the answer of the test area (zugang/src/logik.ts). */
 function sendOutcome(status        , text        )                                     {
   const said = text.replace(/\s+/g, ' ').trim().slice(0, 300);
-  if (status >= 200 && status < 300) return { sent: true, message: said || 'Bericht gespeichert.' };
+  // Only the login script's own answer counts as stored (201 „Bericht gespeichert.“); another 2xx
+  // came from something else and stored nothing.
+  if (status === 201) return { sent: true, message: said || 'Bericht gespeichert.' };
+  if (status >= 200 && status < 300) return { sent: false, message: `Der Testbereich antwortet unerwartet (Antwort ${status}); der Bericht ist nicht gespeichert. Bitte später noch einmal senden.` };
   if (status === 400) return { sent: false, message: `Der Testbereich hat den Bericht abgelehnt${said ? `: ${said}` : '.'}` };
   if (status === 401) return { sent: false, message: 'Bitte im Testbereich anmelden und den Bericht noch einmal senden.' };
   if (status === 404) return { sent: false, message: 'Dieser Testbereich nimmt noch keine Berichte an (Antwort 404).' };
@@ -1077,7 +1083,7 @@ function header(state           , info          )         {
     button(state.sending ? 'Wird gesendet …' : 'Bericht senden', 'frage', {
       'data-frage': 'senden',
       'data-fokus': 'frage-senden',
-      disabled: state.sending ? 'disabled' : undefined,
+      'aria-disabled': state.sending ? 'true' : undefined,
     }),
     `<a class="tr-einladen"${attrs({ href: info.inviteHref })}>Tester einladen</a>`,
     '</div>',
@@ -1226,7 +1232,9 @@ function testView(state           , testCase               , info          )    
     `<p class="tr-uhr">${esc(clock)}</p>`,
     entry !== undefined && fromOlderBuild(entry, info)
       ? olderResult(testCase.id, entry)
-      : [
+      : !isBuild({ version: info.version, stand: info.stand })
+        ? '<p class="tr-meldung tr-fehler">Diese Fassung kennt ihre Version oder ihren Stand nicht. Ergebnisse lassen sich hier nicht geben, denn sie gingen sonst unter einer anderen Fassung hinaus.</p>'
+        : [
           `<div class="tr-knoepfe">${results.join('')}</div>`,
           entry?.result === 'nicht bestanden'
             ? steps.length > 0
@@ -1522,7 +1530,9 @@ export function starteTestrahmen(ziel             , anbindung           , option
       save();
       message = { kind: 'ok', text: plan.reports.length > 1 ? `${outcome.message} (${plan.reports.length} Berichte, je Fassung einer)` : outcome.message };
     }
-    change({ sending: false, message }, 'frage-senden');
+    // Back to the button only when the tester has not gone on elsewhere (e.g. into the app).
+    const stayed = doc.activeElement === null || doc.activeElement === doc.body || feld.contains(doc.activeElement);
+    change({ sending: false, message }, stayed ? 'frage-senden' : undefined);
   }
 
   const openCase = (id        ) => {
@@ -1545,7 +1555,8 @@ export function starteTestrahmen(ziel             , anbindung           , option
         if (id) openCase(id);
         break;
       case 'uebersicht':
-        change({ run: state.open === undefined ? state.run : leaveTest(state.run, state.open, now()), open: undefined }, state.open ? `test-${state.open}` : undefined, true);
+        // A test hidden as done cannot take the focus: the checkbox above the list does.
+        change({ run: state.open === undefined ? state.run : leaveTest(state.run, state.open, now()), open: undefined }, state.open === undefined ? undefined : state.hideDone && state.run.entries[state.open]?.result !== undefined ? 'erledigte' : `test-${state.open}`, true);
         break;
       case 'ergebnis':
         if (id && (wert === 'bestanden' || wert === 'nicht bestanden')) {
@@ -1557,6 +1568,7 @@ export function starteTestrahmen(ziel             , anbindung           , option
         break;
       // A question that loses the app's data starts on „Abbrechen“, so a double Enter wipes nothing.
       case 'frage':
+        if (frage === 'senden' && state.sending) break;
         if (frage === 'neustart' || frage === 'senden') change({ question: { kind: frage }, message: undefined }, 'ja');
         else if (frage === 'zuruecksetzen') change({ question: { kind: frage }, message: undefined }, 'nein');
         break;
@@ -1594,22 +1606,28 @@ export function starteTestrahmen(ziel             , anbindung           , option
   };
 
   /**
-   * Another tab of the test page stored its run: take it over, so neither tab overwrites the other.
-   * The test open here keeps its own running clock while it has no result (the stored copy never
-   * holds a running clock).
+   * Another tab of the test page stored its run (or this page comes back from the browser's
+   * back/forward cache): take it over, so neither tab overwrites the other. The test open here keeps
+   * its own running clock while it has no result there — the copy as read never holds a running
+   * clock (decodeRun stops it). Both clocks ran at the same time, so the time counts once: only what
+   * the other tab measured beyond this one is added (this clock then starts that much earlier).
    */
-  const onStorage = (event              ) => {
-    if (event.key !== key) return;
+  const adoptStored = () => {
     const saved = readSaved(store, key);
     let run = saved.run;
-    const own = state.open === undefined ? undefined : state.run.entries[state.open];
-    const theirs = state.open === undefined ? undefined : saved.run.entries[state.open];
     if (state.open !== undefined) {
-      run = own?.openedAt !== undefined && theirs?.result === undefined
-        ? { entries: { ...run.entries, [state.open]: { ...own, seconds: Math.max(own.seconds, theirs?.seconds ?? 0) } } }
-        : openTest(run, state.open, now());
+      const own = state.run.entries[state.open];
+      const theirs = saved.run.entries[state.open];
+      if (own?.openedAt !== undefined && theirs?.result === undefined) {
+        const extra = (theirs?.seconds ?? 0) - (own.seconds + (now() - own.openedAt) / 1000);
+        run = { entries: { ...run.entries, [state.open]: extra > 0 ? { ...own, openedAt: own.openedAt - extra * 1000 } : own } };
+      } else run = openTest(run, state.open, now());
     }
     state = { ...state, run, hideDone: saved.hideDone };
+  };
+  const onStorage = (event              ) => {
+    if (event.key !== key) return;
+    adoptStored();
     render();
   };
 
@@ -1621,7 +1639,11 @@ export function starteTestrahmen(ziel             , anbindung           , option
   };
   const onHide = () => pause();
   const onShow = (event                     ) => {
-    if (event.persisted && state.open !== undefined) change({ run: openTest(state.run, state.open, now()) });
+    // Back from the bfcache: another tab may have stored meanwhile, and its storage events come only
+    // after this one. Take its run over first (and start the open test's clock), then store.
+    if (!event.persisted) return;
+    adoptStored();
+    change({});
   };
 
   huelle.addEventListener('click', onClick);

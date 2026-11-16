@@ -10,7 +10,24 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const hier = dirname(fileURLToPath(import.meta.url));
 
 /** The files every copy has; a stamp without one of them is no complete copy. */
-const PFLICHT = ['testrahmen.js', 'testrahmen.d.ts', 'testrahmen.css', 'pruefen.mjs', 'pruefen.d.mts'];
+const PFLICHT = ['testrahmen.js', 'testrahmen.d.ts', 'testrahmen.css', 'pruefen.mjs', 'pruefen.d.mts', 'LIESMICH.md'];
+
+/**
+ * The stand testrahmen.js names in its second line (written by Testumgebung's bundler, covered by its
+ * hash): the stamp must name the same, so an edited stamp does not turn a trial copy into a clean one.
+ */
+function standImBuendel(ordner) {
+  let text;
+  try {
+    text = readFileSync(join(ordner, 'testrahmen.js'), 'utf8');
+  } catch {
+    return { fehlt: true };
+  }
+  const kopf = text.split(/\r?\n/, 3).join('\n');
+  return { stand: /^\/\/ there and copy it again\. Stand (\S+)\. Checked by pruefen\.mjs/m.exec(kopf)?.[1] };
+}
+
+const entwurf = (stand) => typeof stand !== 'string' || stand.includes('+entwurf');
 
 /** The deviations from testrahmen.json, in German; empty when the copy is unchanged. */
 export function pruefeKopie(ordner = hier) {
@@ -22,9 +39,14 @@ export function pruefeKopie(ordner = hier) {
   }
   const dateien = stempel && typeof stempel.dateien === 'object' && stempel.dateien !== null ? stempel.dateien : {};
   const fehler = [];
-  // A trial copy (`--entwurf`) holds code that is in no commit of Testumgebung: never in an app.
-  if (typeof stempel?.stand !== 'string' || stempel.stand.includes('+entwurf')) {
-    fehler.push(`Die Kopie ist ein Entwurf (Stand ${String(stempel?.stand)}), nicht aus einem Commit von Testumgebung. Bitte aus einem committeten Stand neu kopieren.`);
+  // A trial copy (`--entwurf`) holds code that is in no commit of Testumgebung: never in an app. The
+  // bundle says so itself; a missing or unreadable header counts as a draft.
+  const buendel = standImBuendel(ordner);
+  if (entwurf(stempel?.stand) || (!buendel.fehlt && entwurf(buendel.stand))) {
+    const stand = entwurf(stempel?.stand) ? stempel?.stand : buendel.stand;
+    fehler.push(`Die Kopie ist ein Entwurf (Stand ${String(stand)}), nicht aus einem Commit von Testumgebung. Bitte aus einem committeten Stand neu kopieren.`);
+  } else if (!buendel.fehlt && buendel.stand !== stempel.stand) {
+    fehler.push(`testrahmen.json nennt den Stand ${stempel.stand}, testrahmen.js aber ${buendel.stand}. Bitte in Testumgebung neu kopieren.`);
   }
   for (const name of PFLICHT) if (!Object.prototype.hasOwnProperty.call(dateien, name)) fehler.push(`testrahmen.json nennt ${name} nicht.`);
   for (const [name, soll] of Object.entries(dateien)) {

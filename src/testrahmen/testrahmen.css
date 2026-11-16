@@ -84,7 +84,7 @@
   outline-offset: 2px;
 }
 
-.tr-feld button:disabled { opacity: 0.6; cursor: default; }
+.tr-feld button:disabled, .tr-feld button[aria-disabled="true"] { opacity: 0.6; cursor: default; }
 .tr-feld .tr-haupt { background: var(--tr-knopf); border-color: var(--tr-knopf); color: var(--tr-knopf-text); }
 
 .tr-kopf { border-bottom: 1px solid var(--tr-linie); padding-bottom: 8px; }
@@ -146,3 +146,5 @@
 @media (prefers-reduced-motion: reduce) {
   .tr-huelle * { scroll-behavior: auto; }
 }
+
+.tr-feld code, .tr-feld a { overflow-wrap: break-word; }

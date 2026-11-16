@@ -376,7 +376,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 erfolgreich umgesetzt hat, setzt du ihn hier auch um“. The Fragebogen had it on `main` (PR
 Fragebogen#18) and sent nine lessons. Done:
 
-- The copy of `Testumgebung` `607eeea` in `src/testrahmen/`, never edited, checked by hash
+- The copy of `Testumgebung` `1037e8e` (first `607eeea`, renewed the same night after its quality rounds 3 and 4) in `src/testrahmen/`, never edited, checked by hash
   (`tests/static/testrahmen.test.ts`).
 - `src/testArea.tsx` starts it in mode `testbereich` only (static import, because the dynamic one
   hung). Every other build resolves it to a stub, so the live file carries nothing of it
