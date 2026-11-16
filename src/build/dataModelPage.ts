@@ -434,7 +434,7 @@ export const FUNCTIONS: { layer: string; signature: string; purpose: string }[] 
     layer: 'logic',
     signature: 'differingResults(parts): { label; values }[]',
     purpose:
-      'Bei gleichem Kopf: Pflichtangaben (fehlende Teile, Hinweise, Werte) und Rechenregeln, die sich zwischen den Rechnungs-XML unterscheiden; nur ohne Unterschied gilt „dieselbe Rechnung“ (F27)',
+      'Bei gleichem Kopf: Pflichtangaben (fehlende Teile, Hinweise, Werte) und Rechenregeln, die sich zwischen den Rechnungs-XML unterscheiden — nach Wert und in beliebiger Reihenfolge, bei den Regeln nur Ergebnisse außer „passt“; nur ohne Unterschied gilt „dieselbe Rechnung“ (F27). Stimmen die Kurztexte überein, zeigt es die abweichenden Positionen, Aufschlüsselungen und Regeln',
   },
   {
     layer: 'logic',
@@ -443,13 +443,14 @@ export const FUNCTIONS: { layer: string; signature: string; purpose: string }[] 
   },
   {
     layer: 'logic',
-    signature: 'scanProlog(text) / looksLikeXml(bytes)',
-    purpose: 'XML am Inhalt erkennen, DOCTYPE finden',
+    signature: 'scanProlog(text) / looksLikeXml(bytes) / looksLikeHtml(bytes)',
+    purpose:
+      'XML am Inhalt erkennen, DOCTYPE finden; eine Webseite (Wurzelelement html) ist kein XML, das das Tool liest',
   },
   {
     layer: 'logic',
-    signature: 'parseDecimal / decimalEquals / compareDecimal / formatAmount',
-    purpose: 'Genaue Dezimalzahlen auf BigInt',
+    signature: 'parseDecimal / decimalEquals / compareDecimal / formatAmount / germanNumber',
+    purpose: 'Genaue Dezimalzahlen auf BigInt; Satz und Menge deutsch nach ihrem Wert',
   },
   {
     layer: 'logic',
@@ -460,7 +461,7 @@ export const FUNCTIONS: { layer: string; signature: string; purpose: string }[] 
     layer: 'logic',
     signature: 'checkRules(model, { ownRules, extended, syntax }): RulesResult',
     purpose:
-      'Rechenregeln der EN 16931 (BR-CO-10 bis -17, Aufschlüsselung je Kategorie und Satz) wie im CEN-Schematron der Syntax (RULE_FORMS: UBL oder CII — Vergleich, Toleranz, gerundete Teilsummen, BR-CO-15-Alternative, Ids von L und M); für Factur-X EXTENDED die Regeln von FeRD (BR-FXEXT-…, checkExtendedRules) und BR-CO-14; ZUGFeRD 2.0 EXTENDED nur BR-CO-14',
+      'Rechenregeln der EN 16931 (BR-CO-10 bis -17, Aufschlüsselung je Kategorie und Satz) wie im CEN-Schematron der Syntax (RULE_FORMS: UBL oder CII — Vergleich, Toleranz, gerundete Teilsummen, BR-CO-15-Alternative und genau ein BT-110, Ids von L und M); für Factur-X EXTENDED die Regeln von FeRD (BR-FXEXT-…, checkExtendedRules) und BR-CO-14; ZUGFeRD 2.0 EXTENDED nur BR-CO-14',
   },
   {
     layer: 'logic',
@@ -476,7 +477,8 @@ export const FUNCTIONS: { layer: string; signature: string; purpose: string }[] 
   {
     layer: 'logic',
     signature: 'displayValue(bt, value, currency): string',
-    purpose: 'Datum, Betrag, Satz, Kategorie, Einheit deutsch anzeigen',
+    purpose:
+      'Datum, Betrag, Satz, Kategorie, Einheit deutsch anzeigen; Zahlen nach ihrem Wert („7.00“ wie „7“)',
   },
 ];
 
