@@ -134,6 +134,26 @@ describe('FeRD rules for Factur-X EXTENDED (F29)', () => {
       label: 'Summe der Logistikkosten (BT-X-272)',
       value: '15,00 EUR',
     });
+    // the sums of a breakdown are named apart from the document totals (audit R3-U-07)
+    const s08 = result.results.find((r) => r.id === 'BR-FXEXT-S08b');
+    expect(s08?.values.slice(0, 4).map((v) => v.label)).toEqual([
+      'Summe der Positionen mit diesem Satz (BT-131, ohne Gruppen- und Infozeilen)',
+      'Summe der Zuschläge auf Dokumentebene mit diesem Satz (BT-99)',
+      'Summe der Logistikkosten mit diesem Satz (BT-X-272)',
+      'Summe der Nachlässe auf Dokumentebene mit diesem Satz (BT-92)',
+    ]);
+    const co10 = result.results.find((r) => r.id === 'BR-FXEXT-CO-10');
+    expect(co10?.values[0]?.label).toBe(TEXTS.ruleLineSumDetail);
+    const notTaxable = checkRules(
+      model(
+        {},
+        { 'BG-23': [{ 'BT-116': '0.00', 'BT-117': '0.00', 'BT-118': 'O', 'BT-119': '0' }] },
+      ),
+      { ownRules: true, extended: EXT },
+    ).results.find((r) => r.id === 'BR-FXEXT-O-08b');
+    expect(notTaxable?.values[0]?.label).toBe(
+      'Summe der Positionen dieser Kategorie (BT-131, ohne Gruppen- und Infozeilen)',
+    );
     // without the extension amounts (ZUGFeRD 2.0 EXTENDED) only BR-CO-14, as before
     const zf20 = checkRules(model(), { ownRules: true });
     expect(zf20.results.map((r) => r.id)).toEqual(['BR-CO-14']);

@@ -1,5 +1,5 @@
 // GENERATED from Testumgebung (testrahmen/) by `npm run rahmen` — do not edit here: change it
-// there and copy it again. Stand 2645a15. Checked by pruefen.mjs against testrahmen.json.
+// there and copy it again. Stand 61c19c6. Checked by pruefen.mjs against testrahmen.json.
 // Test reports without free text (Tobias 2026-11-15, docs/testbericht.md). Pure and import-free:
 // the build puts it into every script ahead of logik.ts, which answers the routes
 // (`POST /_zugang/bericht`, `/_zugang/berichte`).
@@ -721,7 +721,23 @@ function leaveTest(run         , id        , now        )          {
  * on — a page closed for good then loses only the time since.
  */
 function checkpoint(run         , id        , now        )          {
-  return run.entries[id]?.openedAt === undefined ? run : openTest(leaveTest(run, id, now), id, now);
+  const entry = run.entries[id];
+  if (entry?.openedAt === undefined) return run;
+  const left = leaveTest(run, id, now);
+  const stored = left.entries[id]            ;
+  // The clock goes on from the whole seconds stored: the part of a second is not lost.
+  const rest = Math.max(0, entry.seconds + Math.max(0, (now - entry.openedAt) / 1000) - stored.seconds);
+  return withEntry(left, id, { ...stored, openedAt: now - rest * 1000 });
+}
+
+/**
+ * What another tab's stored copy of a test holds beyond this tab's running clock, in seconds
+ * (negative: this tab measured more). Counted up to the 24 h cap, all a store can hold: two tabs at
+ * the cap are never ahead of each other, so neither keeps storing its clock.
+ */
+function storedBeyond(own          , theirs                      , now        )         {
+  const running = own.openedAt === undefined ? 0 : Math.max(0, (now - own.openedAt) / 1000);
+  return (theirs?.seconds ?? 0) - Math.min(MAX_SECONDS, own.seconds + running);
 }
 
 /**
@@ -969,6 +985,10 @@ function decodeRun(raw         )          {
 // markup has no inline script and no inline style (the apps' CSP forbids both), and every control
 // names its action in `data-aktion` for the page's one event listener (seite.ts).
 
+/** What the page says while the browser keeps nothing. */
+const UNSAVED_NOTICE =
+  'Dieser Browser speichert die Ergebnisse nicht (z. B. ein privates Fenster oder gesperrter Speicher). Sie gehen verloren, wenn die Seite neu lädt oder schließt: bitte vorher „Bericht senden“.';
+
 /** A question the page asks before it acts. */
                
                         
@@ -1094,12 +1114,12 @@ function header(state           , info          )         {
     `<a class="tr-einladen"${attrs({ href: info.inviteHref })}>Tester einladen</a>`,
     '</div>',
     `<p class="tr-stand">${esc(summary)}</p>`,
-    ...info.problems.map((problem) => `<p class="tr-meldung tr-fehler" role="alert">${esc(problem)}</p>`),
-    state.unsaved
-      ? '<p class="tr-meldung tr-fehler" role="alert">Dieser Browser speichert die Ergebnisse nicht (z. B. ein privates Fenster oder gesperrter Speicher). Sie gehen verloren, wenn die Seite neu lädt oder schließt: bitte vorher „Bericht senden“.</p>'
-      : '',
+    // No live roles here: the panel is drawn anew on every change, and a live region announces only
+    // what changes while it stands. The page speaks through one region of its own (seite.ts).
+    ...info.problems.map((problem) => `<p class="tr-meldung tr-fehler">${esc(problem)}</p>`),
+    state.unsaved ? `<p class="tr-meldung tr-fehler">${esc(UNSAVED_NOTICE)}</p>` : '',
     state.message
-      ? `<p class="tr-meldung tr-${state.message.kind}" role="status">${esc(state.message.text)}</p>`
+      ? `<p class="tr-meldung tr-${state.message.kind}" data-meldung="">${esc(state.message.text)}</p>`
       : '',
     '</header>',
   ].join('');
@@ -1436,16 +1456,40 @@ export function starteTestrahmen(ziel             , anbindung           , option
   const feld = doc.createElement('aside');
   feld.className = 'tr-feld';
   feld.setAttribute('aria-label', 'Testbereich');
-  huelle.append(reiter, appBehaelter, feld);
+  // The one live region: it stays while the panel is drawn anew, so a screen reader announces
+  // each new message (a region inserted together with its text is often not read).
+  const ansage = doc.createElement('div');
+  ansage.className = 'tr-ansage';
+  ansage.setAttribute('role', 'status');
+  ansage.setAttribute('aria-live', 'polite');
+  huelle.append(reiter, appBehaelter, feld, ansage);
   ziel.append(huelle);
+  let ansageTimer                                           ;
+  let ansageText = '';
+  /**
+   * Says `text` through the live region; emptied first, so the same text is said again. A text still
+   * waiting is said with it (a message and the storage notice of the same change), not dropped.
+   */
+  const announce = (text        ) => {
+    ansage.textContent = '';
+    if (ansageTimer !== undefined) win.clearTimeout(ansageTimer);
+    ansageText = ansageText === '' || ansageText.includes(text) ? (ansageText || text) : `${ansageText} ${text}`;
+    ansageTimer = win.setTimeout(() => {
+      ansage.textContent = ansageText;
+      ansageText = '';
+      ansageTimer = undefined;
+    }, 60);
+  };
 
-  const save = () => {
+  /** `open`: the test to store as open; a tab that only passes its clock on keeps the stored one. */
+  const save = (open = state.open) => {
     if (!store) return;
     try {
-      store.setItem(key, JSON.stringify({ run: state.run, open: state.open, hideDone: state.hideDone }));
+      store.setItem(key, JSON.stringify({ run: state.run, open, hideDone: state.hideDone }));
       if (state.unsaved) state = { ...state, unsaved: false };
     } catch {
       // A full or blocked storage: the page goes on, the results stay for this visit, and it says so.
+      if (!state.unsaved) announce(UNSAVED_NOTICE);
       state = { ...state, unsaved: true };
     }
   };
@@ -1465,11 +1509,12 @@ export function starteTestrahmen(ziel             , anbindung           , option
     const target = focus ?? active;
     const control = target ? (feld.querySelector(`[data-fokus="${target}"]`)                      ) : null;
     control?.focus({ preventScroll: true });
-    const shown = reveal === 'frage' ? feld.querySelector('.tr-frage') : reveal === 'meldung' ? feld.querySelector('.tr-kopf [role="status"]') : null;
+    const shown = reveal === 'frage' ? feld.querySelector('.tr-frage') : reveal === 'meldung' ? feld.querySelector('.tr-kopf [data-meldung]') : null;
     if (reveal) (shown ?? control)?.scrollIntoView?.({ block: 'nearest' });
   };
 
   const change = (next                    , focus         , top = false) => {
+    if (next.message !== undefined) announce(next.message.text);
     const reveal = next.question !== undefined ? 'frage' : next.message !== undefined ? 'meldung' : focus !== undefined && !top ? 'bedienung' : undefined;
     state = { ...state, ...next };
     save();
@@ -1552,6 +1597,7 @@ export function starteTestrahmen(ziel             , anbindung           , option
     const stayed = doc.activeElement instanceof win.HTMLElement && doc.activeElement.dataset.fokus === 'frage-senden';
     if (stayed) change({ sending: false, message }, 'frage-senden');
     else {
+      announce(message.text);
       state = { ...state, sending: false, message };
       save();
       render();
@@ -1643,7 +1689,7 @@ export function starteTestrahmen(ziel             , anbindung           , option
       const own = state.run.entries[state.open];
       const theirs = saved.run.entries[state.open];
       if (own?.openedAt !== undefined && theirs?.result === undefined) {
-        const extra = (theirs?.seconds ?? 0) - (own.seconds + (now() - own.openedAt) / 1000);
+        const extra = storedBeyond(own, theirs, now());
         run = { entries: { ...run.entries, [state.open]: extra > 0 ? { ...own, openedAt: own.openedAt - extra * 1000 } : own } };
         // This tab measured clearly more than the store holds (two windows side by side, neither
         // hidden): store it, so a result given in the other tab carries it. Above the 1 s the stored
@@ -1654,7 +1700,7 @@ export function starteTestrahmen(ziel             , anbindung           , option
     state = { ...state, run, hideDone: saved.hideDone };
     if (ahead && state.open !== undefined) {
       state = { ...state, run: checkpoint(state.run, state.open, now()) };
-      save();
+      save(saved.open);
     }
   };
   const onStorage = (event              ) => {
@@ -1695,10 +1741,14 @@ export function starteTestrahmen(ziel             , anbindung           , option
 
   save();
   render();
+  // What is wrong from the start is said once, not on every new drawing of the panel.
+  const atStart = [...info.problems, ...(state.unsaved ? [UNSAVED_NOTICE] : [])];
+  if (atStart.length > 0) announce(atStart.join(' '));
   return {
     appBehaelter,
     beenden() {
       win.clearInterval(timer);
+      if (ansageTimer !== undefined) win.clearTimeout(ansageTimer);
       huelle.removeEventListener('click', onClick);
       feld.removeEventListener('change', onChange);
       feld.removeEventListener('keydown', onKey);

@@ -132,7 +132,7 @@ describe('XML files', () => {
     expect(doctype.analysis.problem?.kind).toBe('xmlDoctype');
     const broken = await check('b.xml', encode('<?xml version="1.0"?>\n<a>\n<b></a>'));
     expect(broken.verdict.headline).toBe('Die XML-Datei ist fehlerhaft');
-    expect(broken.verdict.explanation.join(' ')).toMatch(/Rn\. 6a/);
+    expect(broken.verdict.explanation.join(' ')).toMatch(/Rn\.\s6a/);
     expect(broken.verdict.explanation.join(' ')).toMatch(/Technische Meldung \(Zeile \d+\):/);
     // G-10: the German sentence first (F24), the engine's message last
     expect(broken.verdict.explanation[0]).toBe(TEXTS.formatError);
@@ -250,7 +250,7 @@ describe('PDF files', () => {
       expect(beside.verdict.explanation.join(' ')).not.toContain('agb.xml');
       const alone = await check('r.pdf', miniPdf({ attachments: [agb] }));
       expect(alone.verdict.headline).toBe('Keine E-Rechnung: PDF ohne Rechnungsdaten');
-      expect(alone.verdict.explanation.join(' ')).not.toContain('Rn. 6a');
+      expect(alone.verdict.explanation.join(' ')).not.toMatch(/Rn\.\s6a/);
     }
     // an XML with a DOCTYPE html but an invoice root is still not read, and named
     const hidden = `<!DOCTYPE html>${officialText(XR_UBL).replace(/^<\?xml[^>]*\?>/, '')}`;
@@ -258,11 +258,50 @@ describe('PDF files', () => {
     expect(analysis.others).toEqual([{ origin: 'x.xml', kind: 'doctypeXml' }]);
   });
 
+  // Audit R3-L-05: a logo as SVG beside the invoice is „kein XML“, also with the usual DOCTYPE of
+  // SVG 1.1 — never „nicht gelesen“, which made a sound e-invoice yellow
+  it('lists an SVG attachment as no XML, with or without a plain DOCTYPE', async () => {
+    const invoice = xml('factur-x.xml', officialText('kosit/paare/01.02a-INVOICE_uncefact.xml'));
+    const svg11 =
+      '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">';
+    const logo = (text: string) => ({
+      name: 'logo.svg',
+      bytes: encode(text),
+      mime: 'image/svg+xml',
+    });
+    const alone = await check('r.pdf', miniPdf({ attachments: [invoice] }));
+    expect(alone.verdict.tone).toBe('ok');
+    for (const picture of [
+      `<?xml version="1.0"?>${svg11}<svg xmlns="http://www.w3.org/2000/svg"/>`,
+      '<svg xmlns="http://www.w3.org/2000/svg"><circle r="1"/></svg>',
+    ]) {
+      const { analysis, verdict } = await check(
+        'r.pdf',
+        miniPdf({ attachments: [invoice, logo(picture)] }),
+      );
+      expect(analysis.others).toEqual([{ origin: 'logo.svg', kind: 'notXml' }]);
+      expect(verdict.tone).toBe('ok');
+      expect(verdict.headline).toBe(alone.verdict.headline);
+    }
+    // with an internal subset it is not read, as before
+    const subset = `<!DOCTYPE svg [<!ENTITY ns "x">]><svg xmlns="http://www.w3.org/2000/svg"/>`;
+    const { analysis, verdict } = await check(
+      'r.pdf',
+      miniPdf({ attachments: [invoice, logo(subset)] }),
+    );
+    expect(analysis.others).toEqual([{ origin: 'logo.svg', kind: 'doctypeXml' }]);
+    expect(verdict.tone).toBe('warn');
+    // an invoice root behind the DOCTYPE of SVG is still not read, and named
+    const hidden = `${svg11}${officialText(XR_UBL).replace(/^<\?xml[^>]*\?>/, '')}`;
+    const behind = await check('r.pdf', miniPdf({ attachments: [xml('x.xml', hidden)] }));
+    expect(behind.analysis.others).toEqual([{ origin: 'x.xml', kind: 'doctypeXml' }]);
+  });
+
   it('reports a broken XML attachment as a format error', async () => {
     const pdf = miniPdf({ attachments: [xml('factur-x.xml', '<?xml version="1.0"?><a><b></a>')] });
     const { verdict } = await check('r.pdf', pdf);
     expect(verdict.headline).toBe('PDF mit fehlerhafter XML');
-    expect(verdict.explanation.join(' ')).toContain('Rn. 6a');
+    expect(verdict.explanation.join(' ')).toMatch(/Rn\.\s6a/);
   });
 
   it('sees the same invoice in UBL and CII as one invoice embedded twice', async () => {
@@ -347,7 +386,7 @@ describe('PDF files', () => {
     expect(verdict.tone).toBe('warn');
     expect(verdict.headline).toBe('PDF nicht vollständig geprüft');
     expect(verdict.explanation.join(' ')).toContain('Dokumenttyp-Angabe');
-    expect(verdict.explanation.join(' ')).not.toContain('Rn. 6a');
+    expect(verdict.explanation.join(' ')).not.toMatch(/Rn\.\s6a/);
   });
 
   // Audit QL-06: what the tool did not read could be a second invoice XML (F27)
@@ -408,7 +447,7 @@ describe('PDF files', () => {
     expect(analysis.others).toEqual([{ origin: 'a.xml', kind: 'tooLargeXml' }]);
     expect(verdict.headline).toBe('PDF nicht vollständig geprüft');
     expect(verdict.explanation.join(' ')).toContain('größer als 20 MB');
-    expect(verdict.explanation.join(' ')).not.toContain('Rn. 6a');
+    expect(verdict.explanation.join(' ')).not.toMatch(/Rn\.\s6a/);
   });
 
   it('does not say "no e-invoice" when attachments beyond the first 50 were not read', async () => {
@@ -594,6 +633,124 @@ describe('two invoice XML of the same invoice, written another way', () => {
     expect(first?.line).toContain(
       'Rechnerische Prüfung (passt / mögliche Auffälligkeit: BR-CO-11, BR-CO-13)',
     );
+  });
+
+  /** In whichever order the parts came: [the value of a.xml, the value of b.xml] */
+  const inOrder = (analysis: { invoices: { origin: string }[] }, a: string, b: string) =>
+    analysis.invoices[0]?.origin === 'a.xml' ? [a, b] : [b, a];
+  // the other session may write the space before "%" as a no-break space (audit R3-U-10)
+  const plain = (text: string) => text.replace(/\u00a0/g, ' ');
+
+  // Audit R3-U-03: one differing rate, shown by three Pflichtangaben, is named once
+  it('names one differing rate once, with every row that shows it', async () => {
+    const other = replaced(
+      cii,
+      /(<ram:BasisAmount>314.86<\/ram:BasisAmount>\s*<ram:CategoryCode>S<\/ram:CategoryCode>\s*<ram:RateApplicablePercent>)7(<\/ram:RateApplicablePercent>)/,
+      '$119$2',
+    );
+    const rows =
+      '„Entgelt, aufgeschlüsselt nach Steuersätzen und Steuerbefreiungen“, „Anzuwendender ' +
+      'Steuersatz“ und „Auf das Entgelt entfallender Steuerbetrag“';
+    for (const { analysis, line } of await both(cii, other)) {
+      const [a, b] = inOrder(analysis, '7', '19');
+      const category = 'Umsatzsteuerkategorie: S – steuerpflichtig';
+      const pair = `${category} · Umsatzsteuersatz: ${a} % / ${category} · Umsatzsteuersatz: ${b} %`;
+      expect(plain(line)).toMatch(/^Unterschiedlich: „Entgelt, /);
+      expect(plain(line)).toContain(`${rows} (${pair}); Rechnerische Prüfung (`);
+      expect(plain(line).split('Umsatzsteuersatz: 19')).toHaveLength(2);
+      const differing = comparisonRows(analysis.invoices).filter((row) => row.differs);
+      expect(differing.map((row) => row.label)).toEqual([rows, TEXTS.differingRules]);
+    }
+  });
+
+  // Audit R3-U-04: the amount of a row with its name, no „vorhanden“ that both parts share
+  it('names the values of a row with their labels, the status only where it differs', async () => {
+    const other = replaced(
+      cii,
+      '<ram:TaxBasisTotalAmount>314.86<',
+      '<ram:TaxBasisTotalAmount>314.96<',
+    );
+    for (const { analysis, line } of await both(cii, other)) {
+      const [a, b] = inOrder(analysis, '314,86', '314,96');
+      expect(line).toContain(
+        'Entgelt, aufgeschlüsselt nach Steuersätzen und Steuerbefreiungen (Gesamtbetrag ohne ' +
+          `Umsatzsteuer: ${a} EUR / Gesamtbetrag ohne Umsatzsteuer: ${b} EUR)`,
+      );
+      expect(line).not.toContain('vorhanden');
+    }
+  });
+
+  // Audit R3-L-03: a doubled space is no other name; another case stays apart (question G-22)
+  it('sees a name with a doubled space as the same, in another case as different', async () => {
+    const name = '<ram:Name>[Seller name]</ram:Name>';
+    expect(cii.split(name)).toHaveLength(2);
+    const spaced = replaced(cii, name, '<ram:Name>[Seller  name]</ram:Name>');
+    for (const { verdict } of await both(cii, spaced)) {
+      expect(verdict.comparison).toEqual({ same: true, differing: [] });
+    }
+    const upper = replaced(cii, name, '<ram:Name>[SELLER NAME]</ram:Name>');
+    for (const { verdict, line } of await both(cii, upper)) {
+      expect(verdict.comparison).toEqual({ same: false, differing: [] });
+      expect(line).toContain('Name des Lieferanten: [SELLER NAME]');
+    }
+  });
+
+  // Audit R3-L-04: the same values in another order — 03.06a swaps postcode and city in UBL
+  it('names the labels where two parts hold the same values in another order', async () => {
+    const ubl = officialText('kosit/paare/03.06a-INVOICE_ubl.xml');
+    const uncefact = officialText('kosit/paare/03.06a-INVOICE_uncefact.xml');
+    const { analysis } = await check(
+      'r.pdf',
+      miniPdf({ attachments: [xml('a.xml', ubl), xml('b.xml', uncefact)] }),
+    );
+    expect(differingLine(analysis.invoices, [])).toBe(
+      'Unterschiedlich: „Anschrift des leistenden Unternehmers“ und „Anschrift des ' +
+        'Leistungsempfängers“ (Straße: Teststraße, Postleitzahl: Testhausen, Ort: 12345, Land: DE / ' +
+        'Straße: Teststraße, Postleitzahl: 12345, Ort: Testhausen, Land: DE).',
+    );
+  });
+
+  // Audit R3-L-04: a total that is no number reads apart from the same total as a number
+  it('marks a total that is no number in the line and the table', async () => {
+    const comma = replaced(cii, '<ram:GrandTotalAmount>336.9<', '<ram:GrandTotalAmount>336,90<');
+    const { analysis, verdict } = await check(
+      'r.pdf',
+      miniPdf({ attachments: [xml('a.xml', cii), xml('b.xml', comma)] }),
+    );
+    expect(verdict.comparison).toEqual({ same: false, differing: ['BT-112'] });
+    expect(differingLine(analysis.invoices, ['BT-112'])).toBe(
+      'Unterschiedlich: Gesamtbetrag mit Umsatzsteuer (336,90 / 336,90 – keine Zahl).',
+    );
+  });
+
+  // Audit R3-T-04: a difference only in a hint, or only in the status of a rule, is F27 too
+  it.each([
+    [
+      'a hint in one XML only (a note „Gutschrift.“)',
+      (t: string) =>
+        replaced(
+          t,
+          '<ram:Content>Es gelten unsere Allgem.',
+          '<ram:Content>Gutschrift. Es gelten unsere Allgem.',
+        ),
+      (t: string) => t,
+    ],
+    [
+      'a rule „auffällig“ in one, „nicht prüfbar“ in the other (BT-106 1.00 against none)',
+      (t: string) =>
+        replaced(
+          t,
+          '<ram:LineTotalAmount>314.86</ram:LineTotalAmount>',
+          '<ram:LineTotalAmount>1.00</ram:LineTotalAmount>',
+        ),
+      (t: string) => replaced(t, '<ram:LineTotalAmount>314.86</ram:LineTotalAmount>', ''),
+    ],
+  ])('keeps apart %s', async (_, first, second) => {
+    for (const { verdict } of await both(first(cii), second(cii))) {
+      expect(verdict.comparison).toEqual({ same: false, differing: [] });
+      expect(verdict.headline).toBe(TEXTS.contradicting);
+      expect(verdict.tone).toBe('bad');
+    }
   });
 
   // Every KoSIT pair is one invoice in UBL and in CII. Apart stay only those whose files differ in

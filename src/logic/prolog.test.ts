@@ -1,4 +1,11 @@
-import { encodingByBom, looksLikeHtml, looksLikeXml, scanProlog, textOf } from './prolog';
+import {
+  encodingByBom,
+  looksLikeHtml,
+  looksLikeSvg,
+  looksLikeXml,
+  scanProlog,
+  textOf,
+} from './prolog';
 
 const bytes = (text: string) => new TextEncoder().encode(text);
 const BOM = String.fromCharCode(0xfeff);
@@ -75,6 +82,45 @@ describe('looksLikeHtml', () => {
       'Lieferschein',
     ]) {
       expect(looksLikeHtml(bytes(other)), other).toBe(false);
+    }
+  });
+});
+
+// Audit R3-L-05: an SVG picture is no XML the tool reads — by its root element and namespace, after a
+// document type declaration without an internal subset; never by the declaration's name
+describe('looksLikeSvg', () => {
+  const NS = 'xmlns="http://www.w3.org/2000/svg"';
+  const SVG11 =
+    '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">';
+
+  it('knows an SVG by its root svg in the SVG namespace, also after a plain DOCTYPE', () => {
+    for (const picture of [
+      `<svg ${NS}/>`,
+      `<?xml version="1.0" encoding="UTF-8"?>\n<!-- Logo -->\n<svg ${NS} width="10"><g/></svg>`,
+      `<?xml version="1.0"?>${SVG11}<svg ${NS}/>`,
+      `${SVG11}\n<!-- Logo -->\n<svg version="1.1" ${NS}\n  viewBox='0 0 10 10'><rect/></svg>`,
+      `<!DOCTYPE svg SYSTEM "svg11.dtd"><svg xmlns='http://www.w3.org/2000/svg'></svg>`,
+      // the declaration's name is not read: the root decides
+      `<!DOCTYPE logo SYSTEM "x.dtd"><svg ${NS}/>`,
+    ]) {
+      expect(looksLikeSvg(bytes(picture)), picture).toBe(true);
+    }
+  });
+
+  it('keeps an internal subset, another root, another namespace or a prefix', () => {
+    for (const other of [
+      `<!DOCTYPE svg [<!ENTITY ns "http://www.w3.org/2000/svg">]><svg ${NS}/>`,
+      `${SVG11.replace('>', ' [<!ENTITY x "y">]>')}<svg ${NS}/>`,
+      `${SVG11}<rsm:CrossIndustryInvoice xmlns:rsm="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100"/>`,
+      '<svg/>',
+      '<svg xmlns="urn:example"/>',
+      '<s:svg xmlns:s="http://www.w3.org/2000/svg"/>',
+      `<svgx ${NS}/>`,
+      `<svg ${NS}`,
+      '<html><body/></html>',
+      'Logo',
+    ]) {
+      expect(looksLikeSvg(bytes(other)), other).toBe(false);
     }
   });
 });

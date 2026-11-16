@@ -124,6 +124,47 @@ test('recognises an XML e-invoice, a hybrid PDF and a plain PDF without storing 
   expect(await sideEffects(page)).toEqual([]);
 });
 
+// Audit R3-U-09 (G-8): the same invoice in UBL and in CII — every place names both attachments,
+// and the technical rows in which they differ are shown per attachment
+test('names both attachments of the same data, and their syntax each', async ({ page }) => {
+  const problems = await openApp(page);
+  const xml = (name: string, path: string) => ({
+    name,
+    bytes: official(path),
+    mime: 'text/xml',
+    relationship: 'Alternative' as const,
+  });
+  const pdf = miniPdf({
+    text: 'Rechnung',
+    attachments: [
+      xml('factur-x.xml', 'kosit/paare/01.01a-INVOICE_uncefact.xml'),
+      xml('ubl.xml', 'kosit/paare/01.01a-INVOICE_ubl.xml'),
+    ],
+  });
+  await upload(page, 'beide.pdf', pdf, 'application/pdf');
+  await expect(page.getByTestId('verdict')).toContainText(
+    'Das PDF enthält Rechnungsdaten als XML (Anhänge „factur-x.xml“ und „ubl.xml“).',
+  );
+  const table = page.getByRole('table', {
+    name: 'Rechnungsdaten (gleich in „factur-x.xml“ und „ubl.xml“)',
+  });
+  await expect(table.getByRole('row', { name: /^Anhänge/ })).toContainText(
+    'factur-x.xml und ubl.xml',
+  );
+  await page.getByTestId('technical-details').locator('summary').click();
+  const technical = page.getByTestId('technical-details');
+  await expect(
+    technical.getByRole('row', { name: /^Syntax, Anhang „factur-x\.xml“/ }),
+  ).toContainText('UN/CEFACT CII');
+  await expect(technical.getByRole('row', { name: /^Syntax, Anhang „ubl\.xml“/ })).toContainText(
+    'UBL 2.1',
+  );
+  await expect(technical.getByRole('row', { name: /^Spezifikation/ })).toHaveCount(1);
+
+  expect(problems).toEqual([]);
+  expect(await sideEffects(page)).toEqual([]);
+});
+
 test('names MINIMUM, contradicting invoice data and a protected PDF', async ({ page }) => {
   const problems = await openApp(page);
   const xml = (name: string, text: string) => ({ name, bytes: encode(text), mime: 'text/xml' });

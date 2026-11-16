@@ -14,7 +14,7 @@ import type {
 } from '../logic/analysis';
 import { coreValues, first, normalize } from '../logic/model';
 import { profileOf } from '../logic/profiles';
-import { looksLikeHtml, looksLikeXml } from '../logic/prolog';
+import { looksLikeHtml, looksLikeSvg, looksLikeXml } from '../logic/prolog';
 import { syntaxOf } from '../logic/syntax';
 import type { SyntaxEntry } from '../logic/syntax';
 import { TEXTS } from '../logic/texts';
@@ -207,8 +207,13 @@ export async function analyzeFile(
     const invoices: InvoicePart[] = [];
     const others: OtherPart[] = [];
     for (const attachment of read.attachments) {
-      // a web page (e.g. terms as HTML) is no XML, never "broken XML" (audit R2-L-06)
-      if (!looksLikeXml(attachment.bytes) || looksLikeHtml(attachment.bytes)) {
+      // a web page (e.g. terms as HTML) is no XML, never "broken XML" (audit R2-L-06); nor is an
+      // SVG picture such as a logo, also with its DOCTYPE, never "nicht gelesen" (audit R3-L-05)
+      if (
+        !looksLikeXml(attachment.bytes) ||
+        looksLikeHtml(attachment.bytes) ||
+        looksLikeSvg(attachment.bytes)
+      ) {
         others.push({ origin: attachment.name, kind: 'notXml' });
         continue;
       }

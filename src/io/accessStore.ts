@@ -14,6 +14,20 @@ export function loadAccess(): string | null {
   }
 }
 
+/**
+ * Whether this browser can keep the answer at all (audit R3-U-12): with blocked site data the
+ * getter of localStorage throws, and „Antwort für die Zukunft merken“ would do nothing. Only the
+ * getter is touched, no Storage method and no probe write, so nothing is read, written or removed.
+ * A private window passes: there the answer is kept for the session.
+ */
+export function canRemember(): boolean {
+  try {
+    return Boolean(localStorage);
+  } catch {
+    return false;
+  }
+}
+
 export function saveAccess(token: string): void {
   try {
     localStorage.setItem(key(), token);

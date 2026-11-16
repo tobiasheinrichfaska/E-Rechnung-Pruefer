@@ -314,7 +314,10 @@ describe('the forms of the CEN Schematron per syntax (audit QL-03)', () => {
     };
     expect(both(parts, {}, 'BR-S-08')).toEqual({ ubl: ['passt'], cii: ['passt'] });
     const s08 = rules(parts, {}, CII).results.find((r) => r.id === 'BR-S-08');
-    expect(s08?.values).toContainEqual({ label: TEXTS.ruleLineSum, value: '150,01 EUR' });
+    expect(s08?.values).toContainEqual({
+      label: 'Summe der Positionen mit diesem Satz (BT-131)',
+      value: '150,01 EUR',
+    });
     expect(s08?.label).toBe(RULE_LABELS.BREAKDOWN);
   });
 
@@ -418,11 +421,14 @@ describe('the forms of the CEN Schematron per syntax (audit QL-03)', () => {
 });
 
 // Audit R2-T-02: every entry of RULE_FORMS.breakdown pinned by its behaviour. The expectations are
-// written out here, not read from RULE_FORMS, so a changed id, tolerance, rounding or condition fails
+// written out here, not read from RULE_FORMS, so a changed id, tolerance, rounding or condition, or
+// sums per rate instead of per category (and back), fails (audit R3-T-01)
 describe('the breakdown rule of every category, per syntax (audit R2-T-02)', () => {
   const RATE: Readonly<Record<string, string>> = { S: '19', L: '7', M: '7' };
   const rateOf = (category: string) => RATE[category] ?? '0';
-  const occurrence = (category: string, rate: string) => `Kategorie ${category}, ${rate} %`;
+  /** A second rate of the category, for probe 7 */
+  const SECOND: Readonly<Record<string, string>> = { S: '7', L: '3', M: '4' };
+  const occurrence = (category: string, rate: string) => `Kategorie ${category}, ${rate}\u00a0%`;
   /** Two positions of the category (100 + 50 or as given), a breakdown with this base */
   const of = (category: string, base: string, amounts = ['100.00', '50.00']) => ({
     spec: {
@@ -458,30 +464,53 @@ describe('the breakdown rule of every category, per syntax (audit R2-T-02)', () 
         at: occurrence(c, rate),
       };
     },
+    // 7: a position of 100 at the first rate and one of 50 at a second, one breakdown each — per
+    // rate the base of 100 fits its position, per category it misses the sum of both (150)
+    (c) => {
+      const [rate, second] = [rateOf(c), SECOND[c] ?? '5'];
+      return {
+        spec: {
+          'BG-20': [],
+          'BG-21': [],
+          'BG-23': [
+            { 'BT-116': '100.00', 'BT-117': '0', 'BT-118': c, 'BT-119': rate },
+            { 'BT-116': '50.00', 'BT-117': '0', 'BT-118': c, 'BT-119': second },
+          ],
+          'BG-25': [
+            ['100.00', rate],
+            ['50.00', second],
+          ].map(([amount = '', own = '']) => ({
+            'BT-131': amount,
+            'BG-30': [{ 'BT-151': c, 'BT-152': own }],
+          })),
+        },
+        at: occurrence(c, rate),
+      };
+    },
   ];
   const P = 'passt';
   const A = 'auffaellig';
   const TABLE: [string, string, string | null, string[]][] = [
     // UBL: S and L/M below 1, the others exactly; no part sum rounded; S needs a part of its rate
-    ['ubl-invoice', 'S', 'BR-S-08', [P, P, A, P, A, A]],
-    ['ubl-invoice', 'Z', 'BR-Z-08', [P, A, A, A, A, P]],
-    ['ubl-invoice', 'E', 'BR-E-08', [P, A, A, A, A, P]],
-    ['ubl-invoice', 'AE', 'BR-AE-08', [P, A, A, A, A, P]],
-    ['ubl-invoice', 'K', 'BR-IC-08', [P, A, A, A, A, P]],
-    ['ubl-invoice', 'G', 'BR-G-08', [P, A, A, A, A, P]],
-    ['ubl-invoice', 'O', 'BR-O-08', [P, A, A, A, A, P]],
-    ['ubl-invoice', 'L', 'BR-IG-08', [P, P, A, P, A, P]],
-    ['ubl-invoice', 'M', 'BR-IP-08', [P, P, A, P, A, P]],
+    ['ubl-invoice', 'S', 'BR-S-08', [P, P, A, P, A, A, P]],
+    ['ubl-invoice', 'Z', 'BR-Z-08', [P, A, A, A, A, P, A]],
+    ['ubl-invoice', 'E', 'BR-E-08', [P, A, A, A, A, P, A]],
+    ['ubl-invoice', 'AE', 'BR-AE-08', [P, A, A, A, A, P, A]],
+    ['ubl-invoice', 'K', 'BR-IC-08', [P, A, A, A, A, P, A]],
+    ['ubl-invoice', 'G', 'BR-G-08', [P, A, A, A, A, P, A]],
+    ['ubl-invoice', 'O', 'BR-O-08', [P, A, A, A, A, P, A]],
+    ['ubl-invoice', 'L', 'BR-IG-08', [P, P, A, P, A, P, P]],
+    ['ubl-invoice', 'M', 'BR-IP-08', [P, P, A, P, A, P, P]],
     // CII: S and O exactly, the others below 1; every part sum rounded; L and M never fail there
-    ['cii', 'S', 'BR-S-08', [P, A, A, P, A, P]],
-    ['cii', 'Z', 'BR-Z-08', [P, P, A, P, P, P]],
-    ['cii', 'E', 'BR-E-08', [P, P, A, P, P, P]],
-    ['cii', 'AE', 'BR-AE-08', [P, P, A, P, P, P]],
-    ['cii', 'K', 'BR-IC-08', [P, P, A, P, P, P]],
-    ['cii', 'G', 'BR-G-08', [P, P, A, P, P, P]],
-    ['cii', 'O', 'BR-O-08', [P, A, A, P, A, P]],
-    ['cii', 'L', null, [P, P, P, P, P, P]],
-    ['cii', 'M', null, [P, P, P, P, P, P]],
+    ['cii', 'S', 'BR-S-08', [P, A, A, P, A, P, P]],
+    ['cii', 'Z', 'BR-Z-08', [P, P, A, P, P, P, A]],
+    ['cii', 'E', 'BR-E-08', [P, P, A, P, P, P, A]],
+    ['cii', 'AE', 'BR-AE-08', [P, P, A, P, P, P, A]],
+    ['cii', 'K', 'BR-IC-08', [P, P, A, P, P, P, A]],
+    ['cii', 'G', 'BR-G-08', [P, P, A, P, P, P, A]],
+    ['cii', 'O', 'BR-O-08', [P, A, A, P, A, P, A]],
+    ['cii', 'L', null, [P, P, P, P, P, P, P]],
+    ['cii', 'M', null, [P, P, P, P, P, P, P]],
   ];
 
   it.each(TABLE)('%s, category %s: %s', (syntax, category, id, expected) => {
@@ -575,6 +604,12 @@ describe('BR-CO-15 without exactly one VAT total (audit R2-L-03)', () => {
       value: '2 – die Regel verlangt genau eine',
     });
     expect(co15(two, { syntax: 'cii' })?.status).toBe('auffaellig');
+    // with two the net amount is no expected gross amount: only the count says why (R3-U-02)
+    for (const syntax of ['ubl-invoice', 'cii'] as const) {
+      const values = co15(two, { syntax })?.values ?? [];
+      expect(values.map((v) => v.label)).not.toContain(TEXTS.ruleExpected);
+      expect(values.at(-1)?.label).toBe(TEXTS.ruleTaxTotals);
+    }
     // CII still accepts BT-112 = BT-109, and then names no count
     const net = co15(twice({ 'BT-112': '140.00', 'BT-115': '140.00' }), { syntax: 'cii' });
     expect(net?.status).toBe('passt');
@@ -583,6 +618,68 @@ describe('BR-CO-15 without exactly one VAT total (audit R2-L-03)', () => {
     for (const syntax of ['ubl-invoice', 'cii'] as const) {
       expect(co15(group('INVOICE', BASE) as InvoiceModel, { syntax })?.status).toBe('passt');
     }
+  });
+
+  it('expects the net amount in CII only where no BT-110 is given (R3-U-02)', () => {
+    const wrong = group('INVOICE', {
+      ...BASE,
+      'BG-22': [{ ...withoutVat, 'BT-112': '150.00', 'BT-115': '150.00' }],
+    }) as InvoiceModel;
+    const cii = co15(wrong, { syntax: 'cii' });
+    expect(cii?.status).toBe('auffaellig');
+    expect(cii?.values).toContainEqual({ label: TEXTS.ruleExpected, value: '140,00 EUR' });
+  });
+});
+
+// Audit R3-L-01: both CEN Schematrons count BT-110 in the invoice currency (BT-5) — `every
+// $Currency in <BT-5> satisfies …` holds over an empty BT-5, so they report only BR-05 there. The
+// tool checks neither BR-CO-14 nor BR-CO-15 without BT-5 and names the reason.
+describe('BR-CO-14 and BR-CO-15 without the invoice currency (audit R3-L-01)', () => {
+  const withoutCurrency = (spec: Spec = BASE) =>
+    group('INVOICE', Object.fromEntries(Object.entries(spec).filter(([key]) => key !== 'BT-5')));
+  const reason = { label: TEXTS.ruleCurrency, value: TEXTS.ruleMissing };
+
+  it.each(['ubl-invoice', 'ubl-creditnote', 'cii'] as const)(
+    'cannot check either in %s and says why',
+    (syntax) => {
+      const result = checkRules(withoutCurrency() as InvoiceModel, { syntax });
+      for (const id of ['BR-CO-14', 'BR-CO-15']) {
+        const rule = result.results.find((r) => r.id === id);
+        expect(rule?.status, id).toBe('nichtPruefbar');
+        expect(rule?.values.at(-1), id).toEqual(reason);
+        expect(
+          rule?.values.map((v) => v.label),
+          id,
+        ).not.toContain(TEXTS.ruleExpected);
+      }
+      expect(result.auffaellig).toEqual([]);
+      // the other rules are checked as before
+      expect(status(result, 'BR-CO-13')).toEqual(['passt']);
+    },
+  );
+
+  it('names no BT-110 it could not read without the currency, and no count', () => {
+    const base = BASE['BG-22'] as Spec[];
+    const withoutVat = Object.fromEntries(
+      Object.entries(base[0] as Spec).filter(([key]) => key !== 'BT-110'),
+    );
+    const model = withoutCurrency({ ...BASE, 'BG-22': [withoutVat] }) as InvoiceModel;
+    const co15 = checkRules(model, { syntax: 'ubl-invoice' }).results.find(
+      (r) => r.id === 'BR-CO-15',
+    );
+    expect(co15?.values).toEqual([
+      { label: 'Gesamtbetrag ohne Umsatzsteuer (BT-109)', value: '140,00' },
+      { label: 'Gesamtbetrag mit Umsatzsteuer (BT-112)', value: '166,60' },
+      reason,
+    ]);
+    // without a breakdown and without a BT-110 read there is nothing to check, in either syntax
+    const noBreakdown = withoutCurrency({ ...BASE, 'BG-23': [], 'BG-22': [withoutVat] });
+    expect(status(checkRules(noBreakdown as InvoiceModel, { syntax: 'cii' }), 'BR-CO-14')).toEqual(
+      [],
+    );
+    expect(
+      status(checkRules(noBreakdown as InvoiceModel, { syntax: 'ubl-invoice' }), 'BR-CO-14'),
+    ).toEqual([]);
   });
 });
 
@@ -595,10 +692,13 @@ describe('missing values and the names of the values (audit R2-L-07, R2-L-08)', 
     const withoutAmount = rules({
       'BG-25': [lines[0] ?? {}, { 'BG-30': [{ 'BT-151': 'S', 'BT-152': '19' }] }],
     });
-    for (const id of ['BR-CO-10', 'BR-S-08']) {
+    for (const [id, label] of [
+      ['BR-CO-10', TEXTS.ruleLineSum],
+      ['BR-S-08', 'Summe der Positionen mit diesem Satz (BT-131)'],
+    ] as const) {
       expect(find(withoutAmount, id)?.status).toBe('nichtPruefbar');
       expect(find(withoutAmount, id)?.values).toContainEqual({
-        label: TEXTS.ruleLineSum,
+        label,
         value: TEXTS.ruleMissing,
       });
     }
@@ -619,6 +719,34 @@ describe('missing values and the names of the values (audit R2-L-07, R2-L-08)', 
       label: TEXTS.ruleSumAllowances,
       value: TEXTS.ruleMissing,
     });
+  });
+
+  it('names the sums of a breakdown apart from the document totals (R3-U-07)', () => {
+    const result = rules({
+      'BG-23': [
+        { 'BT-116': '140.00', 'BT-117': '26.60', 'BT-118': 'S', 'BT-119': '19' },
+        { 'BT-116': '0.00', 'BT-117': '0.00', 'BT-118': 'E', 'BT-119': '0' },
+      ],
+    });
+    expect(find(result, 'BR-CO-10')?.values[0]?.label).toBe('Summe der Positionen (BT-131)');
+    expect(
+      find(result, 'BR-S-08')
+        ?.values.slice(0, 3)
+        .map((v) => v.label),
+    ).toEqual([
+      'Summe der Positionen mit diesem Satz (BT-131)',
+      'Summe der Zuschläge auf Dokumentebene mit diesem Satz (BT-99)',
+      'Summe der Nachlässe auf Dokumentebene mit diesem Satz (BT-92)',
+    ]);
+    expect(
+      find(result, 'BR-E-08')
+        ?.values.slice(0, 3)
+        .map((v) => v.label),
+    ).toEqual([
+      'Summe der Positionen dieser Kategorie (BT-131)',
+      'Summe der Zuschläge auf Dokumentebene dieser Kategorie (BT-99)',
+      'Summe der Nachlässe auf Dokumentebene dieser Kategorie (BT-92)',
+    ]);
   });
 
   it('names the second value of BR-CO-11 and BR-CO-12 as every other value', () => {

@@ -159,6 +159,12 @@ Steuerfragen: **F31** und **F32** in `docs/offene-fragen.md`.
   galt: „nichts gefunden“ ist ein gültiges Ergebnis.
 - **Testrahmen:** Probleme in der Kopie des Rahmens gingen als Wünsche an `Testumgebung`. Die Kopie
   wird hier nie geändert.
+- **Nach dem Zusammenführen** (Version 0.10.1, `b10009c`), in der Cloud-Sitzung beobachtet:
+  - mit den privaten Dateien: Typprüfung, Lint und Format grün, 587 Unit-Tests, E2E 168 bestanden und
+    9 übersprungen;
+  - ohne sie: 508 Unit-Tests bestanden und 4 übersprungen, E2E 147 bestanden und 30 übersprungen;
+  - der Lauf mit der erfundenen Kanzlei: 30 von 30;
+  - die Prüfung „Tests“ auf GitHub grün (PR #36).
 - **Rechteprüfung:** Ein Widerlegungs-Agent wollte Saxon von Maven Central laden und eine private
   FeRD-Datei kopieren. Beides wurde abgelehnt, und er hat es nicht wiederholt. Zwei Aussagen zum
   Schematron sind deshalb gelesen, nicht vom Validator bestätigt.
@@ -243,3 +249,79 @@ Steuerfragen: **F31** und **F32** in `docs/offene-fragen.md`.
   Meldung folgen (heute) oder dem strengen Test?
 - **G-20 (R2-L-01):** Zwei XML derselben Rechnung, von denen nur eine BT-113 = 0,00 nennt (amtliches
   Paar 01.20a), unterscheiden sich im Status der Zeile „Endrechnung“. Zählt das als Unterschied (F27)?
+
+## Runde 3 (16.11.2026)
+
+### Vorgehen
+
+- **Stand:** `b10009c`, Version 0.10.1.
+- **Ablauf wie in Runde 2:** vier Prüf-Agenten, vier Widerlegungs-Agenten, drei Behebungs-Agenten.
+- **Neu bei der Widerlegung:** Die Widerlegungs-Agenten haben ausdrücklich nach Unfall oder Manipulation
+  gewichtet. Ein Schutz gegen absichtliches Verändern des Repos wiegt weniger als einer gegen ein
+  Versehen.
+- **Testrahmen:** Die Kopie wurde auf `Testumgebung` `61c19c6` erneuert. Er bringt eine dauerhafte
+  Ansage-Region und den Kontrastmodus mit, und `pruefeKopie()` meldet fremde Dateien.
+
+### Ergebnis
+
+35 Befunde, **keiner „hoch“**, einer widerlegt (R3-S-06).
+
+| Bereich           | Befunde | bestätigt | teilweise | widerlegt |
+| ----------------- | ------- | --------- | --------- | --------- |
+| Logik (R3-L)      | 6       | 4         | 2         | 0         |
+| Sicherheit (R3-S) | 6       | 1         | 4         | 1         |
+| Bedienung (R3-U)  | 13      | 6         | 7         | 0         |
+| Tests/Doku (R3-T) | 10      | 5         | 5         | 0         |
+
+### Behoben
+
+- **Logik:**
+  - Ohne Rechnungswährung (BT-5) sind BR-CO-14 und BR-CO-15 „nicht prüfbar“, statt den Steuerbetrag als
+    fehlend zu melden (R3-L-01; ob BT-5 selbst eine Pflichtangabe ist, fragt **F33**).
+  - Ein CII-Steuerbetrag ohne Währungsangabe zählt nur, wo keiner die Rechnungswährung trägt (R3-L-02).
+  - Leerzeichen zählen im Vergleich nicht (R3-L-03; Groß- und Kleinschreibung: **G-22**).
+  - Die Zeile „Unterschiedlich“ nennt die Bezeichnungen und den Status nur, wo er abweicht. Sie fasst
+    gleiche Werte zusammen und ist etwa halb so lang (R3-L-04, R3-U-03, R3-U-04).
+  - BT-112 wird mit seinem Wert gezeigt (R3-U-05).
+  - Kein erwarteter Bruttobetrag bei zwei Steuerbeträgen (R3-U-02).
+  - Eigene Namen für die Summen je Satz und Kategorie (R3-U-07).
+  - Alle Anhänge mit gleichen Daten genannt, technische Zeilen je Teil (R3-U-09).
+  - SVG-Logos sind keine Rechnungs-XML (R3-L-05).
+  - Kein „davon fehlt: keine Angabe“ (R3-L-06).
+- **Bedienung:**
+  - Die Handtests sagen statt „Notieren Sie“, welcher Schritt mit welchem Grund „Nicht bestanden“ ist.
+    Einzelheiten gehen direkt an Tobias (R3-U-01).
+  - MT-05 steht in einer eigenen Datei, die Reihenfolge ist MT-01 … MT-05 (R3-U-11).
+  - Am Handy tragen die Vergleichswerte den Namen ihres Anhangs (R3-U-06).
+  - Kein „Antwort merken“, wo der Browser nichts behält (R3-U-12).
+  - Der kopierte Text ist ohne Verweise auf die Seite (R3-U-08; ob Hinweise und Regelwerte mitkommen,
+    fragt **G-23**).
+  - Codes, Sätze und Randnummern brechen nicht mehr um (R3-U-10).
+  - Die Meldungen des Rahmens laufen über die eine Ansage-Region (R3-U-13).
+  - Am Ende der Liste technischer Meldungen steht kein „siehe unten“ mehr.
+- **Sicherheit und Tests:**
+  - ESLint gilt auch für `.mts`/`.cts` (R3-S-01, R3-T-03).
+  - Der Kanzleidaten-Test liest neue, noch nicht hinzugefügte Dateien, Pfade und alle lokalen Zweige
+    (R3-S-04, R3-T-02).
+  - Nur Marken, die anschlagen können (R3-S-05).
+  - Unsichtbare Zeichen: auch Tag-Zeichen, Füllzeichen und Variantenwähler (R3-T-07).
+  - Jede Regelform je Satz ist festgeschrieben (R3-T-01).
+  - Vergleich nur in Hinweisen oder Regeln (R3-T-04).
+  - Eigene Zeitgrenze des Vergleichstests (R3-T-05).
+  - Alle Handy-Blöcke in der Testfassung (R3-T-08).
+  - Kommentare (R3-S-03, R3-T-06).
+  - Doku (R3-T-09, R3-T-10).
+- **Ohne Änderung:**
+  - R3-S-02: Das Umgehen der Kopie-Prüfung setzt Manipulation voraus.
+  - R3-S-06: Die JSON-Meldung zeigt höchstens neun Zeichen, nie den Namen.
+
+### Neue Fragen an Tobias
+
+- **G-22 (R3-L-03):** Zwei Kopien derselben Rechnung, deren Lieferantenname sich nur in Groß- und
+  Kleinschreibung unterscheidet: Gelten sie als „unterschiedliche Daten“ (F27, rot)? Leerzeichen zählen
+  seit Runde 3 nicht mehr.
+- **G-23 (R3-U-08):** Sollen die Zeilenhinweise und die Werte einer auffälligen Regel mit in den
+  kopierten Text („Ergebnis als Text kopieren“)? Heute stehen dort nur die Zusammenfassungen.
+- **G-24 (R3-U-01):** Ein fester Grund „Text unverständlich“ beim „Nicht bestanden“ ändert das
+  Berichtsformat aller Apps (`Testumgebung`). Soll er kommen?
+- **F33** in `docs/offene-fragen.md`: Ist eine fehlende Rechnungswährung eine fehlende Pflichtangabe?

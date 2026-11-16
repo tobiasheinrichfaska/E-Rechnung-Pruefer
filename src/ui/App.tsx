@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { APP_NAME, APP_VERSION } from '../appInfo';
 import { APP_CONFIG } from '../config';
-import { loadAccess, saveAccess } from '../io/accessStore';
+import { canRemember, loadAccess, saveAccess } from '../io/accessStore';
 import { MAX_FILE_BYTES, analyzeFile, tooLargeFile, unreadableFile } from '../io/analyze';
 import { loadPdfJs } from '../io/pdfjs';
 import { accessGateNeeded, accessToken } from '../logic/accessGate';
@@ -97,6 +97,8 @@ export function App() {
   );
   // The notice and its focused „Weiter“ are gone once confirmed: the tool takes the focus then
   const [confirmed, setConfirmed] = useState(false);
+  // „Antwort für die Zukunft merken“ only where the browser can keep it (audit R3-U-12)
+  const [rememberable] = useState(canRemember);
 
   // While the notice is open nothing of the tool runs; a file dropped on the page must not make
   // the browser leave it and open the file either
@@ -117,6 +119,7 @@ export function App() {
         <h1>{APP_NAME}</h1>
         <AccessGate
           notice={notice}
+          canRemember={rememberable}
           onConfirm={(remember) => {
             if (remember) saveAccess(accessToken(notice));
             setConfirmed(true);

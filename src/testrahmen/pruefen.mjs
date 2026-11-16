@@ -3,7 +3,7 @@
 //   import { pruefeKopie } from '<folder>/pruefen.mjs'; expect(pruefeKopie()).toEqual([]);
 // Change the test page in Testumgebung and copy it again (`npm run rahmen -- <folder of the app>`).
 import { createHash } from 'node:crypto';
-import { readFileSync, realpathSync } from 'node:fs';
+import { readdirSync, readFileSync, realpathSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -29,6 +29,9 @@ function standImBuendel(ordner) {
 
 const entwurf = (stand) => typeof stand !== 'string' || stand.includes('+entwurf');
 
+/** Files the system puts into any folder; they are no part of the copy and change nothing. */
+const SYSTEMDATEIEN = new Set(['.DS_Store', 'Thumbs.db', 'desktop.ini']);
+
 /** The deviations from testrahmen.json, in German; empty when the copy is unchanged. */
 export function pruefeKopie(ordner = hier) {
   let stempel;
@@ -49,7 +52,9 @@ export function pruefeKopie(ordner = hier) {
     fehler.push(`testrahmen.json nennt den Stand ${stempel.stand}, testrahmen.js aber ${buendel.stand}. Bitte in Testumgebung neu kopieren.`);
   }
   for (const name of PFLICHT) if (!Object.prototype.hasOwnProperty.call(dateien, name)) fehler.push(`testrahmen.json nennt ${name} nicht.`);
-  for (const [name, soll] of Object.entries(dateien)) {
+  // Exactly the copy's files: a stamp that names another file vouches for something that is none of it.
+  for (const name of Object.keys(dateien)) if (!PFLICHT.includes(name)) fehler.push(`testrahmen.json nennt ${name}; das gehört nicht zur Kopie.`);
+  for (const [name, soll] of Object.entries(dateien).filter(([n]) => PFLICHT.includes(n))) {
     let text;
     try {
       text = readFileSync(join(ordner, name), 'utf8');
@@ -59,6 +64,18 @@ export function pruefeKopie(ordner = hier) {
     }
     const ist = createHash('sha256').update(text.replace(/\r\n/g, '\n')).digest('hex');
     if (ist !== soll) fehler.push(`${name} wurde hier geändert. Bitte in Testumgebung ändern und neu kopieren.`);
+  }
+  // Nothing beside the copy: a file the stamp does not name (e.g. a patched module the app imports
+  // instead) would escape every check here.
+  let inhalt = [];
+  try {
+    inhalt = readdirSync(ordner);
+  } catch {
+    // A folder that cannot be listed: the missing files above say enough.
+  }
+  for (const name of inhalt) {
+    if (name === 'testrahmen.json' || SYSTEMDATEIEN.has(name) || PFLICHT.includes(name)) continue;
+    fehler.push(`${name} gehört nicht zur Kopie. Bitte entfernen; der Rahmen wird nur in Testumgebung geändert.`);
   }
   return fehler;
 }

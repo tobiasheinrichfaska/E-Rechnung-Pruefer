@@ -3,9 +3,12 @@
 import type { FileProblemKind } from './analysis';
 import type { Tone } from './verdict';
 
+// „Rn.“ and its number stay on one line: a no-break space (written as \u00a0) between them, as before
+// „%“ in check.ts and rules.ts (DIN 5008; audit R3-U-10)
+
 /** F24 (Tobias 2026-11-14, replaces the F4 wording) — one constant for every place it is shown */
 const FORMAT_ERROR =
-  'Die Datei hat einen Formatfehler. Sie ist deshalb möglicherweise keine E-Rechnung (BMF-Schreiben vom 15.10.2025, Rn. 6a).';
+  'Die Datei hat einen Formatfehler. Sie ist deshalb möglicherweise keine E-Rechnung (BMF-Schreiben vom 15.10.2025, Rn.\u00a06a).';
 /** F23: the supplier, not the tool, can mend a file (Tobias: a hint, not a demand) */
 const RESEND = 'Sie könnten den Lieferanten bitten, die Datei noch einmal zu schicken.';
 const KANZLEI_JUDGES = 'Ob das eine E-Rechnung ist, kann Ihre Kanzlei beurteilen.';
@@ -28,6 +31,8 @@ export const TEXTS = {
   // G-3: a yellow result says so in its headline (and the announcement)
   eRechnungHints: 'E-Rechnung erkannt ({spec}) – mit Hinweisen',
   hybridSource: 'Das PDF enthält Rechnungsdaten als XML (Anhang „{name}“).',
+  // G-8: the same data in several attachments, each named (audit R3-U-09)
+  hybridSourceSeveral: 'Das PDF enthält Rechnungsdaten als XML (Anhänge {names}).',
   xmlCounts: 'Maßgeblich sind die Daten in der XML, nicht das Bild des PDF.',
   xmlFile: 'Die Datei enthält die Rechnungsdaten als XML.',
 
@@ -37,9 +42,9 @@ export const TEXTS = {
   zugferd1Pdf: 'PDF mit Rechnungsdaten nach ZUGFeRD 1.0: keine E-Rechnung im Sinne des UStG',
   zugferd1Xml: 'Rechnungsdaten nach ZUGFeRD 1.0: keine E-Rechnung im Sinne des UStG',
   minimumReason:
-    'Nach dem BMF-Schreiben vom 15.10.2024 (Rn. 25 und 30) und Abschnitt 14.1 Abs. 14 UStAE gelten ZUGFeRD- und Factur-X-Rechnungen in den Profilen MINIMUM und BASIC WL nicht als E-Rechnung.',
+    'Nach dem BMF-Schreiben vom 15.10.2024 (Rn.\u00a025 und 30) und Abschnitt 14.1 Abs. 14 UStAE gelten ZUGFeRD- und Factur-X-Rechnungen in den Profilen MINIMUM und BASIC WL nicht als E-Rechnung.',
   zugferd1Reason:
-    'Das BMF erkennt ZUGFeRD erst ab Version 2.0.1 als E-Rechnung an; das ursprüngliche ZUGFeRD-Format beruht nicht auf der Normenreihe EN 16931 (BMF-Schreiben vom 15.10.2024, Rn. 30).',
+    'Das BMF erkennt ZUGFeRD erst ab Version 2.0.1 als E-Rechnung an; das ursprüngliche ZUGFeRD-Format beruht nicht auf der Normenreihe EN 16931 (BMF-Schreiben vom 15.10.2024, Rn.\u00a030).',
 
   nichtBeurteilt: 'Rechnungsdaten erkannt, Spezifikation unbekannt: nicht beurteilt',
   specUnknown: 'Spezifikation unbekannt',
@@ -48,7 +53,7 @@ export const TEXTS = {
   shownAnyway: 'Die Angaben aus der XML werden trotzdem angezeigt.',
   kanzleiJudges: KANZLEI_JUDGES,
   zugferd20Hint:
-    'Ob die Datei nach ZUGFeRD 2.0 oder 2.0.1 erstellt ist, lässt sich an ihr nicht erkennen; das BMF erkennt ZUGFeRD erst ab Version 2.0.1 als E-Rechnung an (BMF-Schreiben vom 15.10.2024, Rn. 30).',
+    'Ob die Datei nach ZUGFeRD 2.0 oder 2.0.1 erstellt ist, lässt sich an ihr nicht erkennen; das BMF erkennt ZUGFeRD erst ab Version 2.0.1 als E-Rechnung an (BMF-Schreiben vom 15.10.2024, Rn.\u00a030).',
 
   // F27: the standard allows one invoice XML per PDF (Factur-X 1.09.2, specification p. 28)
   sameSeveral:
@@ -91,7 +96,7 @@ export const TEXTS = {
   // F26: § 27 Abs. 38 UStG by the date of supply and invoice (src/logic/uebergang.ts)
   // F30: supply before 2025, whatever the invoice date (§ 27 Abs. 1 Satz 1 UStG)
   regimeBefore2025:
-    'Für Leistungen vor 2025 ist keine E-Rechnung nötig, auch wenn die Rechnung später ausgestellt wird (BMF-Schreiben vom 15.10.2024, Rn. 50).',
+    'Für Leistungen vor 2025 ist keine E-Rechnung nötig, auch wenn die Rechnung später ausgestellt wird (BMF-Schreiben vom 15.10.2024, Rn.\u00a050).',
   regimeAllowed:
     'Für diese Rechnung ist eine sonstige Rechnung noch zulässig (§ 27 Abs. 38 Nr. 1 UStG).',
   regimeTurnover:
@@ -119,6 +124,8 @@ export const TEXTS = {
   schemaMismatchIn:
     'Der Anhang „{name}“ weicht vom offiziellen Schema {schema} ab (technische Meldungen: {count}).',
   schemaMore: 'Weitere technische Meldungen: {count} (siehe unten).',
+  // At the end of the list itself nothing follows: these messages are counted, not shown
+  schemaMoreNotShown: 'Weitere technische Meldungen, die hier nicht einzeln stehen: {count}.',
   schemaOwnProfile:
     'Für ZUGFeRD 2.0 im Profil EXTENDED gilt ein eigenes Schema von FeRD, das das Tool nicht enthält.',
   schemaNone: 'keine Abweichung vom Schema {schema}',
@@ -138,6 +145,8 @@ export const TEXTS = {
   differingWithHint: 'mit Hinweis',
   differingWithHints: 'mit {count} Hinweisen',
   differingRules: 'Rechnerische Prüfung',
+  // Rows with the same differing values, named together (audit R3-U-03)
+  labelsAnd: ' und ',
   // G-1: rows "nur im Einzelfall nötig" without a value are folded; jump links from the box.
   // A fold-out names what it holds, not "anzeigen", which stays wrong once it is open (QU-11), and
   // with the word of its rows' badges: „in besonderen Fällen“ is the section below (R2-U-07)
@@ -153,6 +162,9 @@ export const TEXTS = {
   invoiceDataHeading: 'Rechnungsdaten',
   // G-8/F27: several invoice XML in one PDF
   sameHeading: 'Rechnungsdaten (gleich in {names})',
+  // G-8: a technical row of one of the parts, where the parts differ in it (audit R3-U-09)
+  attachmentsRow: 'Anhänge',
+  ofPart: '{label}, Anhang „{name}“',
   comparisonHeading: 'Vergleich der Rechnungsdaten',
   comparisonValue: 'Wert',
   // G-4: pass the result on to the Kanzlei
@@ -163,8 +175,9 @@ export const TEXTS = {
     'Kopieren hat nicht geklappt. Bitte markieren Sie den Text und kopieren Sie ihn selbst.',
   copyTitle: 'E-Rechnung prüfen – Ergebnis',
   copyHeadline: 'Ergebnis: {headline}',
-  copyPflicht: 'Pflichtangaben: {summary}',
-  copyRules: 'Rechnerische Prüfung: {summary}',
+  // a dash, not a colon: the summaries have colons of their own („Mögliche Auffälligkeit: …“, R3-U-08)
+  copyPflicht: 'Pflichtangaben – {summary}',
+  copyRules: 'Rechnerische Prüfung – {summary}',
   copyVersion: 'Version {version}',
   // G-5: the drop zone after a result, and on a phone
   anotherFile: 'Andere Datei prüfen',
@@ -181,6 +194,8 @@ export const TEXTS = {
   accessTitle: 'Bitte bestätigen',
   accessRemember: 'Antwort für die Zukunft merken',
   accessRememberNote: 'Gemerkt wird nur in diesem Browser.',
+  // the browser keeps nothing (blocked site data): no offer that does nothing (audit R3-U-12)
+  accessCannotRemember: 'In diesem Browser lässt sich die Antwort nicht merken.',
   accessContinue: 'Weiter',
   // Links at the foot of the page, addresses from the local Kanzlei configuration
   imprint: 'Impressum',
@@ -233,6 +248,10 @@ export const TEXTS = {
   ruleSumAllowances: 'Summe der Nachlässe auf Dokumentebene (BT-92)',
   ruleSumCharges: 'Summe der Zuschläge auf Dokumentebene (BT-99)',
   ruleSumTaxes: 'Summe der Steuerbeträge je Kategorie (BT-117)',
+  // The sums of one VAT breakdown, named apart from the document totals (audit R3-U-07):
+  // „Summe der Positionen mit diesem Satz (BT-131)“, „… dieser Kategorie (BT-131)“
+  ruleOfRate: 'mit diesem Satz',
+  ruleOfCategory: 'dieser Kategorie',
   // What the rule computes from the other values — the client compares it with the invoice
   // (audit Bedienung, V-04)
   ruleExpected: 'Nach der Regel erwartet',
@@ -251,6 +270,8 @@ export const TEXTS = {
   // BR-CO-15 adds BT-110 only where exactly one is given in the document currency (audit R2-L-03)
   ruleTaxTotals: 'Angaben „Summe der Umsatzsteuer“ (BT-110) in Rechnungswährung',
   ruleTaxTotalsCount: '{count} – die Regel verlangt genau eine',
+  // Without the invoice currency BR-CO-14 and BR-CO-15 are not checked (audit R3-L-01)
+  ruleCurrency: 'Rechnungswährung (BT-5)',
   ruleAnd: ' und ',
 
   pflichtHeading: 'Pflichtangaben nach § 14 Abs. 4 UStG',
@@ -270,7 +291,8 @@ export const TEXTS = {
   missingParts: 'davon fehlen:',
   addressCity: 'Ort',
   addressPostcodeOrStreet: 'Postleitzahl oder Straße/Postfach',
-  noGroup: 'keine Angabe „{group}“',
+  // the group itself, so the row reads „davon fehlt: Aufschlüsselung der Umsatzsteuer“ (R3-L-06)
+  noGroup: '{group}',
   statusVorhanden: 'vorhanden',
   statusFehlt: 'fehlt',
   statusEinzelfall: 'nur im Einzelfall nötig',
@@ -330,6 +352,18 @@ export const TEXTS = {
     },
   } satisfies Record<FileProblemKind, { tone: Tone; headline: string; explanation: string[] }>,
 };
+
+/**
+ * Pointers to other parts of the page inside the sentences above. The copied text for a mail (G-4,
+ * zusammenfassung.ts) has no „unten“ and no section to point to, so it leaves them out, together
+ * with `hintBelow` / `hintsBelow` (audit R3-U-08); zusammenfassung.test.ts checks that no sentence
+ * of TEXTS keeps one there.
+ */
+export const PAGE_POINTERS: readonly string[] = [
+  ' (siehe unten)',
+  ' (siehe „Pflichtangaben“)',
+  ' (siehe „Rechnerische Prüfung“)',
+];
 
 /** Replaces {name} placeholders. */
 export function fill(text: string, values: Readonly<Record<string, string | number>>): string {

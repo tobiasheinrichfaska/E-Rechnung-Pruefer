@@ -17,13 +17,16 @@ Das Tool ist in einem Browserfenster geöffnet, das Mailprogramm daneben.
      getönt.
 2. Lassen Sie los.
    - **Danach:** Unter der Fläche steht „Geprüfte Datei: …“ mit dem Namen des Anhangs, darunter das
-     Ergebnis. Passiert nichts oder öffnet der Browser die Datei selbst, notieren Sie das
-     Mailprogramm (z. B. Outlook, Outlook im Browser, Thunderbird).
+     Ergebnis. Passiert nichts oder öffnet der Browser die Datei selbst: „Nicht bestanden“ mit diesem
+     Schritt und dem Grund „Anderes Ergebnis als erwartet“. Das Mailprogramm (z. B. Outlook, Outlook
+     im Browser, Thunderbird) sagen Sie Tobias direkt.
 3. Speichern Sie den Anhang und ziehen Sie ihn aus dem Explorer auf die Fläche.
    - **Danach:** Wie in Schritt 2.
 4. Laden Sie auf der Seite mit den Beispielrechnungen eine Datei herunter. Ziehen Sie sie direkt aus
    der Download-Liste des Browsers (Edge und Chrome: Symbol „Downloads“ oben rechts) auf die Fläche.
-   - **Danach:** Wie in Schritt 2. Lässt sich die Datei dort nicht ziehen, notieren Sie den Browser.
+   - **Danach:** Wie in Schritt 2. Lässt sich die Datei dort nicht ziehen: „Nicht bestanden“ mit
+     diesem Schritt und dem Grund „Anderes Ergebnis als erwartet“. Den Browser sagen Sie Tobias
+     direkt.
 
 ## MT-03: Am Handy oder Tablet
 
@@ -43,26 +46,7 @@ Datei gespeichert, z. B. aus einer E-Mail oder eine Beispielrechnung von der
 3. Wählen Sie die Rechnung.
    - **Danach:** Das Ergebnis erscheint. Am Handy steht jede Pflichtangabe als eigener Block: oben
      die Bezeichnung und die Marke, darunter die Werte. Auf einem Tablet kann es eine Tabelle sein.
-     In beiden Fällen müssen Sie nichts seitlich verschieben, um es zu lesen, und keine Bezeichnung
-     ist mitten im Wort getrennt. Notieren Sie Gerät und Browser, wenn etwas abgeschnitten oder zu
-     klein ist.
-
-## MT-05: Tester einladen in der Testzone
-
-**Voraussetzung:** Die Testfassung liegt in der geschützten Testzone bei bunny.net, und Sie sind dort
-als Tester angemeldet. Die automatischen Tests prüfen nur den Link; die Seite dahinter gehört zum
-Anmeldeskript (Repo `Testumgebung`) und lässt sich hier nicht nachstellen.
-
-1. Öffnen Sie die Testfassung und schauen Sie oben auf die Testseite (am Handy der Reiter mit den
-   Tests).
-   - **Danach:** Dort steht **Tester einladen**, genau einmal auf der Seite.
-2. Klicken Sie auf **Tester einladen**.
-   - **Danach:** Im selben Tab öffnet sich die Seite für einen Einladungslink. Kein neuer Tab.
-3. Klicken Sie dort auf **Zurück zur App**.
-   - **Danach:** Das Tool erscheint wieder.
-4. Öffnen Sie die öffentliche Adresse des Tools.
-   - **Danach:** Nirgends auf der Seite steht **Tester einladen**, und es gibt keine Testseite.
-5. Öffnen Sie auf dem Handy und am Rechner (Chrome oder Edge) das Menü des Browsers.
-   - **Danach:** Es gibt keinen Eintrag **App installieren** für das Tool. „Zum Startbildschirm
-     hinzufügen“ oder „Verknüpfung erstellen“ darf es geben: Das ist nur ein Lesezeichen. Notieren
-     Sie Gerät und Browser, wenn „App installieren“ erscheint.
+     In beiden Fällen müssen Sie nichts seitlich verschieben, um es zu lesen. Kein Wort steht
+     getrennt auf zwei Zeilen, auch keine Kennung wie „BT-112“ und keine Angabe wie „19 %“. Ist
+     etwas abgeschnitten, zu klein oder getrennt: „Nicht bestanden“ mit diesem Schritt und dem Grund
+     „Darstellung falsch“. Gerät und Browser sagen Sie Tobias direkt.

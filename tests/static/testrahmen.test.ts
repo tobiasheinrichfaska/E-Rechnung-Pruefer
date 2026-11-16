@@ -79,6 +79,15 @@ describe('the copy of the shared test frame', () => {
         'hilfe.ts: not in testrahmen.json',
         'pruefen.mjs: changed',
       ]);
+      // the checker of the copy says the same since Testumgebung 0a99ee8, a foreign file included
+      // (before, it went only through the files of its stamp)
+      expect(pruefeKopie(folder)).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining('LIESMICH.md fehlt'),
+          expect.stringContaining('pruefen.mjs wurde hier geändert'),
+          expect.stringContaining('hilfe.ts gehört nicht zur Kopie'),
+        ]),
+      );
     } finally {
       rmSync(folder, { recursive: true, force: true });
     }
@@ -128,15 +137,30 @@ describe('the binding of the test version', () => {
       '01_echte_rechnungen.md',
       '02_geraete.md',
       '03_verstaendlichkeit.md',
+      '04_testzone.md',
     ]);
     for (const file of binding.handtests) {
       expect(file.text).toBe(readFileSync(join(MANUAL, file.datei), 'utf8'));
     }
-    // every case the frame lists is a „## MT-xx: …“ heading of those files
+    // every case the frame lists is a „## MT-xx: …“ heading of those files; the frame lists them in
+    // the order of the files, so MT-05 has a file after MT-04's (audit R3-U-11: before, the list ran
+    // MT-01, MT-02, MT-03, MT-05, MT-04, and „Nächster ›“ went from MT-05 back to MT-04)
     const ids = binding.handtests.flatMap((file) =>
       [...file.text.matchAll(/^## (MT-\d{2,3}): /gm)].map((match) => match[1]),
     );
-    expect(ids.sort()).toEqual(['MT-01', 'MT-02', 'MT-03', 'MT-04', 'MT-05']);
+    expect(ids).toEqual(['MT-01', 'MT-02', 'MT-03', 'MT-04', 'MT-05']);
+  });
+
+  // The test page has no text field, and it does not show manual_tests/README.md: a step that says
+  // „Notieren Sie …“ asks for something the report cannot carry (audit R3-U-01). Each step says the
+  // reason to choose instead, and what to tell Tobias directly.
+  it('asks for nothing the report cannot carry: no „Notieren Sie …“, a reason instead', () => {
+    for (const file of binding.handtests) {
+      expect(file.text, file.datei).not.toMatch(/notier/i);
+    }
+    const all = binding.handtests.map((file) => file.text).join('\n');
+    expect(all).toContain('„Nicht bestanden“ mit diesem Schritt und dem Grund');
+    expect(all).toContain('sagen Sie Tobias direkt');
   });
 
   it('takes the file name from a bundled path', () => {

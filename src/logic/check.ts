@@ -78,7 +78,8 @@ export function displayValue(bt: string, value: string, currency: string | undef
   if (kind === 'percent' || kind === 'quantity') {
     const number = parseDecimal(value);
     const text = number ? germanNumber(number) : value.replace('.', ',');
-    return kind === 'percent' ? `${text} %` : text;
+    // a no-break space: „19“ and „%“ never on two lines (audit R3-U-10)
+    return kind === 'percent' ? `${text}\u00a0%` : text;
   }
   if (bt === 'BT-118' || bt === 'BT-151' || bt === 'BT-95' || bt === 'BT-102') {
     const label = CATEGORY_LABELS[value.toUpperCase()];

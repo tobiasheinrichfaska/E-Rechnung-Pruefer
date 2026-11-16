@@ -19,10 +19,13 @@ einem zweiten Fenster geöffnet.
    - **Danach:** Oben steht das Ergebnis, darunter gegebenenfalls die Pflichtangaben.
 3. Lesen Sie das Ergebnis, die Erklärung darunter, jeden Hinweis in der Tabelle der
    Pflichtangaben und den Abschnitt „Rechnerische Prüfung“. Öffnen Sie dazu auch die zugeklappten
-   Teile: die Angaben „nur im Einzelfall nötig“ und „Technische Angaben“.
-   - **Danach:** Notieren Sie jeden Satz, den Sie nicht beim ersten Lesen verstehen. Notieren Sie
-     auch jeden Satz, der so klingt, als sei die Rechnung „in Ordnung“ oder „geprüft“ – das Tool gibt
-     nur Hinweise.
+   Teile: die Angaben „nur im Einzelfall nötig“, „Alle geprüften Regeln“ (bei einer Auffälligkeit
+   „Weitere geprüfte Regeln“) und „Technische Angaben“.
+   - **Danach:** Sie verstehen jeden Satz beim ersten Lesen, und kein Satz klingt so, als sei die
+     Rechnung „in Ordnung“ oder „geprüft“ – das Tool gibt nur Hinweise. Wenn nicht: „Nicht
+     bestanden“ mit diesem Schritt und dem Grund „Anderes Ergebnis als erwartet“. Den Satz und die
+     Nummer der Datei sagen Sie Tobias direkt.
 4. Vergleichen Sie das Ergebnis mit der Spalte „Was sie zeigt“ auf der Seite mit den Beispielen.
-   - **Danach:** Beides passt zusammen. Wenn nicht, notieren Sie die Nummer der Datei.
+   - **Danach:** Beides passt zusammen. Wenn nicht: „Nicht bestanden“ mit diesem Schritt und dem
+     Grund „Anderes Ergebnis als erwartet“. Die Nummer der Datei sagen Sie Tobias direkt.
 5. Nehmen Sie die nächste Datei und beginnen Sie wieder bei Schritt 1.
