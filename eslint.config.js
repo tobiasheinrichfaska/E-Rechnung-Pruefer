@@ -56,7 +56,17 @@ export const TEST_RUN_STORE = 'src/io/testRunStore.ts';
 export const REPORT_SENDER = 'src/io/testReportSend.ts';
 
 export default defineConfig([
-  globalIgnores(['dist', 'dist-test', 'coverage', '.tmp', 'playwright-report', 'test-results']),
+  // src/testrahmen/: the shared test frame, a copy from Testumgebung checked by hash — never linted
+  // or changed here (tests/static/testrahmen.test.ts)
+  globalIgnores([
+    'dist',
+    'dist-test',
+    'coverage',
+    '.tmp',
+    'playwright-report',
+    'test-results',
+    'src/testrahmen',
+  ]),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [js.configs.recommended, tseslint.configs.strict],

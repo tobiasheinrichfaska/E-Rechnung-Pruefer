@@ -1,0 +1,12 @@
+{
+  "quelle": "Testumgebung, testrahmen/",
+  "stand": "607eeea",
+  "dateien": {
+    "testrahmen.js": "80d93090465d4eb518fc475437492cdc55d42e373148caf732df0dc3168304cc",
+    "testrahmen.d.ts": "a39343b2cc963479f97dff996d6f27fafb6a4cc2764eb22d6c0f7e7610fe1a7a",
+    "testrahmen.css": "7ef9a51d5d632a2151d2a40b74dc3654eb78db6089d9066a779ce0061b7f0117",
+    "pruefen.mjs": "7bb38b57e8da41eb01694d75c69116d5e7d1f0100b7ec49dd347b539404864ac",
+    "pruefen.d.mts": "972da8395b5bac562fda3a2be754cd9b4c189fd508f892442ea9e1464fd46152",
+    "LIESMICH.md": "a5fbf223720c22a2d9e8bc3494d0b59b1971211ec2adc9eace7fe336a6b4277d"
+  }
+}
