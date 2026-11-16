@@ -148,9 +148,14 @@ function JumpLinks({ invoice }: { invoice: InvoiceVerdict | undefined }) {
   );
 }
 
-/** F27/G-8: two invoice XML with different data — the compared values side by side */
+/**
+ * F27/G-8: two invoice XML with different data — the compared values side by side. On a phone the
+ * table becomes blocks and its column headers go out of sight, so each value names its attachment
+ * there; screen readers keep the column headers and skip the name (aria-hidden, audit R3-U-06).
+ */
 function Comparison({ analysis }: { analysis: Analysis }) {
   const rows = comparisonRows(analysis.invoices);
+  const names = analysis.invoices.map((part) => part.origin);
   return (
     <div className="card">
       <h3 id="vergleich">{TEXTS.comparisonHeading}</h3>
@@ -172,7 +177,12 @@ function Comparison({ analysis }: { analysis: Analysis }) {
             <tr key={row.label} className={row.differs ? 'differs' : undefined}>
               <th scope="row">{row.label}</th>
               {row.values.map((value, index) => (
-                <td key={index}>{value}</td>
+                <td key={index}>
+                  <span className="part-name" aria-hidden="true">
+                    {names[index]}:{' '}
+                  </span>
+                  {value}
+                </td>
               ))}
             </tr>
           ))}

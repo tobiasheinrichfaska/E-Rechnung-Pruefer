@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { official } from '../support/fixtures';
+import { miniPdf } from '../../src/build/minipdf';
+import { encode, official, officialText, withInvoiceNumber } from '../support/fixtures';
 import { openApp, sideEffects, upload } from './helpers';
 
 // Phone width (small iPhone). app.css stacks each Pflichtangabe below 640px: label and status on
@@ -70,6 +71,48 @@ test('fits a small phone with a long file name', async ({ page }) => {
     .locator('.pflicht-table tbody th')
     .evaluateAll((cells) => Math.min(...cells.map((cell) => cell.getBoundingClientRect().width)));
   expect(narrowest).toBeGreaterThan(150);
+  expect(problems).toEqual([]);
+  expect(await sideEffects(page)).toEqual([]);
+});
+
+// Two invoice XML with different data (F27): on a phone the comparison table becomes blocks, and its
+// column headers with the attachment names stood once on top. Below each Angabe the values followed
+// one another without a name, so which value came from which attachment was left to their order
+// (audit R3-U-06). Now each value names its attachment there, for the eye only.
+test('names the attachment of each compared value on a phone', async ({ page }) => {
+  const problems = await openApp(page);
+  const cii = officialText('cen/CII_example1.xml');
+  const xml = (name: string, data: string) => ({ name, bytes: encode(data), mime: 'text/xml' });
+  await upload(
+    page,
+    'zwei.pdf',
+    miniPdf({
+      attachments: [xml('erste.xml', cii), xml('zweite.xml', withInvoiceNumber(cii, 'X-2'))],
+    }),
+    'application/pdf',
+  );
+  const comparison = page.getByRole('table', { name: 'Vergleich der Rechnungsdaten' });
+  const cells = comparison.locator('tr.differs td');
+  await expect(cells).toHaveCount(2);
+  await expect(cells.nth(0)).toHaveText(/^erste\.xml: \S/, { useInnerText: true });
+  await expect(cells.nth(1)).toHaveText('zweite.xml: X-2', { useInnerText: true });
+  // every value of the table, not only the differing one
+  const rows = await comparison.locator('tbody tr').count();
+  await expect(comparison.locator('tbody .part-name:visible')).toHaveCount(rows * 2);
+  // the names on top are out of sight, but screen readers keep the column headers and skip the
+  // names in the cells
+  expect((await comparison.locator('thead').boundingBox())?.height ?? 0).toBeLessThanOrEqual(1);
+  await expect(comparison.getByRole('columnheader', { name: 'zweite.xml' })).toHaveCount(1);
+  await expect(comparison.locator('.part-name').first()).toHaveAttribute('aria-hidden', 'true');
+  const sideways = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(sideways).toBeLessThanOrEqual(0);
+
+  // a wide window keeps the table with its column headers and no name in the cells
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expect(comparison.locator('.part-name:visible')).toHaveCount(0);
+  await expect(cells.nth(1)).toHaveText('X-2', { useInnerText: true });
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);
 });
