@@ -13,7 +13,8 @@ liest `vite.config.ts` über `src/build/kanzleiConfig.ts` die erste vorhandene d
 Vor allen dreien gilt die Datei, die die Umgebungsvariable `KANZLEI_CONFIG` nennt (relativ zum Repo
 oder absolut; fehlt sie, bricht der Build ab). Die GitHub-Prüfung „Tests“ nennt dort die erfundene
 Beispielkanzlei `tests/fixtures/config/beispiel-kanzlei.json`, damit die Tests von Zugangshinweis,
-Fußzeile und Farben auch ohne die privaten Dateien laufen (`tests/fixtures/config/README.md`).
+Fußzeile und Farben und die Testfassung mit dem Testrahmen auch ohne die privaten Dateien laufen
+(`tests/fixtures/config/README.md`).
 
 ```json
 {
@@ -50,19 +51,30 @@ Fußzeile und Farben auch ohne die privaten Dateien laufen (`tests/fixtures/conf
   noch einer seiner Sätze mit dem Namen der Kanzlei (der erste und jeder mit einem Namen der
   privaten Namensliste `config/marken.txt` im privaten Repo), weder ein Name dieser Liste noch die
   Domain der beiden Adressen (ohne Subdomain). Leerzeichen, Zeilenumbrüche, `>`-Zitatzeichen und
-  Groß- und Kleinschreibung zählen nicht. Gesucht wird:
-  - in jeder Datei, die ein Commit mitnehmen könnte: in den versionierten und in den neuen, die
-    `.gitignore` nicht ausschließt, auch als Bytes (etwa in einer PDF). Verlinkte Ordner wie
-    `node_modules` oder `tests/fixtures/lokal` werden nicht durchsucht;
-  - in den Dateien jedes Commits, den noch kein Remote hat, auf HEAD und auf jedem lokalen Zweig
-    (auch wenn ein späterer Commit sie wieder entfernt);
-  - in den Commit-Nachrichten mit Autor und Committer, soweit der Klon die Geschichte von HEAD und
-    den lokalen Zweigen hat;
-  - in den Pfaden der Dateien und Ordner, im Arbeitsstand und in den Commits, die noch kein Remote
-    hat: Kein Name der Liste und keine der Domains darf darin stehen. Verglichen werden nur
-    Buchstaben und Ziffern, `Erika_Probe.pdf` zählt also wie „Erika Probe“. Ein Treffer wird nur
-    gezählt, nicht genannt, denn der Pfad enthält ja den Namen.
+  Groß- und Kleinschreibung zählen nicht. Gesucht wird, auch als Bytes (etwa in einer PDF), in
+  zwei Fällen:
+  - **Was der nächste Commit und Push veröffentlichen würde:**
+    - jede Datei, die ein Commit mitnehmen könnte: die versionierten und die neuen, die
+      `.gitignore` nicht ausschließt. Verlinkte Ordner wie `node_modules` oder
+      `tests/fixtures/lokal` werden nicht durchsucht;
+    - der Index, wo er von der Arbeitskopie abweicht: Eine Datei, die mit `git add` hinzugefügt und
+      danach nur in der Arbeitskopie bereinigt oder gelöscht wurde, nimmt `git commit` so mit, wie
+      sie hinzugefügt wurde;
+    - die Dateien, Pfade und Nachrichten (mit Autor und Committer) jedes Commits, den noch kein
+      Remote hat, auf HEAD und auf jedem lokalen Zweig, auch wenn ein späterer Commit sie wieder
+      entfernt.
+  - **Was schon veröffentlicht ist:** die Dateien, Pfade und Nachrichten jedes Commits, den ein
+    Remote schon hat (alle Refs außer HEAD, den lokalen Zweigen und dem Stash, also die
+    Remote-Zweige, die Tags und geholte Pull-Request-Refs).
+    - Ein Fund dort geht an Tobias. Ein neuer Commit nimmt ihn nicht aus dem Verlauf, nur ein
+      Force-Push. Die Refs, die GitHub für jeden Pull Request behält, entfernt nur der
+      GitHub-Support.
+    - Ein flacher Klon (`git clone --depth …`) lässt diesen Fall scheitern, statt still weniger zu
+      lesen: vorher `git fetch --unshallow`.
+  - In den Pfaden der Dateien und Ordner darf kein Name der Liste und keine der Domains stehen.
+    Verglichen werden nur Buchstaben und Ziffern, `Erika_Probe.pdf` zählt also wie „Erika Probe“.
 
-  Nicht gefunden werden der Name in einem Bild oder in gepacktem Text (etwa komprimierter Text
-  einer PDF) und alles, was ein Remote schon hat; dort sieht die Wochenprüfung nach. Ohne die
-  privaten Dateien oder ohne git wird die Suche übersprungen und nennt den Grund.
+  Ein Fehlschlag zeigt nur Pfade (verdeckt, wenn sie die Kanzlei nennen), Zahlen oder ja/nein, nie
+  den gefundenen Text. Nicht gefunden werden der Name in einem Bild oder in gepacktem Text (etwa
+  komprimierter Text einer PDF) und ein Commit, der nur im Stash liegt. Ohne die privaten Dateien
+  oder ohne git werden beide Fälle übersprungen und nennen den Grund.
