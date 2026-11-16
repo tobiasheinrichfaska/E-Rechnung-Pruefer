@@ -259,6 +259,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 
 | Version | Merge commit in `main` | Date       | Content                                                                                 |
 | ------- | ---------------------- | ---------- | --------------------------------------------------------------------------------------- |
+| 0.10.0  | `1612bfd`              | 2026-11-16 | The shared test frame of Testumgebung instead of the own test page                      |
 | 0.9.1   | `f0996b3`              | 2026-11-16 | Quality audit round 1: rules per syntax, results, handling, tests, CI, security         |
 | 0.9.0   | `949c453`              | 2026-11-15 | The test version keeps the tester's run in the browser                                  |
 | 0.8.0   | `2374542`              | 2026-11-15 | Test page with reports without free text (test version only)                            |
@@ -278,7 +279,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 
 ## Known Limitations
 
-- **In development** — all steps of the plan are built (1a–3a) plus the access notice, the Impressum/privacy links and the Kanzlei colours. **Online since 2026-11-15** (Freigabe run, bunny.net): the public zone carries **0.6.3** (uploaded 17:27 Berlin time, read back the same evening); 0.7.0 … 0.9.0 come with the next upload.
+- **In development** — all steps of the plan are built (1a–3a) plus the access notice, the Impressum/privacy links and the Kanzlei colours. **Online since 2026-11-15** (Freigabe run, bunny.net): the public zone carries **0.6.3** (uploaded 17:27 Berlin time, read back the same evening); 0.7.0 … 0.10.0 come with the next upload.
 - **Calculation rules (3a)** are a selection (BR-CO-10 … -17, breakdown per category/rate), not a
   validator: no BR-DE/XRechnung rules, no line-level rules (price × quantity), no currency
   conversion (BT-111). For **Factur-X EXTENDED** the FeRD forms are rebuilt (F29,
@@ -345,8 +346,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
   for `Testumgebung`; the copy is never edited here. No PDF copy for the tester (Tobias 2026-11-15:
   not needed). The receiving side (`/_zugang/bericht`) is live in all five test areas (Testumgebung,
   2026-11-15).
-- **E2E runs on file://**; the public copy at bunny.net is 0.6.3 (2026-11-15), the repo is at 0.9.1
-  (merge `f0996b3`, see Versioning). Uploads run only through the repo `Freigabe`, started by Tobias.
+- **E2E runs on file://**; the public copy at bunny.net is 0.6.3 (2026-11-15), the repo is at 0.10.0 (merge `1612bfd`, see Versioning). Uploads run only through the repo `Freigabe`, started by Tobias.
 - **Browsers:** the single inline script needs class static blocks and the CSP
   `'wasm-unsafe-eval'`, so the floor is about Chrome/Edge 98, Firefox 102, Safari 16.4 (derived from
   MDN data, not tested in those versions). Above it XML and PDF work (pdf.js legacy build, e2e test
