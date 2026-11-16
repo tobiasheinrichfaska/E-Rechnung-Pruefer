@@ -251,6 +251,8 @@ export const TEXTS = {
   // BR-CO-15 adds BT-110 only where exactly one is given in the document currency (audit R2-L-03)
   ruleTaxTotals: 'Angaben „Summe der Umsatzsteuer“ (BT-110) in Rechnungswährung',
   ruleTaxTotalsCount: '{count} – die Regel verlangt genau eine',
+  // Without the invoice currency BR-CO-14 and BR-CO-15 are not checked (audit R3-L-01)
+  ruleCurrency: 'Rechnungswährung (BT-5)',
   ruleAnd: ' und ',
 
   pflichtHeading: 'Pflichtangaben nach § 14 Abs. 4 UStG',

@@ -575,6 +575,12 @@ describe('BR-CO-15 without exactly one VAT total (audit R2-L-03)', () => {
       value: '2 – die Regel verlangt genau eine',
     });
     expect(co15(two, { syntax: 'cii' })?.status).toBe('auffaellig');
+    // with two the net amount is no expected gross amount: only the count says why (R3-U-02)
+    for (const syntax of ['ubl-invoice', 'cii'] as const) {
+      const values = co15(two, { syntax })?.values ?? [];
+      expect(values.map((v) => v.label)).not.toContain(TEXTS.ruleExpected);
+      expect(values.at(-1)?.label).toBe(TEXTS.ruleTaxTotals);
+    }
     // CII still accepts BT-112 = BT-109, and then names no count
     const net = co15(twice({ 'BT-112': '140.00', 'BT-115': '140.00' }), { syntax: 'cii' });
     expect(net?.status).toBe('passt');
@@ -583,6 +589,65 @@ describe('BR-CO-15 without exactly one VAT total (audit R2-L-03)', () => {
     for (const syntax of ['ubl-invoice', 'cii'] as const) {
       expect(co15(group('INVOICE', BASE) as InvoiceModel, { syntax })?.status).toBe('passt');
     }
+  });
+
+  it('expects the net amount in CII only where no BT-110 is given (R3-U-02)', () => {
+    const wrong = group('INVOICE', {
+      ...BASE,
+      'BG-22': [{ ...withoutVat, 'BT-112': '150.00', 'BT-115': '150.00' }],
+    }) as InvoiceModel;
+    const cii = co15(wrong, { syntax: 'cii' });
+    expect(cii?.status).toBe('auffaellig');
+    expect(cii?.values).toContainEqual({ label: TEXTS.ruleExpected, value: '140,00 EUR' });
+  });
+});
+
+// Audit R3-L-01: both CEN Schematrons count BT-110 in the invoice currency (BT-5) — `every
+// $Currency in <BT-5> satisfies …` holds over an empty BT-5, so they report only BR-05 there. The
+// tool checks neither BR-CO-14 nor BR-CO-15 without BT-5 and names the reason.
+describe('BR-CO-14 and BR-CO-15 without the invoice currency (audit R3-L-01)', () => {
+  const withoutCurrency = (spec: Spec = BASE) =>
+    group('INVOICE', Object.fromEntries(Object.entries(spec).filter(([key]) => key !== 'BT-5')));
+  const reason = { label: TEXTS.ruleCurrency, value: TEXTS.ruleMissing };
+
+  it.each(['ubl-invoice', 'ubl-creditnote', 'cii'] as const)(
+    'cannot check either in %s and says why',
+    (syntax) => {
+      const result = checkRules(withoutCurrency() as InvoiceModel, { syntax });
+      for (const id of ['BR-CO-14', 'BR-CO-15']) {
+        const rule = result.results.find((r) => r.id === id);
+        expect(rule?.status, id).toBe('nichtPruefbar');
+        expect(rule?.values.at(-1), id).toEqual(reason);
+        expect(
+          rule?.values.map((v) => v.label),
+          id,
+        ).not.toContain(TEXTS.ruleExpected);
+      }
+      expect(result.auffaellig).toEqual([]);
+      // the other rules are checked as before
+      expect(status(result, 'BR-CO-13')).toEqual(['passt']);
+    },
+  );
+
+  it('names no BT-110 it could not read without the currency, and no count', () => {
+    const base = BASE['BG-22'] as Spec[];
+    const withoutVat = Object.fromEntries(
+      Object.entries(base[0] as Spec).filter(([key]) => key !== 'BT-110'),
+    );
+    const model = withoutCurrency({ ...BASE, 'BG-22': [withoutVat] }) as InvoiceModel;
+    const co15 = checkRules(model, { syntax: 'ubl-invoice' }).results.find(
+      (r) => r.id === 'BR-CO-15',
+    );
+    expect(co15?.values).toEqual([
+      { label: 'Gesamtbetrag ohne Umsatzsteuer (BT-109)', value: '140,00' },
+      { label: 'Gesamtbetrag mit Umsatzsteuer (BT-112)', value: '166,60' },
+      reason,
+    ]);
+    // UBL skips BR-CO-14 without a breakdown, with or without the currency
+    const noBreakdown = withoutCurrency({ ...BASE, 'BG-23': [], 'BG-22': [withoutVat] });
+    expect(
+      status(checkRules(noBreakdown as InvoiceModel, { syntax: 'ubl-invoice' }), 'BR-CO-14'),
+    ).toEqual([]);
   });
 });
 

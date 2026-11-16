@@ -124,7 +124,10 @@ export interface RuleForms {
    * BR-CO-15: BT-112 = BT-109 + BT-110 only with exactly one VAT total in the document currency
    * (audit R2-L-03) — UBL `count(cac:TaxTotal/xs:decimal(cbc:TaxAmount[@currencyID=$Currency])) eq
    * 1`, CII `count(…/ram:TaxTotalAmount[@currencyID = $Currency]) = 1`; without it or with two the
-   * rule fails, in CII unless BT-112 = BT-109 (co15NetAlone)
+   * rule fails, in CII unless BT-112 = BT-109 (co15NetAlone). Counted are the values of BT-110: in
+   * CII also an amount without `currencyID` where none carries the invoice currency (binding.ts,
+   * audit R3-L-02), so the tool counts one where CEN counts none. Without BT-5 the rule is not
+   * checked (R3-L-01)
    */
   co15ExactlyOneTax: boolean;
   /** BR-CO-16: UBL rounds BT-112 − BT-113 and BT-115 − BT-114, CII computes exactly */
@@ -388,46 +391,66 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
     ]);
   }
 
+  // Without the invoice currency (BT-5) the tool cannot tell which amount is BT-110: both CEN
+  // Schematrons count it in the invoice currency and then report only BR-05 (`every $Currency in
+  // <BT-5> satisfies …` holds over nothing). BR-CO-14 and BR-CO-15 are not checked and say why,
+  // a BT-110 not read is not shown (audit R3-L-01)
+  const noCurrency: RuleValue[] = currency
+    ? []
+    : [{ label: TEXTS.ruleCurrency, value: TEXTS.ruleMissing }];
+  const taxTotal: RuleValue[] =
+    currency || bt110 !== null ? [{ label: named('BT-110'), value: money(bt110) }] : [];
+
   // BR-CO-14: BT-110 = round(Σ BT-117) — where BT-110 is given: the CEN Schematron checks it in the
   // context of BT-110, so without one it does not apply (three official examples without VAT, e.g.
   // CEN CII_example7, showed it as "nicht prüfbar"); UBL also needs a VAT breakdown, CII does not
   const breakdowns = groupsOf(model, 'BG-23');
-  if ((breakdowns.length > 0 || forms.co14WithoutBreakdown) && bt110 !== null) {
+  if ((breakdowns.length > 0 || forms.co14WithoutBreakdown) && (bt110 !== null || !currency)) {
     const taxes = decimals(model, 'BG-23/BT-117');
     const taxSum = taxes ? sum(taxes) : undefined;
-    add_('BR-CO-14', taxSum && bt110 ? decimalEquals(bt110, round2(taxSum)) : undefined, [
-      { label: TEXTS.ruleSumTaxes, value: taxSum ? money(taxSum) : TEXTS.ruleNoNumber },
-      { label: named('BT-110'), value: money(bt110) },
-    ]);
+    add_(
+      'BR-CO-14',
+      currency && taxSum && bt110 ? decimalEquals(bt110, round2(taxSum)) : undefined,
+      [
+        { label: TEXTS.ruleSumTaxes, value: taxSum ? money(taxSum) : TEXTS.ruleNoNumber },
+        ...taxTotal,
+        ...noCurrency,
+      ],
+    );
   }
 
   // BR-CO-15: BT-112 = round(BT-109 + BT-110) with exactly one BT-110 in the document currency;
   // CII: or BT-112 = BT-109 (then BT-110 may be missing). Without one or with two the sum fails,
-  // as both CEN Schematrons count them (audit R2-L-03)
+  // as both CEN Schematrons count them where BT-5 is given (audit R2-L-03, R3-L-01). In CII an
+  // amount without `currencyID` counts as well, where none carries the invoice currency (binding of
+  // BT-110, D16B allows it): then BR-CO-15 can pass where CEN reports it for the missing attribute
   {
     const taxes = valuesOf(model, 'BG-22/BT-110').map((v) => parseDecimal(v.value));
     const notOneTax = forms.co15ExactlyOneTax && taxes.length !== 1;
     const netAlone = Boolean(forms.co15NetAlone && bt109 && bt112 && decimalEquals(bt112, bt109));
     let sumFits: boolean | undefined;
     let expected: Decimal | undefined;
-    if (notOneTax) {
+    if (!currency) {
+      // not checked (R3-L-01): neither passes nor fails
+    } else if (notOneTax) {
       sumFits = false;
-      expected = forms.co15NetAlone && bt109 ? bt109 : undefined;
+      // the net amount is what CII accepts without BT-110; with two it is no expected gross amount,
+      // the count says why (audit R3-U-02)
+      expected = forms.co15NetAlone && bt109 && taxes.length === 0 ? bt109 : undefined;
     } else if (bt109 && bt110 !== undefined) {
       expected = forms.co15NetAlone && bt110 === null ? bt109 : round2(add(bt109, bt110 ?? ZERO));
       sumFits = bt112 ? decimalEquals(bt112, expected) : undefined;
     }
-    const ok = netAlone || sumFits;
+    const ok = currency ? netAlone || sumFits : undefined;
     add_('BR-CO-15', ok, [
       { label: named('BT-109'), value: money(bt109) },
-      {
-        label: named('BT-110'),
-        value: taxes.length > 1 ? taxes.map(money).join(TEXTS.ruleAnd) : money(bt110),
-      },
+      ...(taxes.length > 1
+        ? [{ label: named('BT-110'), value: taxes.map(money).join(TEXTS.ruleAnd) }]
+        : taxTotal),
       { label: named('BT-112'), value: money(bt112) },
       ...expectedValue(expected),
       // why the sum cannot fit: none (UBL) or more than one VAT total
-      ...(notOneTax && ok !== true && (taxes.length > 1 || !forms.co15NetAlone)
+      ...(currency && notOneTax && ok !== true && (taxes.length > 1 || !forms.co15NetAlone)
         ? [
             {
               label: TEXTS.ruleTaxTotals,
@@ -435,6 +458,7 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
             },
           ]
         : []),
+      ...noCurrency,
     ]);
   }
 

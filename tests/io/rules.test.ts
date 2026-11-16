@@ -103,3 +103,72 @@ describe('the forms of the syntax in the result (audit R2-T-01)', () => {
     expect(checkRules(model, { syntax: 'ubl-invoice' }).auffaellig).toEqual(['BR-CO-17']);
   });
 });
+
+// Audit R3-L-01: without the invoice currency (BT-5, optional in UBL 2.1 and CII D16B) the CEN
+// Schematrons report only BR-05, never BR-CO-15 — the tool checks neither BR-CO-14 nor BR-CO-15
+// there and names the missing currency as the reason
+describe('an invoice without the invoice currency (audit R3-L-01)', () => {
+  const cases = [
+    ['kosit/01.01a-INVOICE_ubl.xml', '<cbc:DocumentCurrencyCode>EUR</cbc:DocumentCurrencyCode>'],
+    ['kosit/01.01a-INVOICE_uncefact.xml', '<ram:InvoiceCurrencyCode>EUR</ram:InvoiceCurrencyCode>'],
+  ] as const;
+
+  it.each(cases)(
+    '%s: no possible irregularity in the amounts, BR-CO-14/-15 not checked',
+    async (path, currency) => {
+      const text = officialText(path);
+      expect(text.split(currency).length - 1).toBe(1);
+      const analysis = await analyzeFile('r.xml', encode(text.replace(currency, '')), load);
+      const verdict = verdictOf(analysis);
+      const [invoice] = verdict.invoices;
+      if (!invoice) throw new Error('no invoice');
+      expect(invoice.part.schema?.count).toBe(0);
+      const rules = rulesOf(invoice);
+      expect(rules?.auffaellig).toEqual([]);
+      for (const id of ['BR-CO-14', 'BR-CO-15']) {
+        const rule = rules?.results.find((r) => r.id === id);
+        expect(rule?.status, id).toBe('nichtPruefbar');
+        expect(rule?.values.at(-1), id).toEqual({
+          label: 'Rechnungswährung (BT-5)',
+          value: '– nicht angegeben',
+        });
+        expect(rule?.values.map((v) => v.label).join(' '), id).not.toContain('erwartet');
+      }
+      expect(verdict.explanation.join(' ')).not.toContain('BR-CO-15');
+    },
+  );
+});
+
+// Audit R3-L-02: CII D16B allows `ram:TaxTotalAmount` without `currencyID`. Such an amount counts
+// as BT-110 only where none carries the invoice currency (CEN counts only those that carry it)
+describe('a CII VAT total without currencyID (audit R3-L-02)', () => {
+  const PATH = 'kosit/01.01a-INVOICE_uncefact.xml';
+  const WITH = '<ram:TaxTotalAmount currencyID="EUR">22.04</ram:TaxTotalAmount>';
+  const WITHOUT = '<ram:TaxTotalAmount>22.04</ram:TaxTotalAmount>';
+  const read = async (replacement: string) => {
+    const text = officialText(PATH);
+    expect(text.split(WITH).length - 1).toBe(1);
+    const analysis = await analyzeFile('r.xml', encode(text.replace(WITH, replacement)), load);
+    const [invoice] = verdictOf(analysis).invoices;
+    if (!invoice) throw new Error('no invoice');
+    expect(invoice.part.schema?.count).toBe(0);
+    return invoice;
+  };
+  const co15 = (invoice: Awaited<ReturnType<typeof read>>) =>
+    rulesOf(invoice)?.results.find((r) => r.id === 'BR-CO-15');
+
+  it('is left out beside an amount in the invoice currency (b)', async () => {
+    const invoice = await read(`${WITH}${WITHOUT}`);
+    expect(invoice.part.model?.groups['BG-22']?.[0]?.terms['BT-110']).toHaveLength(1);
+    expect(co15(invoice)?.status).toBe('passt');
+    expect(rulesOf(invoice)?.auffaellig).toEqual([]);
+  });
+
+  it('counts where it is the only one, as documented (a)', async () => {
+    const invoice = await read(WITHOUT);
+    expect(invoice.part.model?.groups['BG-22']?.[0]?.terms['BT-110']).toHaveLength(1);
+    expect(co15(invoice)?.status).toBe('passt');
+    // two without the attribute are two VAT totals
+    expect(co15(await read(`${WITHOUT}${WITHOUT}`))?.status).toBe('auffaellig');
+  });
+});
