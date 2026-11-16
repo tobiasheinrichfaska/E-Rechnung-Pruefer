@@ -48,11 +48,11 @@ function standOf(testArea: boolean): string | null {
 
 /**
  * The test version's start (src/testArea.tsx) and the copy of the shared test frame
- * (src/testrahmen/, repo Testumgebung). Every build except the test version resolves them to a stub
+ * (src/testrahmen/, repo Testumgebung). Every mode except the test version's resolves them to a stub
  * that only throws: main.tsx imports the start statically, and a module's style stays in the bundle
  * even where the build folds its use away (found by the Fragebogen, 2026-11-15), so the condition in
- * main.tsx alone would not keep the frame out of the live file (tests/e2e/testrahmen.spec.ts). The
- * dev server and Vitest resolve them as they are.
+ * main.tsx alone would not keep the frame out of the live file (tests/e2e/testrahmen.spec.ts).
+ * Vitest resolves them as they are: tests/static/testrahmen.test.ts asks the frame about the binding.
  */
 const TEST_AREA_ONLY = [
   /^\.{1,2}\/(?:.*\/)?testArea(?:\.tsx)?$/,
@@ -60,13 +60,13 @@ const TEST_AREA_ONLY = [
 ];
 const TEST_AREA_STUB = fileURLToPath(new URL('./src/testAreaStub.ts', import.meta.url));
 
-export default defineConfig(({ command, mode }) => ({
+export default defineConfig(({ mode }) => ({
   // Relative paths so the single file also runs from file://
   base: './',
   plugins: [react(), viteSingleFile(), contentSecurityPolicy(mode === 'testbereich')],
   resolve: {
     alias:
-      command === 'build' && mode !== 'testbereich'
+      mode !== 'testbereich' && process.env.VITEST === undefined
         ? TEST_AREA_ONLY.map((find) => ({ find, replacement: TEST_AREA_STUB }))
         : [],
   },

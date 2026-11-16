@@ -13,7 +13,7 @@ for (const [name, value] of Object.entries(colorVariables(APP_CONFIG.colors))) {
 }
 
 // The test version (`npm run build:test`) mounts the tool inside the shared test frame
-// (src/testArea.tsx). Every other build resolves that module to a stub whose function only throws
+// (src/testArea.tsx). Every other mode resolves that module to a stub whose function only throws
 // (vite.config.ts): the build folds the condition on the mode, drops the unused stub, and nothing of
 // the frame, its style or the manual tests reaches the live file. A static import, not import() as
 // in Testumgebung's docs/testrahmen.md: in the single file, the lazy module of an import() waited
