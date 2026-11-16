@@ -583,7 +583,21 @@ details.technical > summary {
   color: var(--accent);
 }
 
-/* G-8/F27: the compared values of several invoice XML; the differing ones marked */
+/* G-8/F27: the compared values of several invoice XML. The columns share the card's width, so a long
+   attachment name or the identifier (BT-24) breaks where it must instead of pushing the page
+   sideways, and a German word keeps whole: `anywhere` (.details td) let the automatic layout squeeze
+   the columns until „Umsatzsteuerkategorie“ broke inside (audit R4-U-03). On a phone the rows are
+   blocks (phone block above), which the fixed layout leaves as they are. */
+.comparison {
+  table-layout: fixed;
+}
+
+.comparison td,
+.comparison thead th {
+  overflow-wrap: break-word;
+}
+
+/* the differing ones marked */
 .comparison tr.differs th,
 .comparison tr.differs td {
   color: var(--bad);
