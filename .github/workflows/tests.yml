@@ -61,15 +61,32 @@ jobs:
       - run: npm run test:e2e
       # The branches that need a Kanzlei configuration (access notice, Impressum and privacy links,
       # colours; FEATURES_REQUIRED.md) run here against an invented one — the real one names the
-      # Kanzlei and stays in the private repo (audit 2026-11-15, QT-01). None of them may skip.
+      # Kanzlei and stays in the private repo (audit 2026-11-15, QT-01). None of them may skip, and
+      # each spec of KANZLEI_SPECS must run at least one test: a renamed describe or a dropped spec
+      # would otherwise leave its branch out unnoticed (R2-T-04; tests/static/workflow.test.ts).
       - name: E2E mit der erfundenen Beispielkanzlei (Zugangshinweis, Fußzeile, Farben)
         env:
           KANZLEI_CONFIG: tests/fixtures/config/beispiel-kanzlei.json
+          KANZLEI_SPECS: tests/e2e/zugangshinweis.spec.ts tests/e2e/fusszeile.spec.ts tests/e2e/farben.spec.ts
           PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/beispielkanzlei.json
         run: |
           npm run build
-          npx playwright test tests/e2e/zugangshinweis.spec.ts tests/e2e/fusszeile.spec.ts tests/e2e/farben.spec.ts --grep "of the local configuration" --reporter=list,json
-          node -e "const s = require('./test-results/beispielkanzlei.json').stats; console.log(s); if (s.expected === 0 || s.skipped > 0 || s.unexpected > 0) process.exit(1);"
+          npx playwright test $KANZLEI_SPECS --grep "of the local configuration" --reporter=list,json
+          node -e "
+            const report = require('./' + process.env.PLAYWRIGHT_JSON_OUTPUT_FILE);
+            const testsOf = (suite) => [
+              ...(suite.specs || []).flatMap((spec) => spec.tests),
+              ...(suite.suites || []).flatMap(testsOf),
+            ];
+            const files = process.argv.slice(1).map((spec) => require('path').relative('tests/e2e', spec));
+            const counts = files.map((file) => {
+              const tests = report.suites.filter((suite) => suite.file === file).flatMap(testsOf);
+              const expected = tests.filter((test) => test.status === 'expected').length;
+              return { file, expected, other: tests.length - expected };
+            });
+            console.table(counts);
+            if (files.length === 0 || counts.some((c) => c.expected === 0 || c.other > 0)) process.exit(1);
+          " $KANZLEI_SPECS
       - if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
