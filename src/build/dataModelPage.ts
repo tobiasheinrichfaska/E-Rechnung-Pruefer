@@ -391,7 +391,8 @@ export const FUNCTIONS: { layer: string; signature: string; purpose: string }[] 
   },
   {
     layer: 'io',
-    signature: 'xsdValidator(entry, files) / schemaProblems(doc, validator)',
+    signature:
+      'xsdValidator(entry, files) / schemaProblems(doc, validator, keep?): { problems, count }',
     purpose: 'XSD-Prüfung mit den mitgelieferten Schemas (Schritt 2)',
   },
   {
