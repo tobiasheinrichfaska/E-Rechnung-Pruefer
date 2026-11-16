@@ -38,6 +38,9 @@ describe('file kind by content', () => {
     expect(fileKindOf(miniPdf())).toBe('pdf');
     expect(fileKindOf(encode(CII))).toBe('xml');
     expect(fileKindOf(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a]))).toBe('unknown');
+    // a web page is no XML the tool reads, also when it is well-formed XHTML (audit R2-L-06)
+    expect(fileKindOf(encode('<html><body><p>AGB<br></p></body></html>'))).toBe('unknown');
+    expect(fileKindOf(encode('<html xmlns="http://www.w3.org/1999/xhtml"/>'))).toBe('unknown');
   });
 });
 
@@ -205,6 +208,32 @@ describe('PDF files', () => {
     });
     const { verdict } = await check('r.pdf', pdf);
     expect(verdict.headline).toBe('E-Rechnung erkannt (XRechnung 3.0) – mit Hinweisen');
+  });
+
+  // Audit R2-L-06: terms as HTML beside the invoice are „kein XML“, never „ist XML, lässt sich
+  // aber nicht lesen“ with a format error — with or without a DOCTYPE, by content
+  it('lists an HTML attachment as no XML, never as broken XML', async () => {
+    const pages = [
+      '<html><body><p>Unsere AGB<br></p></body></html>',
+      '<!DOCTYPE html>\n<html lang="de"><body><p>AGB<br></p></body></html>',
+      '<html xmlns="http://www.w3.org/1999/xhtml"><body/></html>',
+    ];
+    for (const page of pages) {
+      const agb = { name: 'agb.xml', bytes: encode(page), mime: 'text/html' };
+      const beside = await check(
+        'r.pdf',
+        miniPdf({ attachments: [xml('factur-x.xml', officialText(XR_CII)), agb] }),
+      );
+      expect(beside.analysis.others).toEqual([{ origin: 'agb.xml', kind: 'notXml' }]);
+      expect(beside.verdict.explanation.join(' ')).not.toContain('agb.xml');
+      const alone = await check('r.pdf', miniPdf({ attachments: [agb] }));
+      expect(alone.verdict.headline).toBe('Keine E-Rechnung: PDF ohne Rechnungsdaten');
+      expect(alone.verdict.explanation.join(' ')).not.toContain('Rn. 6a');
+    }
+    // an XML with a DOCTYPE html but an invoice root is still not read, and named
+    const hidden = `<!DOCTYPE html>${officialText(XR_UBL).replace(/^<\?xml[^>]*\?>/, '')}`;
+    const { analysis } = await check('r.pdf', miniPdf({ attachments: [xml('x.xml', hidden)] }));
+    expect(analysis.others).toEqual([{ origin: 'x.xml', kind: 'doctypeXml' }]);
   });
 
   it('reports a broken XML attachment as a format error', async () => {
