@@ -144,3 +144,98 @@ Gestaltungsfragen (fortlaufend nach G-1 … G-10 aus `audit-bedienung-2026-11-14
   auch ein Wunsch an `Testumgebung`, die Kopie hier wird nie geändert.
 
 Steuerfragen: **F31** und **F32** in `docs/offene-fragen.md`.
+
+## Runde 2 (16.11.2026)
+
+### Vorgehen
+
+- **Stand:** `0c2bdef`, Version 0.10.0. Dazu gehören die Behebungen aus Runde 1 und der gemeinsame
+  Testrahmen.
+- **Ablauf wie in Runde 1:**
+  - vier Prüf-Agenten (R2-L, R2-S, R2-U, R2-T);
+  - vier Widerlegungs-Agenten;
+  - drei Behebungs-Agenten in eigenen Arbeitskopien.
+- **Prüfauftrag:** Die Prüf-Agenten sollten die Behebungen aus Runde 1 selbst prüfen. Ausdrücklich
+  galt: „nichts gefunden“ ist ein gültiges Ergebnis.
+- **Testrahmen:** Probleme in der Kopie des Rahmens gingen als Wünsche an `Testumgebung`. Die Kopie
+  wird hier nie geändert.
+- **Rechteprüfung:** Ein Widerlegungs-Agent wollte Saxon von Maven Central laden und eine private
+  FeRD-Datei kopieren. Beides wurde abgelehnt, und er hat es nicht wiederholt. Zwei Aussagen zum
+  Schematron sind deshalb gelesen, nicht vom Validator bestätigt.
+
+### Ergebnis
+
+34 Befunde, **keiner ganz widerlegt**.
+
+| Bereich           | Befunde | bestätigt | teilweise | Wünsche an Testumgebung |
+| ----------------- | ------- | --------- | --------- | ----------------------- |
+| Logik (R2-L)      | 8       | 6         | 2         | 0                       |
+| Sicherheit (R2-S) | 6       | 2         | 4         | 1                       |
+| Bedienung (R2-U)  | 11      | 10        | 1         | 2                       |
+| Tests/Doku (R2-T) | 9       | 8         | 1         | 1                       |
+
+### Logik und Ergebnisse (R2-L)
+
+| ID      | Befund                                                                                                                                                                                                 | Erledigung |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- |
+| R2-L-01 | Die Behebung QL-01 verglich Anzeigetexte: dieselbe Rechnung mit „7“ und „7.00“, einer Nullsumme nur in einer XML oder anderer Reihenfolge galt als Formatfehler (rot), ebenso das amtliche Paar 03.07a | in Arbeit  |
+| R2-L-02 | „Unterschiedlich: …“ zeigte bei Positionen und Regeln gleiche Texte („vorhanden / vorhanden“)                                                                                                          | in Arbeit  |
+| R2-L-03 | UBL-Form von BR-CO-15 ohne BT-110 „passt“, CEN verlangt genau einen Steuerbetrag in Belegwährung                                                                                                       | in Arbeit  |
+| R2-L-04 | Die Box nannte bei Angaben je Position die ganze Zeile                                                                                                                                                 | in Arbeit  |
+| R2-L-05 | UBL BR-S-08 „auffällig“ mit lauter 0,00, ohne den Grund                                                                                                                                                | in Arbeit  |
+| R2-L-06 | Eine angehängte, nicht wohlgeformte HTML-Datei galt als fehlerhafte XML                                                                                                                                | in Arbeit  |
+| R2-L-07 | Ein fehlender Teilbetrag hieß „keine Zahl“                                                                                                                                                             | in Arbeit  |
+| R2-L-08 | BR-CO-11/-12 nannten den zweiten Wert nur mit seiner Kennung                                                                                                                                           | in Arbeit  |
+
+### Sicherheit und Auslieferung (R2-S)
+
+| ID      | Befund                                                                                                                           | Erledigung                                                                                                                                                                    |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R2-S-01 | Sehr viele Positionen (100 000 leere in 14 KiB) frieren die Seite für Sekunden ein; echte 20-MB-Rechnungen 3,4–4,9 s             | in Arbeit: jede XPath nur einmal übersetzt; die Obergrenze ist Frage **G-18**                                                                                                 |
+| R2-S-02 | Schemameldungen hinter Zeile 65535 nannten Zeile 65535                                                                           | behoben (`XML_PARSE_BIG_LINES`)                                                                                                                                               |
+| R2-S-03 | Die Sperren um die Kopie des Rahmens galten nur für die heutigen Dateinamen                                                      | behoben: genaue Dateiliste mit eigenen Prüfsummen, ESLint auch für `.js`/`.mjs`/`.cjs`, unsichtbare Zeichen auch in `.mjs`/`.mts`; Wunsch an Testumgebung (dort schon gebaut) |
+| R2-S-04 | Ein Build der Testfassung ohne Ausgabeordner schrieb nach `dist/`, und die Prüfung im Freigabe-Lauf bestand auch die Testfassung | behoben: Ordner nach Modus, Testfassung in `dist/` bricht ab; Anfrage an den Kanzlei-PC (Briefing § 6)                                                                        |
+| R2-S-05 | Der Kanzleidaten-Test las nur den heutigen Stand, nicht noch nicht gepushte Commits                                              | behoben                                                                                                                                                                       |
+| R2-S-06 | Die öffentliche Doku nennt die Namen der Pull Zones; daraus ergeben sich die privaten `….b-cdn.net`-Adressen                     | Frage **G-19**                                                                                                                                                                |
+
+### Bedienung, Texte, Zugänglichkeit (R2-U)
+
+| ID      | Befund                                                                                        | Erledigung                                                 |
+| ------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| R2-U-01 | In der Testfassung zwischen 900 und 1050 px war das Tool zu schmal für seine Tabelle          | behoben: Container-Abfrage (`src/testArea.css`)            |
+| R2-U-02 | Die Testfassung druckte im Hochformat nur die Testseite                                       | behoben durch den Rahmen `2645a15`, mit Test               |
+| R2-U-03 | Die Handtests nannten die Beispielseite nur als „siehe README“                                | behoben                                                    |
+| R2-U-04 | Drei „Danach“-Sätze passten nicht zur Testfassung                                             | behoben                                                    |
+| R2-U-05 | Eine Datei auf der Testseite wurde im verborgenen Tool geprüft                                | behoben: neben dem Tool abgewiesen                         |
+| R2-U-06 | Der Gutschrift-Hinweis hieß „Mögliche Auffälligkeit“, Box und Zusammenfassung sagen „Hinweis“ | in Arbeit                                                  |
+| R2-U-07 | „besondere Fälle“ bedeutete zweierlei                                                         | behoben: „nur im Einzelfall nötig“ wie die Marke           |
+| R2-U-08 | Ein nicht gelesener Anhang machte gelb, ohne zu sagen, was das bedeutet                       | in Arbeit                                                  |
+| R2-U-09 | Bei mehreren XML standen Anhangnamen ohne „…“                                                 | in Arbeit                                                  |
+| R2-U-10 | Statusmeldungen des Rahmens werden vermutlich nicht vorgelesen                                | Wunsch an Testumgebung (dort gebaut, noch nicht in `main`) |
+| R2-U-11 | Im Kontrastmodus sehen gewählte Knöpfe des Rahmens gleich aus                                 | Wunsch an Testumgebung (dort gebaut, noch nicht in `main`) |
+
+### Tests und Dokumentation (R2-T)
+
+| ID      | Befund                                                                                   | Erledigung                                |
+| ------- | ---------------------------------------------------------------------------------------- | ----------------------------------------- |
+| R2-T-01 | Die Rechenformen je Syntax hingen an einer Zeile, die kein Test schützte                 | in Arbeit                                 |
+| R2-T-02 | Viele Einträge von `RULE_FORMS` ließen sich ohne roten Test ändern                       | in Arbeit                                 |
+| R2-T-03 | QL-01 ungetestet für einen Unterschied nur in den Regeln                                 | in Arbeit                                 |
+| R2-T-04 | Die CI-Prüfung mit der erfundenen Kanzlei zählte nur die Summe                           | behoben: je Spec                          |
+| R2-T-05 | wie R2-S-03                                                                              | behoben                                   |
+| R2-T-06 | Prüfsummen der XSD nicht an den Pfad gebunden                                            | teilweise widerlegt, keine Änderung nötig |
+| R2-T-07 | Unsichtbare Zeichen in eigenen Dateien unter `tests/fixtures/` wurden nicht gefunden     | behoben                                   |
+| R2-T-08 | Einige Zeilen in CLAUDE.md und `config/README.md` versprachen mehr, als die Tests prüfen | behoben (Tests und Doku)                  |
+| R2-T-09 | Zwei Dateien ohne Zeile in CLAUDE.md                                                     | behoben                                   |
+
+### Neue Fragen an Tobias
+
+- **G-18 (R2-S-01):** Soll es eine Obergrenze für die Zahl der Positionen geben, und wie hoch? Gezählt
+  würde über alle Anhänge eines PDF. Der Vorschlag 10 000 würde echte Rechnungen abweisen.
+- **G-19 (R2-S-06):** Dürfen die Namen der Pull Zones öffentlich bleiben?
+  - Aus ihnen ergeben sich die `….b-cdn.net`-Adressen, die das private Repo als privat führt. Die
+    Live-Adresse zeigt den Zugangshinweis mit dem Kanzleinamen.
+  - Wenn ja, passe ich die private Regel an. Wenn nein, ersetze ich die Namen in der Doku und nehme
+    sie in die private Namensliste auf.
+- **G-20 (R2-L-01):** Zwei XML derselben Rechnung, von denen nur eine BT-113 = 0,00 nennt (amtliches
+  Paar 01.20a), unterscheiden sich im Status der Zeile „Endrechnung“. Zählt das als Unterschied (F27)?
