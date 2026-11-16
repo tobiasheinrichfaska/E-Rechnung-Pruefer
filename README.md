@@ -11,16 +11,17 @@ Das Ergebnis sind **Hinweise, keine Freigabe**: eine technische Erstprüfung, ke
 Bei einer E-Rechnung sind die Daten in der XML maßgeblich.
 
 **Ihre Datei verlässt den Rechner nicht.** Das Werkzeug ist eine einzige HTML-Datei; der Browser
-verbietet ihr jede Netzwerkverbindung (Content-Security-Policy). Es speichert nichts.
+verbietet ihr jede Netzwerkverbindung (Content-Security-Policy). Gespeichert wird nur etwas, wenn Sie
+bei einem Zugangshinweis „Antwort für die Zukunft merken“ wählen: ein Fingerabdruck des bestätigten
+Hinweises in diesem Browser, nie die Rechnung.
 
-**Stand:** in Entwicklung, nur im Testbereich. Gebaut sind das Erkennen, die Schemaprüfung, die
-Pflichtangaben und eine Auswahl der Rechenregeln. Die Beispielrechnungen in `beispiele/` sind noch nicht
-hochgeladen.
+**Stand:** online, in Entwicklung. Gebaut sind das Erkennen, die Schemaprüfung, die Pflichtangaben und
+eine Auswahl der Rechenregeln. Beispielrechnungen für Tester liegen in [`beispiele/`](beispiele/).
 
 ## Entwicklung
 
 ```bash
-npm install --ignore-scripts
+npm ci --ignore-scripts
 npm test          # Vitest
 npm run build     # dist/index.html
 npm run test:e2e  # Playwright

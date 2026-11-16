@@ -15,6 +15,35 @@ darf – mit seinem Lizenzhinweis. Keine inoffiziellen Kopien.
 | KoSIT XRechnung Visualization (XSLT UBL/CII → semantisches Modell mit BT-/BG-Nummern) – Quelle der Zuordnung `src/logic/binding.ts`        | https://github.com/itplr-kosit/xrechnung-visualization/releases/download/v2026-10-13/xrechnung-3.0.2-visualization-2026-10-13.zip                     | v2026-10-13, geladen 13.11.2026                   | Apache-2.0                                                                     | nein – die XPaths sind als eigene Datentabelle übernommen (in XPath 1.0)                                                                       | `ecf3913029218822ee4c90a86a3e23689768bf3568a061cf9bc742115e52264e` |
 | KoSIT/FeRD „Empfehlungen zu Pflichtangaben in einer E-Rechnung – Teil I: Pflichtangaben gemäß Umsatzsteuergesetz“ (Zuordnung UStG → BT/BG) | https://www.ferd-net.de/publikationen-produkte/publikationen/detailseite/pflichtangaben-in-einer-e-rechnung (Download-Link auf der Seite)             | Stand 25.07.2025, 10 Seiten, geladen 13.11.2026   | © KoSIT / FeRD, keine Lizenzangabe                                             | **nein** – nur die eigene Datentabelle mit Verweis je Zeile                                                                                    | `51e71c78b4b03148923fffa0b7054d558e938376d0fd69f7c33f2ef49a1a9abc` |
 
+### XSD aus der KoSIT-Konfiguration (UBL 2.1, CII D16B; Prüfsummen 15.11.2026)
+
+Die 20 XSD in `schemas/ubl-2.1/` und `schemas/cii-d16b/` sind bytegleich mit `resources/ubl/2.1/xsd/` und
+`resources/cii/16b/xsd/` der KoSIT Validator-Konfiguration oben (ZIP-Prüfsumme wie dort).
+`tests/static/schemaSums.test.ts` verlangt die SHA-256 jeder Datei in `schemas/` in diesem Dokument.
+
+| Datei                                                                                   | SHA-256                                                            |
+| --------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `cii-d16b/CrossIndustryInvoice_100pD16B.xsd`                                            | `3baf143b90f289d62c5dfb086aa51fa183490a2d0b38a40c6b31dcae0760f2ba` |
+| `cii-d16b/CrossIndustryInvoice_QualifiedDataType_100pD16B.xsd`                          | `6649215914728652e883662bec1d3eab008c215e86a59f3bb417db9723ee8c5c` |
+| `cii-d16b/CrossIndustryInvoice_ReusableAggregateBusinessInformationEntity_100pD16B.xsd` | `1c42244298a863bcc0b5196983ff0a5d084fcabe58aea77ef82b242e7cd0ddfd` |
+| `cii-d16b/CrossIndustryInvoice_UnqualifiedDataType_100pD16B.xsd`                        | `04fce6f6f28521886731294be18a4e6bb5cb3003456457d99ad5c4d3e652f497` |
+| `ubl-2.1/common/CCTS_CCT_SchemaModule-2.1.xsd`                                          | `dd546e4809df86b6445589f69f0d6c9df162840ae386574ddfc1da7638103e15` |
+| `ubl-2.1/common/UBL-CommonAggregateComponents-2.1.xsd`                                  | `580b5af6f68f7f556bd15945ba0e819cbf561442c81694f9b9468036ebedec4d` |
+| `ubl-2.1/common/UBL-CommonBasicComponents-2.1.xsd`                                      | `a3b349bf92e5cff26e303d2f05b7e00c884dcafcfd9e12755fb80289abf5e22e` |
+| `ubl-2.1/common/UBL-CommonExtensionComponents-2.1.xsd`                                  | `ad7a4e490978adfbcfc5ec0bb20941cf11ac960ccf0c4de8791a7c731a8dbe87` |
+| `ubl-2.1/common/UBL-CommonSignatureComponents-2.1.xsd`                                  | `4fa9e2370100040fe14c43e135ef77e2eb66b21cb8dbfc2ffb8d82ae991fe92e` |
+| `ubl-2.1/common/UBL-CoreComponentParameters-2.1.xsd`                                    | `8be3379dbdcbcc7802fafdd16bac72c48fff1c0bb364213a31a17911dd06100b` |
+| `ubl-2.1/common/UBL-ExtensionContentDataType-2.1.xsd`                                   | `fcee77a11870208e6377ea6311b9f2a050bca24bdad8606ea02d71e9f9e72f8d` |
+| `ubl-2.1/common/UBL-QualifiedDataTypes-2.1.xsd`                                         | `7dcb156e610239c97ae70940cf4653b88e48c3595bf5f56a2204a32e2893e6cf` |
+| `ubl-2.1/common/UBL-SignatureAggregateComponents-2.1.xsd`                               | `9234c2ca48dbfa9a22a786112bb075c5922a305170920eaab1e3c04fa0b7344b` |
+| `ubl-2.1/common/UBL-SignatureBasicComponents-2.1.xsd`                                   | `0fbe2d7afff0c1e11164b8ec83e13f18801021c3c87e390a9d76f9cf862f6a64` |
+| `ubl-2.1/common/UBL-UnqualifiedDataTypes-2.1.xsd`                                       | `09052d406b4293e2a5f9c2bfee6df10ad4d8d5f0b36e24a6349d7f7936d89eb6` |
+| `ubl-2.1/common/UBL-XAdESv132-2.1.xsd`                                                  | `a4f726bcf8cc3f7d9ffa4dab99e005535a8e8b60dced1e5d94578d2e05afa96e` |
+| `ubl-2.1/common/UBL-XAdESv141-2.1.xsd`                                                  | `1fa4625e9cefcb7a9abb5ac1b64315547450031eece8a55bd584e4ba4b79dbc1` |
+| `ubl-2.1/common/UBL-xmldsig-core-schema-2.1.xsd`                                        | `101909c9f06456d61ddcc4fb982f1d40dc357b439f393b1a2eb46e42acd60809` |
+| `ubl-2.1/maindoc/UBL-CreditNote-2.1.xsd`                                                | `1e117b6c1ab713604b29b0d685442a81a0c78a82575445ee8c43e6050cda7454` |
+| `ubl-2.1/maindoc/UBL-Invoice-2.1.xsd`                                                   | `3a5aacd823f0e5b8f25ae7b5191c2002d5333ba351d87de9371ed62dca2b2b0c` |
+
 ## FeRD-Infopaket (von Tobias geladen)
 
 | Artefakt                                                                                                                                                                                                                     | Quelle                                                                                                                               | Stand                                                                        | Lizenz laut Nutzungsbedingungen                                                                                                                                                                                                                                                                                                                              | Ablage                                                                                                                                          | SHA-256                                                            |
@@ -27,8 +56,9 @@ Von Tobias in die Sitzung hochgeladen: `Factur-X_1.09.2_MINIMUM.zip` (Teil des F
 Schema-Ordner aller Profile 0–4 und `5. CII D22B XSD`), SHA-256
 `8ff977d9d6a1ff273956c9ee548122ae848789a6ff32d5543a03f852b7929a1f`. Übernommen sind nur die vier XSD
 des Ordners `4_Factur-X_1.09.2_EXTENDED/`, unverändert, nach `schemas/factur-x-1.09.2-extended/`
-(Apache-2.0, Lizenztext daneben). Die übrigen Profile prüft das Tool wie der KoSIT-Validator gegen CII
-D16B.
+(Apache-2.0, Lizenztext daneben). Die übrigen Profile prüfte das Tool damals wie der KoSIT-Validator
+gegen CII D16B; seit F28 (0.3.0) prüft es jedes Factur-X-Profil gegen sein eigenes FeRD-Schema (Abschnitt
+F28 unten).
 
 | Datei                                                  | SHA-256                                                            |
 | ------------------------------------------------------ | ------------------------------------------------------------------ |

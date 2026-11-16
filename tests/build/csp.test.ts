@@ -11,6 +11,11 @@ describe('Content-Security-Policy', () => {
     expect(policy).toContain("worker-src 'none'");
     // not installable: no service worker (worker-src) and no web app manifest
     expect(policy).toContain("manifest-src 'none'");
+    // base-uri and form-action fall back to nothing, and on file:// this meta CSP is the only one;
+    // the edge rule of the hosted copy repeats all three (deploy/README.md: keep both in step)
+    expect(policy).toContain("object-src 'none'");
+    expect(policy).toContain("base-uri 'none'");
+    expect(policy).toContain("form-action 'none'");
     expect(policy).toContain("script-src 'sha256-a' 'wasm-unsafe-eval'");
     expect(policy).not.toContain("'unsafe-eval'");
     expect(policy).not.toContain("'unsafe-inline'");

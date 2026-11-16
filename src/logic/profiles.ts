@@ -34,8 +34,10 @@ export interface ProfileEntry {
   /**
    * FeRD EXTENDED: its Schematron replaces the EN 16931 totals and breakdown rules by its own forms
    * (BR-FXEXT-CO-10 … -16 and BR-FXEXT-…-08: logistics charges, amounts of third parties, small
-   * tolerances, only DETAIL lines of a hierarchy) and has no BR-CO-17 — only BR-CO-14, taken over
-   * unchanged, is checked (FeRD samples X11 and X19 carry logistics charges).
+   * tolerances, only DETAIL lines of a hierarchy) and has no BR-CO-17. For Factur-X 1.09.2 EXTENDED
+   * those FeRD forms are rebuilt (F29, rulesExtended.ts, with the amounts analyze.ts reads for it);
+   * ZUGFeRD 2.0 EXTENDED, without them, keeps only BR-CO-14, taken over unchanged (FeRD samples
+   * X11 and X19 carry logistics charges).
    */
   ownRules?: boolean;
   source: string;

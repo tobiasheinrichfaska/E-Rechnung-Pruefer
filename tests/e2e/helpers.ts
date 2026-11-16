@@ -29,13 +29,17 @@ const SPY = () => {
       return original.apply(this, args);
     } as never;
   }
-  const idb = window.indexedDB;
-  if (idb) {
-    const open = idb.open.bind(idb);
-    idb.open = ((...args: Parameters<IDBFactory['open']>) => {
+  // On the prototypes, not the instances: WebKit's page did not see a patched window.indexedDB or
+  // cookieStore instance (found by the self-check in erkennen.spec.ts, audit 2026-11-15, QT-15)
+  if (typeof IDBFactory !== 'undefined') {
+    const open = IDBFactory.prototype.open;
+    IDBFactory.prototype.open = function (
+      this: IDBFactory,
+      ...args: Parameters<IDBFactory['open']>
+    ) {
       seen.push('indexedDB.open');
-      return open(...args);
-    }) as IDBFactory['open'];
+      return open.apply(this, args);
+    };
   }
   const cookie = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie');
   Object.defineProperty(document, 'cookie', {
@@ -73,14 +77,15 @@ const SPY = () => {
       return beacon(...args);
     }) as typeof navigator.sendBeacon;
   }
-  const store = w['cookieStore'] as Record<string, (...args: unknown[]) => unknown> | undefined;
+  const store = (w['CookieStore'] as { prototype: object } | undefined)?.prototype as
+    Record<string, (...args: unknown[]) => unknown> | undefined;
   if (store) {
     for (const method of ['get', 'getAll', 'set', 'delete']) {
-      const original = store[method]?.bind(store);
+      const original = store[method];
       if (original) {
-        store[method] = (...args: unknown[]) => {
+        store[method] = function (this: unknown, ...args: unknown[]) {
           seen.push(`cookieStore.${method}`);
-          return original(...args);
+          return original.apply(this, args);
         };
       }
     }
@@ -148,13 +153,16 @@ export async function upload(page: Page, name: string, bytes: Uint8Array, mimeTy
 /**
  * What the spy saw, plus what is left in the stores afterwards: named access such as
  * `localStorage.x = 1` passes no Storage method, so the stores themselves are checked as well.
- * Allowed are only the given keys — by default the confirmed access notice; tests of the test
- * version also allow the tester's run (TEST_VERSION_KEYS), which alone may also be removed (sent or
- * started anew). The access notice is never removed, so removing it stays reported.
+ * Allowed are only the given keys — by default the confirmed access notice, and that only over
+ * https: a downloaded copy (file://) neither reads nor keeps it (config/README.md; audit 2026-11-15,
+ * QT-06). Tests of the test version also allow the tester's run (TEST_VERSION_KEYS), which alone may
+ * also be removed (sent or started anew). The access notice is never removed, so removing it stays
+ * reported.
  */
-export async function sideEffects(page: Page, allowed = [ACCESS_STORAGE]): Promise<string[]> {
+export async function sideEffects(page: Page, allowed?: string[]): Promise<string[]> {
   return page.evaluate(
-    async ({ names, run }) => {
+    async ({ given, access, run }) => {
+      const names = given ?? (location.protocol === 'https:' ? [access] : []);
       const ownTo = (list: string[]) => (key: string) =>
         list.some((name) => key === name || key.startsWith(`${name}@/`));
       const own = ownTo(names);
@@ -194,6 +202,6 @@ export async function sideEffects(page: Page, allowed = [ACCESS_STORAGE]): Promi
       }
       return seen;
     },
-    { names: allowed, run: TEST_RUN_STORAGE },
+    { given: allowed, access: ACCESS_STORAGE, run: TEST_RUN_STORAGE },
   );
 }

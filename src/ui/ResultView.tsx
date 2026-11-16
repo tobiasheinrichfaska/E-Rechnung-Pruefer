@@ -1,4 +1,4 @@
-import { Fragment } from 'react';
+import { Fragment, useId } from 'react';
 import type { ReactNode } from 'react';
 import type { Analysis } from '../logic/analysis';
 import { checkPflichtangaben } from '../logic/check';
@@ -32,6 +32,7 @@ const OTHER_KIND: Readonly<Record<string, string>> = {
   brokenXml: 'XML, fehlerhaft',
   doctypeXml: 'XML mit DOCTYPE, nicht gelesen',
   tooLargeXml: 'XML über 20 MB, nicht gelesen',
+  unreadable: 'nicht lesbar',
 };
 
 /** Targets of the jump links from the result box (G-1); one invoice card at most has them. */
@@ -42,7 +43,7 @@ const ANCHOR = {
 } as const;
 
 /** A result line; the engine's English message inside it is marked as English (audit Z-04). */
-function Line({ text }: { text: string }) {
+export function Line({ text }: { text: string }) {
   const parts = technicalParts(text);
   if (!parts) return <>{text}</>;
   return (
@@ -99,9 +100,9 @@ function SchemaProblems({ invoice }: { invoice: InvoiceVerdict }) {
   );
 }
 
-function DetailTable({ rows }: { rows: DetailRow[] }) {
+function DetailTable({ rows, labelledBy }: { rows: DetailRow[]; labelledBy?: string }) {
   return (
-    <table className="details">
+    <table className="details" aria-labelledby={labelledBy}>
       <tbody>
         {rows.map((row) => (
           <tr key={row.label}>
@@ -112,6 +113,15 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
       </tbody>
     </table>
   );
+}
+
+/**
+ * A browser opens a closed `<details>` for a link to something inside it, not for a link to the
+ * element itself: the jump link „Technische Meldungen“ opens it before the page jumps (QU-11).
+ */
+function openTarget(id: string) {
+  const target = document.getElementById(id);
+  if (target instanceof HTMLDetailsElement) target.open = true;
 }
 
 /** G-1: links from the result box to the sections of the (one) invoice shown below */
@@ -129,7 +139,9 @@ function JumpLinks({ invoice }: { invoice: InvoiceVerdict | undefined }) {
       {links.map((link, index) => (
         <span key={link.href}>
           {index > 0 && ' · '}
-          <a href={`#${link.href}`}>{link.text}</a>
+          <a href={`#${link.href}`} onClick={() => openTarget(link.href)}>
+            {link.text}
+          </a>
         </span>
       ))}
     </nav>
@@ -170,9 +182,49 @@ function Comparison({ analysis }: { analysis: Analysis }) {
   );
 }
 
+/**
+ * One invoice XML: its data under a heading that also names their table, so a screen reader can
+ * jump there from the result box (audit QU-13); the same data twice keep their one heading (G-8).
+ */
+function InvoiceCard({
+  invoice,
+  inPdf,
+  heading,
+}: {
+  invoice: InvoiceVerdict;
+  inPdf: boolean;
+  heading: string;
+}) {
+  const headingId = useId();
+  const rows = invoiceDetails(invoice, inPdf);
+  const technical = rows.filter((r) => r.technical);
+  return (
+    <div className="card">
+      <h3 id={headingId}>{heading}</h3>
+      <DetailTable rows={rows.filter((r) => !r.technical)} labelledBy={headingId} />
+      {technical.length > 0 && (
+        <details className="technical" data-testid="technical-details">
+          <summary>{TEXTS.technicalDetails}</summary>
+          <DetailTable rows={technical} />
+        </details>
+      )}
+      <SchemaProblems invoice={invoice} />
+      <Pflichtangaben invoice={invoice} />
+    </div>
+  );
+}
+
+/** Every attachment that is no invoice XML, also those pdf.js could not read (audit QL-06) */
+function attachmentsOf(analysis: Analysis): { origin: string; kind: string }[] {
+  return [
+    ...analysis.others,
+    ...(analysis.pdf?.unreadable ?? []).map((origin) => ({ origin, kind: 'unreadable' })),
+  ];
+}
+
 /** The PDF's only attachment is the one the result already names (e.g. a broken XML, audit E-08) */
 function onlyNamedAbove(analysis: Analysis, verdict: Verdict): boolean {
-  const [only, ...more] = analysis.others;
+  const [only, ...more] = attachmentsOf(analysis);
   return (
     analysis.invoices.length === 0 &&
     only !== undefined &&
@@ -219,30 +271,20 @@ export function ResultView({ analysis, verdict, notice, actions }: Props) {
 
       {comparison && !comparison.same && <Comparison analysis={analysis} />}
 
-      {shown.map((invoice, index) => {
-        const rows = invoiceDetails(invoice, inPdf);
-        const technical = rows.filter((r) => r.technical);
-        return (
-          <div className="card" key={`${invoice.part.origin}-${index}`}>
-            {comparison?.same && <h3>{fill(TEXTS.sameHeading, { names })}</h3>}
-            <DetailTable rows={rows.filter((r) => !r.technical)} />
-            {technical.length > 0 && (
-              <details className="technical" data-testid="technical-details">
-                <summary>{TEXTS.technicalDetails}</summary>
-                <DetailTable rows={technical} />
-              </details>
-            )}
-            <SchemaProblems invoice={invoice} />
-            <Pflichtangaben invoice={invoice} />
-          </div>
-        );
-      })}
+      {shown.map((invoice, index) => (
+        <InvoiceCard
+          key={`${invoice.part.origin}-${index}`}
+          invoice={invoice}
+          inPdf={inPdf}
+          heading={comparison?.same ? fill(TEXTS.sameHeading, { names }) : TEXTS.invoiceDataHeading}
+        />
+      ))}
 
-      {inPdf && analysis.others.length > 0 && !onlyNamedAbove(analysis, verdict) && (
+      {inPdf && attachmentsOf(analysis).length > 0 && !onlyNamedAbove(analysis, verdict) && (
         <div className="card">
           <h3>{analysis.invoices.length > 0 ? 'Weitere Anhänge im PDF' : 'Anhänge im PDF'}</h3>
           <ul>
-            {analysis.others.map((other) => (
+            {attachmentsOf(analysis).map((other) => (
               <li key={other.origin}>
                 {other.origin} – {OTHER_KIND[other.kind] ?? other.kind}
               </li>
@@ -250,7 +292,6 @@ export function ResultView({ analysis, verdict, notice, actions }: Props) {
           </ul>
         </div>
       )}
-      {analysis.pdf?.truncated && <p className="hint">{TEXTS.attachmentsTruncated}</p>}
     </section>
   );
 }

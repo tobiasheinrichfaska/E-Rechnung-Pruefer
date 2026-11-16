@@ -10,6 +10,10 @@ import {
   xmlRegisterInputProvider,
 } from 'libxml2-wasm';
 import type { ErrorDetail, XmlNode } from 'libxml2-wasm';
+// Internals of libxml2-wasm, for the schema messages only (schemaProblems below). The version is
+// pinned exactly (package.json); tests/io/xml.test.ts fails on another version and compares the
+// result with the public XsdValidator.validate on every official file and broken variants of them.
+import * as engine from 'libxml2-wasm/lib/libxml2.mjs';
 import { scanProlog, textOf } from '../logic/prolog';
 
 export const MAX_XML_BYTES = 20 * 1024 * 1024;
@@ -121,13 +125,70 @@ export function xsdValidator(entry: string, files: Readonly<Record<string, strin
   }
 }
 
-/** Schema problems of a document; empty when it is valid. */
-export function schemaProblems(doc: XmlDocument, validator: XsdValidator): XmlProblem[] {
+export interface SchemaProblems {
+  /** The first problems, at most `keep`, in the order libxml2 reports them */
+  problems: XmlProblem[];
+  /** How many there are in all */
+  count: number;
+}
+
+/** The version of libxml2-wasm whose internals schemaProblems relies on (pinned exactly). */
+export const ENGINE_VERSION = '0.7.2';
+
+// The public XsdValidator.validate collects every message with the XPath of its node, and
+// computing that path counts the node's preceding siblings: 80 000 messages took 38 s, and the page
+// shows 20 of them (audit 2026-11-15, QS-02). This collector keeps the first messages with line and
+// column, counts the others, and asks for no path.
+interface Sink {
+  problems: XmlProblem[];
+  count: number;
+  keep: number;
+}
+let sink: Sink | undefined;
+let collector: number | undefined;
+const { addFunction } = engine as unknown as {
+  addFunction: (fn: (index: number, error: number) => void, signature: string) => number;
+};
+const pointerOf = (object: XmlDocument | XsdValidator) =>
+  (object as unknown as { _ptr: number })._ptr;
+
+function schemaCollector(): number {
+  collector ??= addFunction((_index, error) => {
+    if (!sink) return;
+    sink.count += 1;
+    if (sink.problems.length >= sink.keep) return;
+    const line = engine.XmlErrorStruct.line(error);
+    const col = engine.XmlErrorStruct.col(error);
+    sink.problems.push({
+      message: engine.XmlErrorStruct.message(error).trim(),
+      ...(line > 0 ? { line } : {}),
+      ...(col > 0 ? { col } : {}),
+    });
+  }, 'vii');
+  return collector;
+}
+
+/**
+ * Schema problems of a document — none when it is valid: the first `keep` with their line, and how
+ * many there are. The same messages, lines and count as XsdValidator.validate gives.
+ */
+export function schemaProblems(
+  doc: XmlDocument,
+  validator: XsdValidator,
+  keep = Number.POSITIVE_INFINITY,
+): SchemaProblems {
+  const context = engine.xmlSchemaNewValidCtxt(pointerOf(validator));
+  if (context === 0) throw new Error('libxml2: no schema validation context');
+  const collected: Sink = { problems: [], count: 0, keep };
+  sink = collected;
   try {
-    validator.validate(doc);
-    return [];
-  } catch (error) {
-    if (error instanceof XmlLibError) return problemsOf(error.details);
-    throw error;
+    engine.xmlSchemaSetValidStructuredErrors(context, schemaCollector(), 0);
+    const result = engine.xmlSchemaValidateDoc(context, pointerOf(doc));
+    if (result < 0) throw new Error('libxml2: invalid input or internal error');
+    if (result === 0) return { problems: [], count: 0 };
+    return { problems: collected.problems, count: collected.count };
+  } finally {
+    sink = undefined;
+    engine.xmlSchemaFreeValidCtxt(context);
   }
 }

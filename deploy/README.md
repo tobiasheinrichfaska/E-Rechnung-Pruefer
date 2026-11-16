@@ -1,7 +1,12 @@
 # Auslieferung
 
-`upload.json` beschreibt das Ziel `test` (`NebenprojektERechnung/` auf der Fragebogen-Subdomain) für
-`private/Auslieferung`. Hochgeladen werden `dist/index.html` und `beispiele/`.
+Hochgeladen wird nur über das private Repo `Freigabe` (GitHub Actions, jeden Lauf startet Tobias),
+in die öffentliche Zone und die Testzone bei bunny.net (unten).
+
+**Abgelöst:** `upload.json` beschreibt das alte Ziel `test` (`NebenprojektERechnung/` auf der
+Fragebogen-Subdomain bei IONOS) für `private/Auslieferung` und `npm run hochladen`. Die IONOS-Kopie ist
+seit dem 15.11.2026 nicht mehr Sache dieses Projekts (Tobias); ob Ziel und Skript ganz wegfallen,
+entscheidet er.
 
 **Auf bunny.net nur `dist/index.html` als `index.html`** (Tobias, 15.11.2026): Die Beispielrechnungen
 kommen nicht neben die öffentliche Fassung. Mandanten brauchen sie nicht, und Tester holen sie aus
@@ -39,18 +44,19 @@ Die Testfassung läuft in einer eigenen geschützten Testzone bei bunny.net, get
 
 Die Seite bringt ihre Content-Security-Policy als `<meta>`-Tag mit (`src/build/csp.ts`). Eine
 `<meta>`-CSP kann `frame-ancestors` nicht setzen; ohne Kopfzeile des Servers lässt sich die Seite in
-einen fremden Rahmen einbetten (Bestandsaufnahme 14.11.2026, S-11). Für `NebenprojektERechnung/`
-sollte der Server deshalb senden:
+einen fremden Rahmen einbetten (Bestandsaufnahme 14.11.2026, S-11). Bei bunny.net senden die Edge
+Rules diese Kopfzeilen (unten, mit `curl -I` geprüft am 15.11.2026). Für die alte IONOS-Kopie
+(`NebenprojektERechnung/`) hätte der Server senden sollen:
 
 ```
 Content-Security-Policy: frame-ancestors 'none'
 X-Frame-Options: DENY
 ```
 
-Ob der Server das heute tut, lässt sich aus dem Repo nicht prüfen (die Zugangsregeln erzeugt
+Ob er das tat, ließ sich aus dem Repo nicht prüfen (die Zugangsregeln erzeugt
 `private/Auslieferung`).
 
-## Auf bunny.net (geplant; eingestellt am 15.11.2026)
+## Auf bunny.net (eingestellt am 15.11.2026, online seit demselben Tag)
 
 Die öffentliche Fassung zieht auf eine eigene Subdomain bei bunny.net um (`CLAUDE.md`, „Hosting move
 decided“). Dort ist im Dashboard der Pull Zone eingestellt, von Hand auf dem Kanzlei-PC:

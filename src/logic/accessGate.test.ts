@@ -89,4 +89,31 @@ describe('the Kanzlei configuration', () => {
     expect(parseAppConfig({ imprintUrl: ' https://example.org/impressum' }).ok).toBe(false);
     expect(parseAppConfig({ imprintUrl: 42 }).ok).toBe(false);
   });
+
+  it('keeps a link as the address the browser resolves it to, written as https://… only', () => {
+    // the URL parser accepts these, but on the hosted page they point to the page's own address
+    for (const imprintUrl of [
+      'https:musterkanzlei.example/impressum',
+      'https:/musterkanzlei.example/impressum',
+      'https:\\\\musterkanzlei.example/impressum',
+    ]) {
+      expect(parseAppConfig({ imprintUrl })).toEqual({
+        ok: false,
+        issues: ['$.imprintUrl: nicht in der Form https://…'],
+      });
+    }
+    // harmless forms are normalised: the page carries exactly the checked address
+    expect(
+      parseAppConfig({
+        imprintUrl: 'HTTPS://WWW.Musterkanzlei.example',
+        privacyUrl: 'https://www.musterkanzlei.example/datenschutzerklärung',
+      }),
+    ).toEqual({
+      ok: true,
+      config: {
+        imprintUrl: 'https://www.musterkanzlei.example/',
+        privacyUrl: 'https://www.musterkanzlei.example/datenschutzerkl%C3%A4rung',
+      },
+    });
+  });
 });

@@ -228,7 +228,10 @@ describe('every path finds a value in an official file (audit 2026-11-14, T-06)'
     const read = readXml(new TextEncoder().encode(text.replace(from, to)));
     if (!read.ok) throw new Error(`${path}: ${read.issue}`);
     try {
-      expect(schemaProblems(read.doc, xsdValidator(entry, SCHEMA_FILES))).toEqual([]);
+      expect(schemaProblems(read.doc, xsdValidator(entry, SCHEMA_FILES))).toEqual({
+        problems: [],
+        count: 0,
+      });
       const syntax = syntaxOf(rootOf(read.doc));
       const raw = syntax ? extractModel(read.doc, syntax) : undefined;
       if (!syntax || !raw) throw new Error(`${path}: no model`);

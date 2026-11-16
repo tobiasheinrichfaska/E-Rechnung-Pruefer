@@ -1,5 +1,6 @@
 import type { InvoiceModel, ModelGroup } from './model';
-import { adviceFor, checkRules } from './rules';
+import { RULE_LABELS, adviceFor, checkRules } from './rules';
+import type { RulesOptions } from './rules';
 import { TEXTS } from './texts';
 
 type Spec = { [key: string]: string | Spec[] };
@@ -39,10 +40,10 @@ const BASE: Spec = {
   ],
 };
 
-const rules = (over: Spec = {}, totals: Spec = {}) => {
+const rules = (over: Spec = {}, totals: Spec = {}, options: RulesOptions = {}) => {
   const base = BASE['BG-22'] as Spec[];
   const spec: Spec = { ...BASE, ...over, 'BG-22': [{ ...base[0], ...totals }] };
-  return checkRules(group('INVOICE', spec) as InvoiceModel);
+  return checkRules(group('INVOICE', spec) as InvoiceModel, options);
 };
 const status = (result: ReturnType<typeof checkRules>, id: string) =>
   result.results.filter((r) => r.id === id).map((r) => r.status);
@@ -138,6 +139,55 @@ describe('calculation rules (step 3a)', () => {
     expect(two.summary).toMatch(/ \d Regeln ließen sich nicht prüfen \(siehe unten\)\.$/);
   });
 
+  it('cannot check a breakdown per rate whose rates are missing or no number (QL-02)', () => {
+    const lines = BASE['BG-25'] as Spec[];
+    const s08 = (over: Spec) => {
+      const result = rules(over).results.find((r) => r.id === 'BR-S-08');
+      return { status: result?.status, values: result?.values ?? [] };
+    };
+    // a line of the category whose rate is no number: never left out silently (was "0,00 EUR")
+    const lineRate = s08({
+      'BG-25': [
+        lines[0] ?? {},
+        { 'BT-131': '50.00', 'BG-30': [{ 'BT-151': 'S', 'BT-152': '19,00' }] },
+      ],
+    });
+    expect(lineRate.status).toBe('nichtPruefbar');
+    expect(lineRate.values).toContainEqual({ label: TEXTS.ruleLineSum, value: TEXTS.ruleNoNumber });
+    // the rate of the breakdown is no number, or missing
+    const breakdown = (rate?: string) => ({
+      'BG-23': [
+        {
+          'BT-116': '140.00',
+          'BT-117': '26.60',
+          'BT-118': 'S',
+          ...(rate ? { 'BT-119': rate } : {}),
+        },
+      ],
+    });
+    expect(s08(breakdown('19,00')).status).toBe('nichtPruefbar');
+    expect(s08(breakdown()).status).toBe('nichtPruefbar');
+    expect(s08(breakdown()).values).toContainEqual({
+      label: 'Umsatzsteuersatz (BT-119)',
+      value: TEXTS.ruleMissing,
+    });
+    // an allowance or a charge of the category whose rate is no number
+    expect(s08({ 'BG-20': [{ 'BT-92': '20.00', 'BT-95': 'S', 'BT-96': '19%' }] }).status).toBe(
+      'nichtPruefbar',
+    );
+    expect(s08({ 'BG-21': [{ 'BT-99': '10.00', 'BT-102': 'S', 'BT-103': 'x' }] }).status).toBe(
+      'nichtPruefbar',
+    );
+    // a rate that is no number in another category does not matter
+    const other = {
+      'BG-21': [
+        { 'BT-99': '10.00', 'BT-102': 'S', 'BT-103': '19' },
+        { 'BT-99': '0', 'BT-102': 'E', 'BT-103': 'x' },
+      ],
+    };
+    expect(s08(other).status).toBe('passt');
+  });
+
   it('applies BR-CO-14 only where BT-110 is given, as the CEN Schematron does', () => {
     const base = BASE['BG-22'] as Spec[];
     const withoutVat = Object.fromEntries(
@@ -209,5 +259,155 @@ describe('what the client could do, by the kind of rule (F23)', () => {
       TEXTS.adviceTax,
       TEXTS.adviceNet,
     ]);
+  });
+});
+
+describe('the forms of the CEN Schematron per syntax (audit QL-03)', () => {
+  const UBL: RulesOptions = { syntax: 'ubl-invoice' };
+  const CII: RulesOptions = { syntax: 'cii' };
+  const both = (over: Spec, totals: Spec, id: string) => ({
+    ubl: status(rules(over, totals, UBL), id),
+    cii: status(rules(over, totals, CII), id),
+  });
+
+  it('BR-CO-17: a difference of exactly 1 passes in CII (≤), not in UBL (<)', () => {
+    const one = {
+      'BG-23': [{ 'BT-116': '140.00', 'BT-117': '27.60', 'BT-118': 'S', 'BT-119': '19' }],
+    };
+    expect(both(one, {}, 'BR-CO-17')).toEqual({ ubl: ['auffaellig'], cii: ['passt'] });
+    // without a syntax the UBL form, as before
+    expect(status(rules(one), 'BR-CO-17')).toEqual(['auffaellig']);
+    const label = (options: RulesOptions) =>
+      rules({}, {}, options).results.find((r) => r.id === 'BR-CO-17')?.label;
+    expect(label(UBL)).toBe(`${RULE_LABELS['BR-CO-17']}, Abweichung unter 1 erlaubt`);
+    expect(label(CII)).toBe(`${RULE_LABELS['BR-CO-17']}, Abweichung bis 1 erlaubt`);
+  });
+
+  it('BR-CO-17 compares the amount of a correction invoice with negative amounts (QT-02)', () => {
+    const negative = {
+      'BG-23': [{ 'BT-116': '-140.00', 'BT-117': '-26.60', 'BT-118': 'S', 'BT-119': '19' }],
+    };
+    expect(both(negative, {}, 'BR-CO-17')).toEqual({ ubl: ['passt'], cii: ['passt'] });
+    const wrong = {
+      'BG-23': [{ 'BT-116': '-140.00', 'BT-117': '-28.60', 'BT-118': 'S', 'BT-119': '19' }],
+    };
+    expect(both(wrong, {}, 'BR-CO-17')).toEqual({ ubl: ['auffaellig'], cii: ['auffaellig'] });
+  });
+
+  it('BR-S-08: UBL allows a difference below 1, CII wants the rounded part sums exactly', () => {
+    const off = {
+      'BG-23': [{ 'BT-116': '140.50', 'BT-117': '26.70', 'BT-118': 'S', 'BT-119': '19' }],
+    };
+    expect(both(off, {}, 'BR-S-08')).toEqual({ ubl: ['passt'], cii: ['auffaellig'] });
+    // CII rounds each sum first: round(100.004 + 50.001) + 10 − 20 = 140.01
+    const parts = {
+      'BG-23': [{ 'BT-116': '140.01', 'BT-117': '26.60', 'BT-118': 'S', 'BT-119': '19' }],
+      'BG-25': [
+        { 'BT-131': '100.004', 'BG-30': [{ 'BT-151': 'S', 'BT-152': '19' }] },
+        { 'BT-131': '50.001', 'BG-30': [{ 'BT-151': 'S', 'BT-152': '19' }] },
+      ],
+    };
+    expect(both(parts, {}, 'BR-S-08')).toEqual({ ubl: ['passt'], cii: ['passt'] });
+    const s08 = rules(parts, {}, CII).results.find((r) => r.id === 'BR-S-08');
+    expect(s08?.values).toContainEqual({ label: TEXTS.ruleLineSum, value: '150,01 EUR' });
+    expect(s08?.label).toBe(RULE_LABELS.BREAKDOWN);
+  });
+
+  it('BR-S-08 in UBL also counts a breakdown that only an allowance of its rate explains', () => {
+    const allowanceOnly = {
+      'BG-20': [
+        { 'BT-92': '20.00', 'BT-95': 'S', 'BT-96': '19' },
+        { 'BT-92': '5.00', 'BT-95': 'S', 'BT-96': '7' },
+      ],
+      'BG-23': [
+        { 'BT-116': '140.00', 'BT-117': '26.60', 'BT-118': 'S', 'BT-119': '19' },
+        { 'BT-116': '-5.00', 'BT-117': '-0.35', 'BT-118': 'S', 'BT-119': '7' },
+      ],
+    };
+    expect(both(allowanceOnly, {}, 'BR-S-08')).toEqual({
+      ubl: ['passt', 'passt'],
+      cii: ['passt', 'passt'],
+    });
+  });
+
+  const exempt = (base: string, category = 'E') => ({
+    'BG-20': [],
+    'BG-21': [],
+    'BG-23': [{ 'BT-116': base, 'BT-117': '0', 'BT-118': category, 'BT-119': '0' }],
+    'BG-25': [
+      { 'BT-131': '100.00', 'BG-30': [{ 'BT-151': category, 'BT-152': '0' }] },
+      { 'BT-131': '50.00', 'BG-30': [{ 'BT-151': category, 'BT-152': '0' }] },
+    ],
+  });
+
+  it('BR-E-08 …: UBL exactly, CII with a difference below 1; BR-O-08 exactly in both', () => {
+    expect(both(exempt('150.50'), {}, 'BR-E-08')).toEqual({ ubl: ['auffaellig'], cii: ['passt'] });
+    expect(both(exempt('151.00'), {}, 'BR-E-08')).toEqual({
+      ubl: ['auffaellig'],
+      cii: ['auffaellig'],
+    });
+    expect(both(exempt('150.50', 'O'), {}, 'BR-O-08')).toEqual({
+      ubl: ['auffaellig'],
+      cii: ['auffaellig'],
+    });
+    const e08 = (options: RulesOptions) =>
+      rules(exempt('150.00'), {}, options).results.find((r) => r.id === 'BR-E-08')?.label;
+    expect(e08(UBL)).toBe(RULE_LABELS.BREAKDOWN_CATEGORY);
+    expect(e08(CII)).toBe(`${RULE_LABELS.BREAKDOWN_CATEGORY}, Abweichung unter 1 erlaubt`);
+  });
+
+  it('BR-CO-15: CII also accepts BT-112 = BT-109', () => {
+    expect(both({}, { 'BT-112': '140.00', 'BT-115': '140.00' }, 'BR-CO-15')).toEqual({
+      ubl: ['auffaellig'],
+      cii: ['passt'],
+    });
+  });
+
+  it('BR-CO-13 and BR-CO-16: CII rounds BT-106 alone, and computes the amount due exactly', () => {
+    // no document allowances and charges: BT-109 = BT-106 (UBL), = round(BT-106) (CII)
+    const base = BASE['BG-22'] as Spec[];
+    const net = Object.fromEntries(
+      Object.entries(base[0] as Spec).filter(([key]) => key !== 'BT-107' && key !== 'BT-108'),
+    );
+    const alone = group('INVOICE', {
+      ...BASE,
+      'BG-20': [],
+      'BG-21': [],
+      'BG-22': [{ ...net, 'BT-106': '150.004', 'BT-109': '150.00' }],
+    }) as InvoiceModel;
+    expect(status(checkRules(alone, UBL), 'BR-CO-13')).toEqual(['auffaellig']);
+    expect(status(checkRules(alone, CII), 'BR-CO-13')).toEqual(['passt']);
+    // UBL: round(166.605 − 66.60) = 100.01; CII: 166.605 − 66.60 = 100.005
+    expect(
+      both({}, { 'BT-112': '166.605', 'BT-113': '66.60', 'BT-115': '100.01' }, 'BR-CO-16'),
+    ).toEqual({ ubl: ['passt'], cii: ['auffaellig'] });
+  });
+
+  it('BR-CO-14 without a VAT breakdown: CII wants no VAT, UBL does not apply the rule', () => {
+    expect(both({ 'BG-23': [] }, {}, 'BR-CO-14')).toEqual({ ubl: [], cii: ['auffaellig'] });
+    expect(both({ 'BG-23': [] }, { 'BT-110': '0.00' }, 'BR-CO-14')).toEqual({
+      ubl: [],
+      cii: ['passt'],
+    });
+  });
+
+  it('L and M: UBL checks BR-IG-08 and BR-IP-08; in CII their test can never fail', () => {
+    const island = (category: string) => ({
+      'BG-20': [],
+      'BG-21': [],
+      'BG-23': [{ 'BT-116': '151.00', 'BT-117': '10.57', 'BT-118': category, 'BT-119': '7' }],
+      'BG-25': [
+        { 'BT-131': '100.00', 'BG-30': [{ 'BT-151': category, 'BT-152': '7' }] },
+        { 'BT-131': '50.00', 'BG-30': [{ 'BT-151': category, 'BT-152': '7' }] },
+      ],
+    });
+    const ids = (over: Spec, options: RulesOptions) =>
+      rules(over, {}, options)
+        .results.filter((r) => /^BR-I[GP]-08$/.test(r.id))
+        .map((r) => `${r.id} ${r.status}`);
+    expect(ids(island('L'), UBL)).toEqual(['BR-IG-08 auffaellig']);
+    expect(ids(island('M'), UBL)).toEqual(['BR-IP-08 auffaellig']);
+    expect(ids(island('L'), CII)).toEqual([]);
+    expect(ids(island('M'), CII)).toEqual([]);
   });
 });

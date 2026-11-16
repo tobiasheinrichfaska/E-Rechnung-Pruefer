@@ -119,7 +119,7 @@ describe('beispiele/', () => {
           : root.name === 'CreditNote'
             ? SCHEMA_ENTRIES.ublCreditNote
             : SCHEMA_ENTRIES.ublInvoice;
-      const problems = schemaProblems(result.doc, xsdValidator(entry, SCHEMA_FILES));
+      const { problems } = schemaProblems(result.doc, xsdValidator(entry, SCHEMA_FILES));
       result.doc.dispose();
       if (problems.length > 0) invalid.push(`${file.name}: ${problems[0]?.message ?? ''}`);
     }

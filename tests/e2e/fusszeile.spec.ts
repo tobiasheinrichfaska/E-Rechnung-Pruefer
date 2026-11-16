@@ -22,7 +22,11 @@ test.describe('with the addresses of the local configuration', () => {
     const problems = await openHosted(page);
     const footer = page.locator('footer');
     for (const link of configured) {
-      const anchor = footer.getByRole('link', { name: link.name, exact: true });
+      // QU-15: the name says that it opens a new tab (hidden for the eye only)
+      const anchor = footer.getByRole('link', {
+        name: `${link.name} (öffnet in neuem Tab)`,
+        exact: true,
+      });
       await expect(anchor).toHaveAttribute('href', link.href ?? '');
       await expect(anchor).toHaveAttribute('target', '_blank');
       await expect(anchor).toHaveAttribute('rel', 'noopener noreferrer');

@@ -1,0 +1,11 @@
+{
+  "accessNotice": "Der E-Rechnungs-Prüfer ist ein kostenloses Hilfsmittel der erfundenen Beispielkanzlei Erika Mustermann (nur für Tests, keine echte Kanzlei). Er gibt Hinweise zu Form und Pflichtangaben einer E-Rechnung und ist keine Rechts- oder Steuerberatung. Die Rechnung wird nur in Ihrem Browser geprüft und nicht übertragen.",
+  "imprintUrl": "https://example.org/beispielkanzlei/impressum",
+  "privacyUrl": "https://example.org/beispielkanzlei/datenschutz",
+  "colors": {
+    "accent": "#6b2c91",
+    "chosenBg": "#f3e8fa",
+    "infoBg": "#f8f2fc",
+    "accentDark": "#c9a3e6"
+  }
+}

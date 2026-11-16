@@ -2,9 +2,11 @@
 # it, green for exactly the commit that is uploaded — the same way for every project, built after
 # the Fragebogen's tests.yml. Every push to main and every pull request runs typecheck, lint, format,
 # the unit tests and the e2e tests in Chromium, Firefox and WebKit (live build and test version).
-# Tests that need the private files (tests/fixtures/lokal: the FeRD samples, the Kanzlei
+# Tests that need the private files (tests/fixtures/lokal: the FeRD samples, the real Kanzlei
 # configuration) skip here — a skip is not a pass; they run in the cloud sessions, where the private
-# repo is attached. Failed e2e runs keep their files as an artifact (official sample files only).
+# repo is attached. The e2e branches that need a Kanzlei configuration run a second time against an
+# invented one (tests/fixtures/config/). Failed e2e runs keep their files as an artifact (official
+# sample files only).
 name: Tests
 
 on:
@@ -16,6 +18,9 @@ on:
 permissions:
   contents: read
 
+# The actions are pinned to the commit their tag named on 2026-11-15 (audit QS-06), like every npm
+# package: a moved or hijacked tag cannot change this check. No step needs the token after checkout.
+
 concurrency:
   group: tests-${{ github.ref }}
   cancel-in-progress: true
@@ -26,8 +31,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
@@ -42,16 +49,29 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts
       - run: npx playwright install --with-deps chromium firefox webkit
       - run: npm run test:e2e
+      # The branches that need a Kanzlei configuration (access notice, Impressum and privacy links,
+      # colours; FEATURES_REQUIRED.md) run here against an invented one — the real one names the
+      # Kanzlei and stays in the private repo (audit 2026-11-15, QT-01). None of them may skip.
+      - name: E2E mit der erfundenen Beispielkanzlei (Zugangshinweis, Fußzeile, Farben)
+        env:
+          KANZLEI_CONFIG: tests/fixtures/config/beispiel-kanzlei.json
+          PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/beispielkanzlei.json
+        run: |
+          npm run build
+          npx playwright test tests/e2e/zugangshinweis.spec.ts tests/e2e/fusszeile.spec.ts tests/e2e/farben.spec.ts --grep "of the local configuration" --reporter=list,json
+          node -e "const s = require('./test-results/beispielkanzlei.json').stats; console.log(s); if (s.expected === 0 || s.skipped > 0 || s.unexpected > 0) process.exit(1);"
       - if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: e2e-fehlschlaege
           path: test-results/

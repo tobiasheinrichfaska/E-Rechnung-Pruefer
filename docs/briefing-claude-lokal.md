@@ -37,10 +37,9 @@ lokal bleibt und wie du dich mit der Cloud abstimmst.
 ## 3. Was lokal bleibt
 
 - **Upload (geändert 15.11.2026, `CLAUDE.md`, „Hosting move decided“):**
-  - **Testfassung bei IONOS** (`NebenprojektERechnung/`, hinter der Anmeldung): bis zur Freigabe wie
-    bisher vom Kanzlei-PC mit `npm run hochladen` (und `npm run tester`). Beide rufen
-    `private/Auslieferung` auf, das nur auf diesem Rechner liegt. Vorher `git pull` auf `main`,
-    `npm ci --ignore-scripts`, dann `npm run build`. Hochladen nur nach Tobias' ausdrücklichem OK.
+  - **Abgelöst: Testfassung bei IONOS** (`NebenprojektERechnung/`): früher vom Kanzlei-PC mit
+    `npm run hochladen` über `private/Auslieferung`. Seit dem 15.11.2026 nicht mehr Sache dieses
+    Projekts (Tobias); ob Ziel und Skript ganz wegfallen, entscheidet er.
   - **Öffentliche Fassung auf bunny.net** (eigene Subdomain der Kanzlei): nicht über das lokale
     Upload-Werkzeug (es hat keinen Weg zu bunny.net), sondern über das private „Freigabe“-Repo mit
     GitHub Actions; jeden Lauf startet Tobias von Hand. Das gilt schon für den ersten Upload dorthin.
@@ -50,10 +49,9 @@ lokal bleibt und wie du dich mit der Cloud abstimmst.
     „Tester einladen“ in der Fußzeile. Beide Einträge warten auf die GitHub-Prüfung „Tests“
     (`deploy/README.md`, „Testfassung und Prüfung ‚Tests‘“).
 - **Server-Kopfzeilen:**
-  - IONOS: `frame-ancestors 'none'` und `X-Frame-Options: DENY` für `NebenprojektERechnung/`
-    (`deploy/README.md`) – Server-Konfiguration in `private/Auslieferung`.
   - bunny.net: Edge Rules am 15.11.2026 im Dashboard eingestellt (`deploy/README.md`, „Auf
-    bunny.net“); geprüft wird mit `curl -I` nach dem ersten Upload. Ändert sich
+    bunny.net“); mit `curl -I` geprüft am selben Tag (alle acht Kopfzeilen; Testzonen
+    `Cache-Control: private, no-store`). Ändert sich
     `src/build/csp.ts` bei `object-src`, `base-uri` oder `form-action`, muss die Edge Rule auf dem
     Kanzlei-PC mitgeändert werden.
 - **Downloads hinter Formularen** (z. B. das FeRD-Paket mit Name und E-Mail): Tobias lädt sie;

@@ -2,6 +2,7 @@ import type { Analysis, InvoicePart } from './analysis';
 import { invoiceDetails } from './details';
 import { TEXTS, fill } from './texts';
 import {
+  comparisonRows,
   differingLine,
   differingTerms,
   pflichtModel,
@@ -77,12 +78,36 @@ describe('verdictOf', () => {
     expect(file.explanation[0]).toBe(TEXTS.xmlFile);
   });
 
-  it('lists the unreadable attachments of a PDF without invoice data', () => {
+  it('does not judge a PDF whose only attachment cannot be read (QL-06)', () => {
     const verdict = verdictOf(
       analysis({ pdf: { pages: 1, unreadable: ['kaputt.xml'], truncated: false } }),
     );
-    expect(verdict.headline).toBe(TEXTS.pdfWithoutInvoiceData);
-    expect(verdict.explanation[0]).toContain('kaputt.xml');
+    // it may hold the invoice data: "nicht vollständig geprüft", never "ohne Rechnungsdaten"
+    expect(verdict.tone).toBe('warn');
+    expect(verdict.headline).toBe(TEXTS.pdfNotChecked);
+    expect(verdict.explanation).toEqual([
+      fill(TEXTS.attachmentUnreadable, { name: 'kaputt.xml' }),
+      TEXTS.notJudged,
+    ]);
+  });
+});
+
+describe('a PDF whose attachments hold no invoice data (audit QU-09)', () => {
+  it('names them in quotes, one attachment in the singular', () => {
+    const one = verdictOf(analysis({ others: [{ origin: 'lieferschein.txt', kind: 'notXml' }] }));
+    expect(one.headline).toBe(TEXTS.pdfWithoutInvoiceData);
+    expect(one.explanation[0]).toBe('Der Anhang „lieferschein.txt“ enthält keine Rechnungsdaten.');
+    const two = verdictOf(
+      analysis({
+        others: [
+          { origin: 'a.txt', kind: 'notXml' },
+          { origin: 'b.xml', kind: 'otherXml', root: { name: 'Order', namespace: 'urn:x' } },
+        ],
+      }),
+    );
+    expect(two.explanation[0]).toBe(
+      'Anhänge im PDF: „a.txt“, „b.xml“. Keiner davon enthält Rechnungsdaten.',
+    );
   });
 });
 
@@ -126,6 +151,25 @@ describe('invoiceDetails', () => {
     expect(rows['Art der Rechnung (BT-3)']).toBe(
       '389 – Gutschrift (vom Leistungsempfänger ausgestellt)',
     );
+  });
+
+  it('keeps the schema row technical for "keine E-Rechnung", as the result does (QL-09, QU-08)', () => {
+    const schema = {
+      schema: 'Factur-X 1.09.2 MINIMUM (FeRD)',
+      checked: true,
+      problems: [],
+      count: 2,
+    };
+    const row = (overrides: Partial<InvoicePart['header']>) => {
+      const verdict = verdictOf(analysis({ invoices: [{ ...part(overrides), schema }] }));
+      const invoice = verdict.invoices[0];
+      if (!invoice) throw new Error('no invoice');
+      return invoiceDetails(invoice, true).find((r) => r.label === 'Schema (XSD)');
+    };
+    // F19: no format error for "keine E-Rechnung", so the count stays under "Technische Angaben"
+    expect(row({ 'BT-24': ['urn:factur-x.eu:1p0:minimum'] })?.technical).toBe(true);
+    // G-2: a format error of an e-invoice stays visible
+    expect(row({})?.technical).toBe(false);
   });
 
   it('shows missing values and keeps unreadable values as written', () => {
@@ -277,6 +321,17 @@ describe('decisions of 2026-11-14, dialogue (F22–F27, G-3, G-7, G-10)', () => 
     expect(other.explanation).toContain(TEXTS.kanzleiJudges);
   });
 
+  it('QU-12: an unknown XML names its root element last, as a technical detail', () => {
+    const other = verdictOf(analysis({ kind: 'xml', root: { name: 'Order', namespace: 'urn:x' } }));
+    expect(other.explanation).toEqual([
+      TEXTS.otherFormats,
+      TEXTS.kanzleiJudges,
+      'Technische Angabe: Wurzelelement Order (Namensraum urn:x).',
+    ]);
+    const bare = verdictOf(analysis({ kind: 'xml', root: { name: 'Order', namespace: '' } }));
+    expect(bare.explanation.at(-1)).toBe('Technische Angabe: Wurzelelement Order (Namensraum –).');
+  });
+
   it('G-10/F24: a broken XML says the German sentences first, the engine message last', () => {
     const verdict = verdictOf(
       analysis({
@@ -314,5 +369,182 @@ describe('decisions of 2026-11-14, dialogue (F22–F27, G-3, G-7, G-10)', () => 
     const zf1 = part({ 'BT-24': ['urn:ferd:CrossIndustryDocument:invoice:1p0:comfort'] });
     expect(verdictOf(analysis({ invoices: [zf1] })).headline).toBe(TEXTS.zugferd1Pdf);
     expect(verdictOf(analysis({ kind: 'xml', invoices: [zf1] })).headline).toBe(TEXTS.zugferd1Xml);
+  });
+});
+
+describe('the same invoice XML twice (audit 2026-11-15)', () => {
+  const schema = {
+    schema: 'UN/CEFACT CII D16B',
+    checked: true,
+    problems: [{ message: "Element 'ram:Unbekannt': This element is not expected.", line: 9 }],
+    count: 1,
+  };
+  const unknown = { 'BT-24': ['urn:example:unbekannt'] };
+  const twice = (overrides: Partial<InvoicePart['header']>, withSchema = true) =>
+    verdictOf(
+      analysis({
+        invoices: ['a.xml', 'b.xml'].map((origin) => ({
+          ...part(overrides, origin),
+          ...(withSchema ? { schema } : {}),
+        })),
+      }),
+    );
+
+  it('keeps headline and tone of one XML for "nicht beurteilt", each line once (QL-07)', () => {
+    const one = verdictOf(analysis({ invoices: [{ ...part(unknown), schema }] }));
+    const verdict = twice(unknown);
+    expect(verdict.comparison?.same).toBe(true);
+    expect(verdict.tone).toBe(one.tone);
+    expect(verdict.headline).toBe(TEXTS.nichtBeurteilt);
+    expect(new Set(verdict.explanation).size).toBe(verdict.explanation.length);
+    const at = (line: string) => verdict.explanation.indexOf(line);
+    const same = verdict.explanation.findIndex((l) => l.startsWith('Dieselbe Rechnung'));
+    expect(same).toBeGreaterThan(-1);
+    // "Dieselbe Rechnung …" before the format error, the engine's messages last (G-10)
+    expect(same).toBeLessThan(at(TEXTS.formatError));
+    expect(at(TEXTS.formatError)).toBeLessThan(at(TEXTS.kanzleiJudges));
+    expect(verdict.explanation.at(-1)).toMatch(/^Technische Meldung \(Zeile 9\): /);
+    // the German schema sentence names each part once
+    expect(verdict.explanation.filter((l) => l.includes('„a.xml“ weicht'))).toHaveLength(1);
+    expect(verdict.explanation.filter((l) => l.includes('„b.xml“ weicht'))).toHaveLength(1);
+  });
+
+  it('keeps headline and lines of "keine E-Rechnung" (QL-07)', () => {
+    const one = verdictOf(analysis({ invoices: [part(MINIMUM)] }));
+    const verdict = twice(MINIMUM, false);
+    expect(verdict.tone).toBe('bad');
+    expect(verdict.headline).toBe(one.headline);
+    expect(verdict.explanation.slice(0, one.explanation.length)).toEqual(one.explanation);
+    expect(verdict.explanation).toHaveLength(one.explanation.length + 1);
+  });
+});
+
+describe('the same header but other data in two invoice XML (audit QL-01)', () => {
+  const term = (value: string) => [{ value, raw: value }];
+  /** The header of `part()` as a model, with or without the seller's VAT id (BT-31). */
+  const withSeller = (vat?: string): NonNullable<InvoicePart['model']> =>
+    ({
+      bg: 'INVOICE',
+      terms: { 'BT-1': term('R-1'), 'BT-2': term('2026-11-13'), 'BT-5': term('EUR') },
+      groups: {
+        'BG-4': [
+          {
+            bg: 'BG-4',
+            terms: { 'BT-27': term('Muster GmbH'), ...(vat ? { 'BT-31': term(vat) } : {}) },
+            groups: {},
+          },
+        ],
+      },
+    }) as unknown as NonNullable<InvoicePart['model']>;
+  const a = { ...part({}, 'a.xml'), model: withSeller('DE123456789') };
+  const b = { ...part({}, 'b.xml'), model: withSeller() };
+
+  it('are no longer "dieselbe Rechnung", whatever the order', () => {
+    for (const invoices of [
+      [a, b],
+      [b, a],
+    ]) {
+      const verdict = verdictOf(analysis({ invoices }));
+      expect(verdict.comparison).toEqual({ same: false, differing: [] });
+      expect(verdict.headline).toBe(TEXTS.contradicting);
+      expect(verdict.tone).toBe('bad');
+    }
+    // the same data stay the same
+    const twice = verdictOf(analysis({ invoices: [a, { ...a, origin: 'b.xml' }] }));
+    expect(twice.comparison).toEqual({ same: true, differing: [] });
+  });
+
+  it('names what differs, with the value of each part', () => {
+    const line = differingLine([a, b], []);
+    expect(line).toBe(
+      'Unterschiedlich: Steuernummer oder USt-IdNr. des leistenden Unternehmers ' +
+        '(vorhanden: DE123456789 / fehlt); USt-IdNr. des leistenden Unternehmers und des ' +
+        'Leistungsempfängers (nur im Einzelfall nötig: DE123456789 / nur im Einzelfall nötig).',
+    );
+    const rows = comparisonRows([a, b]).filter((row) => row.differs);
+    expect(rows[0]).toEqual({
+      label: 'Steuernummer oder USt-IdNr. des leistenden Unternehmers',
+      values: ['vorhanden: DE123456789', 'fehlt'],
+      differs: true,
+    });
+    expect(rows).toHaveLength(2);
+    // with a differing header value only that is named, as before (E-04)
+    expect(comparisonRows([a, { ...b, header: { ...b.header, 'BT-1': ['R-2'] } }])).toHaveLength(7);
+  });
+});
+
+describe('attachments not read next to an invoice XML (audit QL-06)', () => {
+  /** An invoice XML without a model: alone it is a plain green "E-Rechnung erkannt". */
+  const bare = (origin = 'factur-x.xml'): InvoicePart => {
+    const plain = part({}, origin);
+    delete plain.model;
+    return plain;
+  };
+  const pdf = { pages: 1, unreadable: [] as string[], truncated: false };
+
+  it('makes an e-invoice yellow and names each of them', () => {
+    expect(verdictOf(analysis({ invoices: [bare()] })).tone).toBe('ok');
+    const cases: [Partial<Analysis>, string][] = [
+      [
+        { others: [{ origin: 'x.xml', kind: 'brokenXml', problems: [] }] },
+        fill(TEXTS.attachmentBroken, { name: 'x.xml' }),
+      ],
+      [
+        { others: [{ origin: 'x.xml', kind: 'doctypeXml' }] },
+        fill(TEXTS.attachmentDoctype, { name: 'x.xml' }),
+      ],
+      [
+        { others: [{ origin: 'x.xml', kind: 'tooLargeXml' }] },
+        fill(TEXTS.attachmentTooLarge, { name: 'x.xml' }),
+      ],
+      [
+        { pdf: { ...pdf, unreadable: ['x.xml'] } },
+        fill(TEXTS.attachmentUnreadable, { name: 'x.xml' }),
+      ],
+      [{ pdf: { ...pdf, truncated: true } }, TEXTS.attachmentsTruncated],
+    ];
+    for (const [over, line] of cases) {
+      const verdict = verdictOf(analysis({ invoices: [bare()], ...over }));
+      expect(verdict.tone).toBe('warn');
+      expect(verdict.headline).toBe('E-Rechnung erkannt (EN 16931) – mit Hinweisen');
+      expect(verdict.explanation).toContain(line);
+    }
+    // an attachment that is no XML or no invoice is no reason
+    const other = verdictOf(
+      analysis({ invoices: [bare()], others: [{ origin: 'a.txt', kind: 'notXml' }] }),
+    );
+    expect(other.tone).toBe('ok');
+  });
+
+  it('keeps a format error red and names them before the technical lines', () => {
+    const schema = {
+      schema: 'X',
+      checked: true,
+      problems: [{ message: 'bad', line: 3 }],
+      count: 1,
+    };
+    const verdict = verdictOf(
+      analysis({
+        invoices: [{ ...bare(), schema }],
+        others: [{ origin: 'x.xml', kind: 'doctypeXml' }],
+      }),
+    );
+    expect(verdict.tone).toBe('bad');
+    const doctype = verdict.explanation.indexOf(fill(TEXTS.attachmentDoctype, { name: 'x.xml' }));
+    expect(doctype).toBeGreaterThan(-1);
+    expect(doctype).toBeLessThan(verdict.explanation.length - 1);
+    expect(verdict.explanation.at(-1)).toBe('Technische Meldung (Zeile 3): bad');
+  });
+
+  it('names them for several invoice XML too', () => {
+    const others = [{ origin: 'x.xml', kind: 'tooLargeXml' as const }];
+    const same = verdictOf(analysis({ invoices: [bare('a.xml'), bare('b.xml')], others }));
+    expect(same.explanation).toContain(fill(TEXTS.attachmentTooLarge, { name: 'x.xml' }));
+    // values are compared only where a model was read (L-04), so these parts have one
+    const apart = verdictOf(
+      analysis({ invoices: [part({}, 'a.xml'), part({ 'BT-1': ['R-2'] }, 'b.xml')], others }),
+    );
+    expect(apart.headline).toBe(TEXTS.contradicting);
+    expect(apart.explanation).toContain(fill(TEXTS.attachmentTooLarge, { name: 'x.xml' }));
   });
 });

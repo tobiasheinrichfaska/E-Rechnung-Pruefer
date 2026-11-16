@@ -31,8 +31,8 @@ Datei gespeichert, z. B. aus einer E-Mail oder eine Beispielrechnung von der Sei
 Beispielen.
 
 1. Öffnen Sie die Adresse des Tools im Browser des Geräts.
-   - **Danach:** Außerhalb der Kanzlei fragt der Browser nach Benutzername und Kennwort – nehmen Sie
-     Ihre Tester-Anmeldung. Dann steht oben „E-Rechnung prüfen“ und darunter „Bitte bestätigen“ mit
+   - **Danach:** Ist das Gerät in der Testzone noch nicht angemeldet, fragt der Browser nach
+     Benutzername und Kennwort – nehmen Sie Ihre Tester-Anmeldung (auch in der Kanzlei). Dann steht oben „E-Rechnung prüfen“ und darunter „Bitte bestätigen“ mit
      dem Zugangshinweis. Tippen Sie auf den Text, damit der Haken erscheint, dann auf **Weiter**.
      Der Text muss ganz lesbar sein, ohne dass Sie etwas seitlich verschieben.
 2. Tippen Sie auf **Datei auswählen**.

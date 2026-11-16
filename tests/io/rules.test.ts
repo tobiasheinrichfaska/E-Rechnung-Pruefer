@@ -23,7 +23,8 @@ describe('calculation rules on the official files', () => {
       const analysis = await analyzeFile(path, official(path), load);
       for (const part of analysis.invoices) {
         if (!part.model) continue;
-        const rules = checkRules(part.model);
+        // each syntax in the forms of its own CEN Schematron (audit QL-03)
+        const rules = checkRules(part.model, { syntax: part.syntax });
         checked += rules.results.filter((r) => r.status === 'passt').length;
         for (const r of rules.results.filter((x) => x.status === 'auffaellig')) {
           found.push(
