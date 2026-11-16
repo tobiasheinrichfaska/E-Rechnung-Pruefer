@@ -27,6 +27,12 @@ ist. Achte auch auf regelmäßige Merges.“
   - Art: Fehler, Verbesserung, Gestaltungsfrage oder Steuerfrage.
 - **Drei Behebungs-Agenten** in eigenen Arbeitskopien (Logik, Bedienung, Tests/CI/Sicherheit). Jede
   Behebung hat einen Test, der vorher fehlschlug oder eine Mutation fängt.
+- **Nach dem Zusammenführen** (Version 0.9.1), in der Cloud-Sitzung beobachtet:
+  - mit den privaten Dateien: Typprüfung, Lint und Format grün, 527 Unit-Tests, E2E 159 bestanden und
+    9 übersprungen;
+  - ohne sie, wie auf GitHub: 448 Unit-Tests bestanden und 4 übersprungen, E2E 138 bestanden und 30
+    übersprungen;
+  - der neue Lauf mit der erfundenen Kanzlei: 30 von 30.
 - **Ausgenommen:** die Testseite der Testfassung (`src/ui/testbereich/` und ihre Logik). Sie wird
   durch den gemeinsamen Testrahmen aus `Testumgebung` ersetzt.
 - **Kanzleidaten:** Kein Agent hat Inhalte der Kanzlei-Konfiguration ausgegeben.
@@ -80,34 +86,34 @@ der Kern hält). Gestaltungs- und Steuerfragen entscheidet Tobias. Bis dahin ble
 
 ### Sicherheit und Auslieferung (QS)
 
-| ID    | Befund                                                                                             | Urteil · Art             | Erledigung                                   |
-| ----- | -------------------------------------------------------------------------------------------------- | ------------------------ | -------------------------------------------- |
-| QS-01 | Die Beträge einer EXTENDED-Rechnung wurden Zeile für Zeile mit eigener XPath gelesen (quadratisch) | bestätigt · Fehler       | in Arbeit                                    |
-| QS-02 | Die Schemaprüfung wird bei sehr vielen Meldungen quadratisch langsam (Bibliothek)                  | teilweise · Verbesserung | in Arbeit                                    |
-| QS-03 | `noBranding.test.ts` findet den Namen allein und umbrochene Zitate nicht                           | teilweise · Verbesserung | in Arbeit                                    |
-| QS-04 | Links wie `https:host` kamen durch die Prüfung der Konfiguration                                   | bestätigt · Fehler       | in Arbeit                                    |
-| QS-05 | Ein zweiter Upload-Weg (IONOS, `npm run hochladen`) besteht noch                                   | teilweise · Gestaltung   | Doku als „abgelöst“ markiert; Frage **G-16** |
-| QS-06 | Actions in `tests.yml` nicht auf Commits festgelegt, `persist-credentials` an                      | bestätigt · Verbesserung | in Arbeit                                    |
+| ID    | Befund                                                                                             | Urteil · Art             | Erledigung                                                                                                                                                |
+| ----- | -------------------------------------------------------------------------------------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| QS-01 | Die Beträge einer EXTENDED-Rechnung wurden Zeile für Zeile mit eigener XPath gelesen (quadratisch) | bestätigt · Fehler       | behoben: Positionen Knoten für Knoten gelesen (20 000 Zeilen 0,14 s statt 15 s), gleiche Ausgabe auf allen 166 Dateien                                    |
+| QS-02 | Die Schemaprüfung wird bei sehr vielen Meldungen quadratisch langsam (Bibliothek)                  | teilweise · Verbesserung | behoben: eigener Sammler der Meldungen auf festgeschriebener libxml2-wasm 0.7.2 (160 000 Meldungen 0,4 s statt 82 s); Test schlägt bei anderer Version an |
+| QS-03 | `noBranding.test.ts` findet den Namen allein und umbrochene Zitate nicht                           | teilweise · Verbesserung | behoben (mit QT-04)                                                                                                                                       |
+| QS-04 | Links wie `https:host` kamen durch die Prüfung der Konfiguration                                   | bestätigt · Fehler       | behoben: Links als `URL.href`, nur `https://…`                                                                                                            |
+| QS-05 | Ein zweiter Upload-Weg (IONOS, `npm run hochladen`) besteht noch                                   | teilweise · Gestaltung   | Doku als „abgelöst“ markiert; Frage **G-16**                                                                                                              |
+| QS-06 | Actions in `tests.yml` nicht auf Commits festgelegt, `persist-credentials` an                      | bestätigt · Verbesserung | behoben: Actions auf Commit-SHA (v4.4.0 bzw. v4.6.2, wie bisher `@v4`), `persist-credentials: false`, Test                                                |
 
 ### Tests und Dokumentation (QT)
 
-| ID    | Befund                                                                                         | Urteil · Art             | Erledigung                                             |
-| ----- | ---------------------------------------------------------------------------------------------- | ------------------------ | ------------------------------------------------------ |
-| QT-01 | Die GitHub-Prüfung testet Zugangshinweis, Fußzeilen-Links und Farben nie                       | teilweise · Verbesserung | in Arbeit                                              |
-| QT-02 | Zwei Fehler fing nur der private FeRD-Test (BR-CO-17 ohne `abs`, falsches MINIMUM-Schema)      | bestätigt · Verbesserung | (a) behoben mit einem öffentlichen Test; (b) mit QT-03 |
-| QT-03 | F28 (eigenes Schema je Profil) nur an der Bezeichnung geprüft; keine Prüfsummen der XSD        | bestätigt · Verbesserung | in Arbeit                                              |
-| QT-04 | wie QS-03                                                                                      | teilweise · Verbesserung | in Arbeit                                              |
-| QT-05 | README „Es speichert nichts.“, Plan E2/E3/T3 veraltet                                          | bestätigt · Fehler       | behoben                                                |
-| QT-06 | Der E2E-Spion erlaubte den Zugangsschlüssel auch auf `file://`                                 | bestätigt · Verbesserung | in Arbeit                                              |
-| QT-07 | Kein Test nennt `base-uri`, `form-action`, `object-src` der CSP                                | bestätigt · Verbesserung | in Arbeit                                              |
-| QT-08 | Der Wörter-Test liest die Bezeichnungen in `details.ts` und `binding.ts` nicht                 | bestätigt · Verbesserung | in Arbeit                                              |
-| QT-09 | IONOS-Stellen als aktuell beschrieben; MT-03 „außerhalb der Kanzlei“                           | bestätigt · Verbesserung | behoben (Doku); Frage **G-16**                         |
-| QT-10 | Veraltete Zeilen und Kommentare vor F28/F29                                                    | teilweise · Verbesserung | Doku behoben; Kommentare in Arbeit                     |
-| QT-11 | `npm install` statt `npm ci` in CLAUDE.md und README                                           | bestätigt · Verbesserung | behoben                                                |
-| QT-12 | `uebergang.ts`, `zusammenfassung.ts` fehlten in der Tabelle; Version in der Handtest-Übersicht | teilweise · Verbesserung | behoben                                                |
-| QT-13 | Peppol BIS 3 als „belegt“ markiert ohne passende Datei                                         | bestätigt · Verbesserung | in Arbeit                                              |
-| QT-14 | `hiddenChars.test.ts` liest `config/`, `schemas/README.md`, `.github/` nicht                   | bestätigt · Verbesserung | in Arbeit                                              |
-| QT-15 | Der Selbsttest des Spions löst fünf seiner Wege nicht aus                                      | teilweise · Verbesserung | in Arbeit                                              |
+| ID    | Befund                                                                                         | Urteil · Art             | Erledigung                                                                                                           |
+| ----- | ---------------------------------------------------------------------------------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| QT-01 | Die GitHub-Prüfung testet Zugangshinweis, Fußzeilen-Links und Farben nie                       | teilweise · Verbesserung | behoben: zweiter E2E-Schritt mit erfundener Kanzlei (`KANZLEI_CONFIG`), bricht ab, wenn etwas übersprungen wird      |
+| QT-02 | Zwei Fehler fing nur der private FeRD-Test (BR-CO-17 ohne `abs`, falsches MINIMUM-Schema)      | bestätigt · Verbesserung | behoben: öffentlicher Test für BR-CO-17 mit negativen Beträgen; (b) mit QT-03                                        |
+| QT-03 | F28 (eigenes Schema je Profil) nur an der Bezeichnung geprüft; keine Prüfsummen der XSD        | bestätigt · Verbesserung | behoben: erstes abgelehntes Element je Profil, Prüfsummen aller 40 XSD in `quellen.md`                               |
+| QT-04 | wie QS-03                                                                                      | teilweise · Verbesserung | behoben: Leerraum, Zitatzeichen und Groß-/Kleinschreibung egal, Namensliste im privaten Repo, Dateien auch als Bytes |
+| QT-05 | README „Es speichert nichts.“, Plan E2/E3/T3 veraltet                                          | bestätigt · Fehler       | behoben                                                                                                              |
+| QT-06 | Der E2E-Spion erlaubte den Zugangsschlüssel auch auf `file://`                                 | bestätigt · Verbesserung | behoben: Zugangsschlüssel nur über https erlaubt                                                                     |
+| QT-07 | Kein Test nennt `base-uri`, `form-action`, `object-src` der CSP                                | bestätigt · Verbesserung | behoben                                                                                                              |
+| QT-08 | Der Wörter-Test liest die Bezeichnungen in `details.ts` und `binding.ts` nicht                 | bestätigt · Verbesserung | behoben: Detailzeilen und alle Bezeichnungen der Zuordnung                                                           |
+| QT-09 | IONOS-Stellen als aktuell beschrieben; MT-03 „außerhalb der Kanzlei“                           | bestätigt · Verbesserung | behoben (Doku); Frage **G-16**                                                                                       |
+| QT-10 | Veraltete Zeilen und Kommentare vor F28/F29                                                    | teilweise · Verbesserung | behoben (Doku und Kommentare)                                                                                        |
+| QT-11 | `npm install` statt `npm ci` in CLAUDE.md und README                                           | bestätigt · Verbesserung | behoben                                                                                                              |
+| QT-12 | `uebergang.ts`, `zusammenfassung.ts` fehlten in der Tabelle; Version in der Handtest-Übersicht | teilweise · Verbesserung | behoben                                                                                                              |
+| QT-13 | Peppol BIS 3 als „belegt“ markiert ohne passende Datei                                         | bestätigt · Verbesserung | behoben: amtliches CEN-Beispiel `UBL_BIS3_Invoice_positive.xml` übernommen                                           |
+| QT-14 | `hiddenChars.test.ts` liest `config/`, `schemas/README.md`, `.github/` nicht                   | bestätigt · Verbesserung | behoben                                                                                                              |
+| QT-15 | Der Selbsttest des Spions löst fünf seiner Wege nicht aus                                      | teilweise · Verbesserung | behoben; dabei gefunden: in WebKit sah der Spion IndexedDB und cookieStore nicht, jetzt am Prototyp                  |
 
 ### Fragen an Tobias
 
