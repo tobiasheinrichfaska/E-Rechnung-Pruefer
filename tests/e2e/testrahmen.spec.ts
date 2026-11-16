@@ -112,6 +112,10 @@ const invoice = () => official('kosit/01.01a-INVOICE_ubl.xml');
 const SAMPLE_07 = '07_Anschriften_ohne_Strasse_Fiskalvertreter_unvollstaendig.xml';
 const sample07 = () => new Uint8Array(readFileSync(join(ROOT, 'beispiele', SAMPLE_07)));
 
+/** Where the manual tests send the testers for the samples (the public folder, audit R2-U-03). */
+const SAMPLES_PAGE =
+  'https://github.com/tobiasheinrichfaska/E-Rechnung-Pruefer/tree/main/beispiele';
+
 /**
  * Drags a file over the element and drops it there, as the browser delivers it. `opened`: the
  * browser would open the file itself; `taken`: the tool started to check it.
@@ -502,6 +506,42 @@ test('a file dropped on the test page is refused, not checked by the tool behind
   // the tool shown: a file dropped on it is taken again
   expect(await dropOn(page, '.tr-app h1', 'danach.xml')).toEqual({ opened: false, taken: true });
   await expect(tool(page).getByText(/^Geprüfte Datei: „danach\.xml“/)).toBeVisible();
+  expect(problems).toEqual([]);
+  expect(await sideEffects(page, TEST_VERSION_KEYS)).toEqual([]);
+});
+
+// The test page shows only the manual tests, not their README: the samples' address stands in the
+// tests themselves, as a link the frame keeps (audit R2-U-03), and the steps name what the tester
+// sees in the test version (R2-U-04, R2-U-07).
+test('the manual tests link the samples and name what the test version shows', async ({ page }) => {
+  const problems = await openHosted(page, '/', BUILT_TEST);
+  const opened = async (id: string) => {
+    await panel(page).locator('[data-aktion="uebersicht"]').click();
+    await caseButton(page, id).click();
+    await expect(panel(page).getByRole('heading', { name: new RegExp(`^${id} `) })).toBeVisible();
+  };
+  // the first time, the list is shown already
+  await caseButton(page, 'MT-02').click();
+  for (const id of ['MT-02', 'MT-03', 'MT-04']) {
+    if (id !== 'MT-02') await opened(id);
+    const link = panel(page).locator(`a[href="${SAMPLES_PAGE}"]`);
+    await expect(link, id).toHaveCount(1);
+    await expect(link).toHaveAttribute('target', '_blank');
+    await expect(panel(page), id).not.toContainText('README');
+  }
+  // MT-03, step 1: on a narrow screen the frame opens on its tab „Tests“, the tool is behind „App“
+  await opened('MT-03');
+  const tabs = page.locator('.tr-reiter button');
+  await expect(tabs).toHaveText(['App', 'Tests']);
+  await expect(
+    panel(page).locator('li').filter({ hasText: 'Öffnen Sie die Adresse' }),
+  ).toContainText('Reiter App');
+  // MT-04: after the first result the drop zone is „Andere Datei prüfen“; the fold-outs carry the
+  // word of their badges
+  await opened('MT-04');
+  await expect(panel(page)).toContainText(`„${TEXTS.dropTitle}“`);
+  await expect(panel(page)).toContainText(`„${TEXTS.anotherFile}“`);
+  await expect(panel(page)).toContainText(`„${TEXTS.statusEinzelfall}“`);
   expect(problems).toEqual([]);
   expect(await sideEffects(page, TEST_VERSION_KEYS)).toEqual([]);
 });
