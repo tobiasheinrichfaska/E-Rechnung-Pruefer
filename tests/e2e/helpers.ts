@@ -3,8 +3,10 @@ import type { Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { CONFIG_VARIABLE, loadAppConfig } from '../../src/build/kanzleiConfig';
 import { ACCESS_STORAGE } from '../../src/logic/storageKeys';
 import { TEST_APP } from '../../src/logic/testBinding';
+import { TEXTS } from '../../src/logic/texts';
 import { speicherSchluessel } from '../../src/testrahmen/testrahmen.js';
 
 /** The tester's run, kept by the shared test frame of the test version: `testrahmen:erechnung`. */
@@ -141,6 +143,42 @@ export async function openHosted(page: Page, path = '/', built = BUILT): Promise
   await page.addInitScript(SPY);
   await page.goto(`${HOSTED}${path}`);
   return problems;
+}
+
+/**
+ * The access notice of the configuration the builds read: the private one, or the file
+ * KANZLEI_CONFIG names. Where KANZLEI_CONFIG names a file without a notice it throws: such a run is
+ * there to test the notice, and a wrong file must stop it, not let the notice's branches skip
+ * unnoticed (audit 2026-11-16, R4-T-01). Without KANZLEI_CONFIG no notice is a branch, not a fault.
+ */
+export function configuredNotice(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): string | undefined {
+  const { file, config } = loadAppConfig(env);
+  if (config.accessNotice === undefined && (env[CONFIG_VARIABLE] ?? '') !== '') {
+    throw new Error(
+      `${CONFIG_VARIABLE} names ${file}, which has no access notice: its branches would skip unnoticed`,
+    );
+  }
+  return config.accessNotice;
+}
+
+/**
+ * With a configured access notice (configuredNotice) the hosted copy asks it first: confirms it and
+ * returns true, and fails when the page asks none. Without one it returns false. `remember` ticks
+ * „Antwort für die Zukunft merken“.
+ */
+export async function passNotice(page: Page, remember = false): Promise<boolean> {
+  const notice = configuredNotice();
+  if (notice === undefined) return false;
+  await expect(
+    page.getByRole('heading', { name: TEXTS.accessTitle }),
+    'the configured access notice did not arrive',
+  ).toBeVisible({ timeout: 30_000 });
+  await page.getByRole('checkbox', { name: notice }).check();
+  if (remember) await page.getByRole('checkbox', { name: TEXTS.accessRemember }).check();
+  await page.getByRole('button', { name: TEXTS.accessContinue, exact: true }).click();
+  return true;
 }
 
 /** Picks a file and waits until the result for exactly this file is shown. */
