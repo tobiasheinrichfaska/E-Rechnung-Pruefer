@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { viteSingleFile } from 'vite-plugin-singlefile';
@@ -18,8 +19,8 @@ const kanzlei = loadAppConfig();
 
 /**
  * The CSP with the hashes of what the single-file step inlined — applied to the written file. Only
- * the test version may connect to its own address (`connect-src 'self'`, „Bericht senden“, Tobias
- * 2026-11-15); every other build keeps `connect-src 'none'`.
+ * the test version may connect to its own address (`connect-src 'self'`, „Bericht senden“ of the
+ * shared test frame, Tobias 2026-11-15); every other build keeps `connect-src 'none'`.
  */
 function contentSecurityPolicy(testArea: boolean): Plugin {
   return {
@@ -45,15 +46,35 @@ function standOf(testArea: boolean): string | null {
   }
 }
 
+/**
+ * The test version's start (src/testArea.tsx) and the copy of the shared test frame
+ * (src/testrahmen/, repo Testumgebung). Every build except the test version resolves them to a stub
+ * that only throws: main.tsx imports the start statically, and a module's style stays in the bundle
+ * even where the build folds its use away (found by the Fragebogen, 2026-11-15), so the condition in
+ * main.tsx alone would not keep the frame out of the live file (tests/e2e/testrahmen.spec.ts). The
+ * dev server and Vitest resolve them as they are.
+ */
+const TEST_AREA_ONLY = [
+  /^\.{1,2}\/(?:.*\/)?testArea(?:\.tsx)?$/,
+  /^\.{1,2}\/(?:.*\/)?testrahmen\/testrahmen\.(?:js|css)$/,
+];
+const TEST_AREA_STUB = fileURLToPath(new URL('./src/testAreaStub.ts', import.meta.url));
+
 // The test version (`npm run build:test`, mode `testbereich`, folder dist-test/) for the protected
 // test zone links „Tester einladen“ to the page of the login script (repo Testumgebung, Tobias
 // 2026-11-15). Every other build gets null, so the address never reaches dist/index.html.
 const TESTER_INVITE = '/_zugang/einladen';
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ command, mode }) => ({
   // Relative paths so the single file also runs from file://
   base: './',
   plugins: [react(), viteSingleFile(), contentSecurityPolicy(mode === 'testbereich')],
+  resolve: {
+    alias:
+      command === 'build' && mode !== 'testbereich'
+        ? TEST_AREA_ONLY.map((find) => ({ find, replacement: TEST_AREA_STUB }))
+        : [],
+  },
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
     __APP_CONFIG__: JSON.stringify(kanzlei.config),
