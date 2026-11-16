@@ -393,6 +393,8 @@ test('beside the test page the tool stacks each Pflichtangabe by its own width',
 }) => {
   await page.setViewportSize({ width: 960, height: 800 });
   const problems = await openHosted(page, '/', BUILT_TEST);
+  // side by side: the test page shown, no tabs
+  await expect(panel(page)).toBeVisible();
   await expect(page.locator('.tr-reiter')).toBeHidden();
   await passNotice(page);
   await upload(page, SAMPLE_07, sample07(), 'application/xml');
@@ -482,6 +484,9 @@ test('a file dropped on the test page is refused, not checked by the tool behind
 }) => {
   const problems = await openHosted(page, '/', BUILT_TEST);
   await passNotice(page);
+  // the tool's start view and the test page beside it
+  await expect(tool(page).getByRole('button', { name: 'Datei auswählen' })).toBeVisible();
+  await expect(panel(page)).toBeVisible();
   // beside the tool: the test page takes no file, and the browser does not open it either
   expect(await dropOn(page, '.tr-feld .tr-kopf', 'auf-testseite.xml')).toEqual({
     opened: false,
