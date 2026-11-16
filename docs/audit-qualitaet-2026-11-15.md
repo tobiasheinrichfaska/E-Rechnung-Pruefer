@@ -176,22 +176,22 @@ Steuerfragen: **F31** und **F32** in `docs/offene-fragen.md`.
 
 ### Logik und Ergebnisse (R2-L)
 
-| ID      | Befund                                                                                                                                                                                                 | Erledigung |
-| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- |
-| R2-L-01 | Die Behebung QL-01 verglich Anzeigetexte: dieselbe Rechnung mit „7“ und „7.00“, einer Nullsumme nur in einer XML oder anderer Reihenfolge galt als Formatfehler (rot), ebenso das amtliche Paar 03.07a | in Arbeit  |
-| R2-L-02 | „Unterschiedlich: …“ zeigte bei Positionen und Regeln gleiche Texte („vorhanden / vorhanden“)                                                                                                          | in Arbeit  |
-| R2-L-03 | UBL-Form von BR-CO-15 ohne BT-110 „passt“, CEN verlangt genau einen Steuerbetrag in Belegwährung                                                                                                       | in Arbeit  |
-| R2-L-04 | Die Box nannte bei Angaben je Position die ganze Zeile                                                                                                                                                 | in Arbeit  |
-| R2-L-05 | UBL BR-S-08 „auffällig“ mit lauter 0,00, ohne den Grund                                                                                                                                                | in Arbeit  |
-| R2-L-06 | Eine angehängte, nicht wohlgeformte HTML-Datei galt als fehlerhafte XML                                                                                                                                | in Arbeit  |
-| R2-L-07 | Ein fehlender Teilbetrag hieß „keine Zahl“                                                                                                                                                             | in Arbeit  |
-| R2-L-08 | BR-CO-11/-12 nannten den zweiten Wert nur mit seiner Kennung                                                                                                                                           | in Arbeit  |
+| ID      | Befund                                                                                                                                                                                                 | Erledigung                                                                                                                                                                                                 |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R2-L-01 | Die Behebung QL-01 verglich Anzeigetexte: dieselbe Rechnung mit „7“ und „7.00“, einer Nullsumme nur in einer XML oder anderer Reihenfolge galt als Formatfehler (rot), ebenso das amtliche Paar 03.07a | behoben: Vergleich nach Wert, Listen als Mengen, Regeln nur ungleich „passt“; 7/7.00, 1/1.0000, Nullsumme, Reihenfolge und 03.07a gelten als gleich, echte Unterschiede bleiben; BT-113 ist Frage **G-20** |
+| R2-L-02 | „Unterschiedlich: …“ zeigte bei Positionen und Regeln gleiche Texte („vorhanden / vorhanden“)                                                                                                          | behoben: die abweichenden Werte stehen in der Zeile                                                                                                                                                        |
+| R2-L-03 | UBL-Form von BR-CO-15 ohne BT-110 „passt“, CEN verlangt genau einen Steuerbetrag in Belegwährung                                                                                                       | behoben: genau ein Steuerbetrag in beiden Syntaxen (`co15ExactlyOneTax`); EXTENDED folgt der Meldung, Frage **G-21**                                                                                       |
+| R2-L-04 | Die Box nannte bei Angaben je Position die ganze Zeile                                                                                                                                                 | behoben                                                                                                                                                                                                    |
+| R2-L-05 | UBL BR-S-08 „auffällig“ mit lauter 0,00, ohne den Grund                                                                                                                                                | behoben: „Positionen, Zuschläge oder Nachlässe mit diesem Satz: keine“                                                                                                                                     |
+| R2-L-06 | Eine angehängte, nicht wohlgeformte HTML-Datei galt als fehlerhafte XML                                                                                                                                | behoben: eine Webseite ist „kein XML“, nach Inhalt erkannt                                                                                                                                                 |
+| R2-L-07 | Ein fehlender Teilbetrag hieß „keine Zahl“                                                                                                                                                             | behoben                                                                                                                                                                                                    |
+| R2-L-08 | BR-CO-11/-12 nannten den zweiten Wert nur mit seiner Kennung                                                                                                                                           | behoben                                                                                                                                                                                                    |
 
 ### Sicherheit und Auslieferung (R2-S)
 
 | ID      | Befund                                                                                                                           | Erledigung                                                                                                                                                                    |
 | ------- | -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| R2-S-01 | Sehr viele Positionen (100 000 leere in 14 KiB) frieren die Seite für Sekunden ein; echte 20-MB-Rechnungen 3,4–4,9 s             | in Arbeit: jede XPath nur einmal übersetzt; die Obergrenze ist Frage **G-18**                                                                                                 |
+| R2-S-01 | Sehr viele Positionen (100 000 leere in 14 KiB) frieren die Seite für Sekunden ein; echte 20-MB-Rechnungen 3,4–4,9 s             | behoben: jede XPath einmal je Dokument übersetzt (50 000 leere Positionen 2,1 s statt 5 s, gleiche Ausgabe auf 252 Dateien); die Obergrenze ist Frage **G-18**                |
 | R2-S-02 | Schemameldungen hinter Zeile 65535 nannten Zeile 65535                                                                           | behoben (`XML_PARSE_BIG_LINES`)                                                                                                                                               |
 | R2-S-03 | Die Sperren um die Kopie des Rahmens galten nur für die heutigen Dateinamen                                                      | behoben: genaue Dateiliste mit eigenen Prüfsummen, ESLint auch für `.js`/`.mjs`/`.cjs`, unsichtbare Zeichen auch in `.mjs`/`.mts`; Wunsch an Testumgebung (dort schon gebaut) |
 | R2-S-04 | Ein Build der Testfassung ohne Ausgabeordner schrieb nach `dist/`, und die Prüfung im Freigabe-Lauf bestand auch die Testfassung | behoben: Ordner nach Modus, Testfassung in `dist/` bricht ab; Anfrage an den Kanzlei-PC (Briefing § 6)                                                                        |
@@ -200,33 +200,33 @@ Steuerfragen: **F31** und **F32** in `docs/offene-fragen.md`.
 
 ### Bedienung, Texte, Zugänglichkeit (R2-U)
 
-| ID      | Befund                                                                                        | Erledigung                                                 |
-| ------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| R2-U-01 | In der Testfassung zwischen 900 und 1050 px war das Tool zu schmal für seine Tabelle          | behoben: Container-Abfrage (`src/testArea.css`)            |
-| R2-U-02 | Die Testfassung druckte im Hochformat nur die Testseite                                       | behoben durch den Rahmen `2645a15`, mit Test               |
-| R2-U-03 | Die Handtests nannten die Beispielseite nur als „siehe README“                                | behoben                                                    |
-| R2-U-04 | Drei „Danach“-Sätze passten nicht zur Testfassung                                             | behoben                                                    |
-| R2-U-05 | Eine Datei auf der Testseite wurde im verborgenen Tool geprüft                                | behoben: neben dem Tool abgewiesen                         |
-| R2-U-06 | Der Gutschrift-Hinweis hieß „Mögliche Auffälligkeit“, Box und Zusammenfassung sagen „Hinweis“ | in Arbeit                                                  |
-| R2-U-07 | „besondere Fälle“ bedeutete zweierlei                                                         | behoben: „nur im Einzelfall nötig“ wie die Marke           |
-| R2-U-08 | Ein nicht gelesener Anhang machte gelb, ohne zu sagen, was das bedeutet                       | in Arbeit                                                  |
-| R2-U-09 | Bei mehreren XML standen Anhangnamen ohne „…“                                                 | in Arbeit                                                  |
-| R2-U-10 | Statusmeldungen des Rahmens werden vermutlich nicht vorgelesen                                | Wunsch an Testumgebung (dort gebaut, noch nicht in `main`) |
-| R2-U-11 | Im Kontrastmodus sehen gewählte Knöpfe des Rahmens gleich aus                                 | Wunsch an Testumgebung (dort gebaut, noch nicht in `main`) |
+| ID      | Befund                                                                                        | Erledigung                                                                             |
+| ------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| R2-U-01 | In der Testfassung zwischen 900 und 1050 px war das Tool zu schmal für seine Tabelle          | behoben: Container-Abfrage (`src/testArea.css`)                                        |
+| R2-U-02 | Die Testfassung druckte im Hochformat nur die Testseite                                       | behoben durch den Rahmen `2645a15`, mit Test                                           |
+| R2-U-03 | Die Handtests nannten die Beispielseite nur als „siehe README“                                | behoben                                                                                |
+| R2-U-04 | Drei „Danach“-Sätze passten nicht zur Testfassung                                             | behoben                                                                                |
+| R2-U-05 | Eine Datei auf der Testseite wurde im verborgenen Tool geprüft                                | behoben: neben dem Tool abgewiesen                                                     |
+| R2-U-06 | Der Gutschrift-Hinweis hieß „Mögliche Auffälligkeit“, Box und Zusammenfassung sagen „Hinweis“ | behoben: auch der Gutschrift-Hinweis beginnt mit „Hinweis:“                            |
+| R2-U-07 | „besondere Fälle“ bedeutete zweierlei                                                         | behoben: „nur im Einzelfall nötig“ wie die Marke                                       |
+| R2-U-08 | Ein nicht gelesener Anhang machte gelb, ohne zu sagen, was das bedeutet                       | behoben: „Ob dieser Anhang weitere Rechnungsdaten enthält, kann das Tool nicht sagen.“ |
+| R2-U-09 | Bei mehreren XML standen Anhangnamen ohne „…“                                                 | behoben                                                                                |
+| R2-U-10 | Statusmeldungen des Rahmens werden vermutlich nicht vorgelesen                                | Wunsch an Testumgebung (dort gebaut, noch nicht in `main`)                             |
+| R2-U-11 | Im Kontrastmodus sehen gewählte Knöpfe des Rahmens gleich aus                                 | Wunsch an Testumgebung (dort gebaut, noch nicht in `main`)                             |
 
 ### Tests und Dokumentation (R2-T)
 
-| ID      | Befund                                                                                   | Erledigung                                |
-| ------- | ---------------------------------------------------------------------------------------- | ----------------------------------------- |
-| R2-T-01 | Die Rechenformen je Syntax hingen an einer Zeile, die kein Test schützte                 | in Arbeit                                 |
-| R2-T-02 | Viele Einträge von `RULE_FORMS` ließen sich ohne roten Test ändern                       | in Arbeit                                 |
-| R2-T-03 | QL-01 ungetestet für einen Unterschied nur in den Regeln                                 | in Arbeit                                 |
-| R2-T-04 | Die CI-Prüfung mit der erfundenen Kanzlei zählte nur die Summe                           | behoben: je Spec                          |
-| R2-T-05 | wie R2-S-03                                                                              | behoben                                   |
-| R2-T-06 | Prüfsummen der XSD nicht an den Pfad gebunden                                            | teilweise widerlegt, keine Änderung nötig |
-| R2-T-07 | Unsichtbare Zeichen in eigenen Dateien unter `tests/fixtures/` wurden nicht gefunden     | behoben                                   |
-| R2-T-08 | Einige Zeilen in CLAUDE.md und `config/README.md` versprachen mehr, als die Tests prüfen | behoben (Tests und Doku)                  |
-| R2-T-09 | Zwei Dateien ohne Zeile in CLAUDE.md                                                     | behoben                                   |
+| ID      | Befund                                                                                   | Erledigung                                                                              |
+| ------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| R2-T-01 | Die Rechenformen je Syntax hingen an einer Zeile, die kein Test schützte                 | behoben: Test über `verdictOf`                                                          |
+| R2-T-02 | Viele Einträge von `RULE_FORMS` ließen sich ohne roten Test ändern                       | behoben: Tabelle über alle Kategorien und beide Syntaxen, 22 von 22 Mutationen gefangen |
+| R2-T-03 | QL-01 ungetestet für einen Unterschied nur in den Regeln                                 | behoben                                                                                 |
+| R2-T-04 | Die CI-Prüfung mit der erfundenen Kanzlei zählte nur die Summe                           | behoben: je Spec                                                                        |
+| R2-T-05 | wie R2-S-03                                                                              | behoben                                                                                 |
+| R2-T-06 | Prüfsummen der XSD nicht an den Pfad gebunden                                            | teilweise widerlegt, keine Änderung nötig                                               |
+| R2-T-07 | Unsichtbare Zeichen in eigenen Dateien unter `tests/fixtures/` wurden nicht gefunden     | behoben                                                                                 |
+| R2-T-08 | Einige Zeilen in CLAUDE.md und `config/README.md` versprachen mehr, als die Tests prüfen | behoben (Tests und Doku)                                                                |
+| R2-T-09 | Zwei Dateien ohne Zeile in CLAUDE.md                                                     | behoben                                                                                 |
 
 ### Neue Fragen an Tobias
 
@@ -237,5 +237,9 @@ Steuerfragen: **F31** und **F32** in `docs/offene-fragen.md`.
     Live-Adresse zeigt den Zugangshinweis mit dem Kanzleinamen.
   - Wenn ja, passe ich die private Regel an. Wenn nein, ersetze ich die Namen in der Doku und nehme
     sie in die private Namensliste auf.
+- **G-21 (R2-L-03):** Die FeRD-Regel BR-FXEXT-CO-15 (EXTENDED) folgt heute der Meldung ihres Asserts.
+  Wörtlich gelesen würde ihr Test jede EXTENDED-Rechnung ohne BT-110 als Fehler melden; das ließ sich
+  ohne Saxon nicht nachstellen. F29 sagt „wie das FeRD-Schematron rechnet“. Soll das Tool dem Text der
+  Meldung folgen (heute) oder dem strengen Test?
 - **G-20 (R2-L-01):** Zwei XML derselben Rechnung, von denen nur eine BT-113 = 0,00 nennt (amtliches
   Paar 01.20a), unterscheiden sich im Status der Zeile „Endrechnung“. Zählt das als Unterschied (F27)?
