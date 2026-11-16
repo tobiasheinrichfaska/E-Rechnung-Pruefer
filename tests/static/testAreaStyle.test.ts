@@ -40,11 +40,40 @@ const TEST_CSS = read('src/testArea.css');
 const PHONE = blocks(APP_CSS, '@media (max-width: 640px)');
 const COPY = blocks(TEST_CSS, '@container werkzeug (max-width: 640px)');
 
+/**
+ * The phone blocks of app.css the copy leaves out, each with its reason; every other one must be
+ * copied. A new phone block is red here until it is copied or named (audit R3-T-08: only the block
+ * with `.pflicht-table` was compared, so a new block for another table would have stayed narrow
+ * beside the test page, the fault of R2-U-01).
+ */
+const LEFT_OUT: readonly { marker: string; reason: string }[] = [
+  { marker: '.title-wide', reason: 'beside the test page the tool runs on a computer' },
+];
+const leftOut = (body: string) => LEFT_OUT.some(({ marker }) => body.includes(marker));
+
 describe('the phone layout in the test version (src/testArea.css)', () => {
-  it('is the Pflichtangaben block of app.css, rule by rule', () => {
-    const original = PHONE.filter((body) => body.includes('.pflicht-table'));
-    expect(original).toHaveLength(1);
-    expect(COPY).toEqual(original);
+  it('is every phone block of app.css but the ones left out, in the same order, rule by rule', () => {
+    const copied = PHONE.filter((body) => !leftOut(body));
+    expect(copied.length).toBeGreaterThan(0);
+    expect(COPY).toEqual(copied);
+    // the Pflichtangaben and the comparison of several XML among them (R2-U-01, R3-U-06)
+    expect(COPY.some((body) => body.includes('.pflicht-table'))).toBe(true);
+    expect(COPY.some((body) => body.includes('.comparison .part-name'))).toBe(true);
+  });
+
+  it('names a reason for every block it leaves out, and each is still in app.css', () => {
+    for (const { marker, reason } of LEFT_OUT) {
+      expect(reason).not.toBe('');
+      expect(PHONE.filter((body) => body.includes(marker))).toHaveLength(1);
+    }
+  });
+
+  it('turns red for a new phone block of app.css that is not copied', () => {
+    const grown = blocks(
+      `${APP_CSS}\n@media (max-width: 640px) {\n  .neue-tabelle td {\n    display: block;\n  }\n}\n`,
+      '@media (max-width: 640px)',
+    ).filter((body) => !leftOut(body));
+    expect(COPY).not.toEqual(grown);
   });
 
   it('leaves out the title block: beside the test page the tool runs on a computer', () => {
