@@ -45,6 +45,11 @@ const STEP_LINES = manualTexts.flatMap((text) =>
 );
 
 const panel = (page: Page) => page.getByRole('complementary', { name: 'Testbereich' });
+/**
+ * The frame's one live region (Testumgebung 0a99ee8): it stays on the page while the panel is drawn
+ * anew, so a screen reader hears each message once (audit R3-U-13).
+ */
+const announcer = (page: Page) => page.locator('.tr-huelle > .tr-ansage[role="status"]');
 const tool = (page: Page) => page.locator('.tr-app');
 const caseButton = (page: Page, id: string) =>
   panel(page).locator(`[data-aktion="oeffnen"][data-id="${id}"]`);
@@ -197,8 +202,9 @@ test('the test version lists the manual tests beside the working tool', async ({
     await expect(caseButton(page, id)).toContainText(title);
   }
   await expect(panel(page)).toContainText(`0 von ${IDS.length} getestet`);
-  // no problem with the binding (a wrong version or stand would be shown on top)
-  await expect(panel(page).getByRole('alert')).toHaveCount(0);
+  // no problem with the binding (a wrong version or stand would be shown on top, and said once
+  // through the frame's live region)
+  await expect(panel(page).locator('.tr-kopf .tr-meldung')).toHaveCount(0);
 
   // the tool beside it works as in the live build
   await passNotice(page);
@@ -241,7 +247,9 @@ test('a sent report names the tool, its version and stand and every manual test'
   await panel(page).locator('select[data-nr="2"]').selectOption('darstellung');
 
   await answerYes(page, 'senden');
-  await expect(panel(page).locator('.tr-kopf [role="status"]')).toHaveText('Bericht gespeichert.');
+  await expect(panel(page).locator('.tr-kopf [data-meldung]')).toHaveText('Bericht gespeichert.');
+  // and said through the one live region of the frame (Testumgebung 0a99ee8, audit R3-U-13)
+  await expect(announcer(page)).toHaveText('Bericht gespeichert.');
   expect(received).toHaveLength(1);
   const stand = execFileSync('git', ['rev-parse', '--short', 'HEAD'], {
     cwd: ROOT,
@@ -274,9 +282,8 @@ test('a sent report names the tool, its version and stand and every manual test'
 
   // what was sent does not go twice
   await answerYes(page, 'senden');
-  await expect(panel(page).locator('.tr-kopf [role="status"]')).toContainText(
-    'kein neues Ergebnis',
-  );
+  await expect(panel(page).locator('.tr-kopf [data-meldung]')).toContainText('kein neues Ergebnis');
+  await expect(announcer(page)).toContainText('kein neues Ergebnis');
   expect(received).toHaveLength(1);
   // the only request left the page for its own address
   expect(problems).toEqual([]);
@@ -549,4 +556,55 @@ test('the manual tests link the samples and name what the test version shows', a
   await expect(panel(page)).toContainText(`„${TEXTS.statusEinzelfall}“`);
   expect(problems).toEqual([]);
   expect(await sideEffects(page, TEST_VERSION_KEYS)).toEqual([]);
+});
+
+// With blocked site data (the getter of localStorage throws) the frame says once that it keeps
+// nothing. Before Testumgebung 0a99ee8 that notice stood as role="alert" in the panel, which the
+// frame draws anew on every change: a screen reader heard it again on opening a test, going back or
+// hiding the done ones (audit R3-U-13). Now the panel carries no live role, and the frame's one
+// live region says the notice once.
+test('with blocked storage the frame says once that it keeps nothing, not on every change', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      get() {
+        throw new DOMException('Die Website-Daten sind gesperrt.', 'SecurityError');
+      },
+    });
+    // every alert put on the page, also inside an inserted subtree
+    const w = window as unknown as { __alerts: number };
+    w.__alerts = 0;
+    new MutationObserver((records) => {
+      for (const record of records) {
+        for (const node of record.addedNodes) {
+          if (!(node instanceof Element)) continue;
+          w.__alerts +=
+            (node.matches('[role="alert"]') ? 1 : 0) +
+            node.querySelectorAll('[role="alert"]').length;
+        }
+      }
+    }).observe(document, { subtree: true, childList: true });
+  });
+  const problems = await openHosted(page, '/', BUILT_TEST);
+  const unsaved = panel(page)
+    .locator('.tr-kopf .tr-meldung')
+    .filter({ hasText: 'speichert die Ergebnisse nicht' });
+  await expect(unsaved).toHaveCount(1);
+  await expect(announcer(page)).toHaveAttribute('aria-live', 'polite');
+  await expect(announcer(page)).toContainText('speichert die Ergebnisse nicht');
+
+  // a test opened, back to the list, the done ones hidden and shown: the panel is drawn anew
+  await caseButton(page, 'MT-02').click();
+  await expect(panel(page).getByRole('heading', { name: /^MT-02 / })).toBeVisible();
+  await panel(page).locator('[data-aktion="uebersicht"]').click();
+  await panel(page).locator('[data-aktion="erledigte"]').check();
+  await panel(page).locator('[data-aktion="erledigte"]').uncheck();
+  await expect(unsaved).toHaveCount(1);
+  // nothing in the panel speaks by itself, and no alert was put on the page at any time
+  await expect(panel(page).locator('[role="alert"], [role="status"], [aria-live]')).toHaveCount(0);
+  expect(await page.evaluate(() => (window as unknown as { __alerts: number }).__alerts)).toBe(0);
+  await expect(announcer(page)).toContainText('speichert die Ergebnisse nicht');
+  expect(problems).toEqual([]);
 });

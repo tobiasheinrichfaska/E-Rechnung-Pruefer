@@ -79,6 +79,15 @@ describe('the copy of the shared test frame', () => {
         'hilfe.ts: not in testrahmen.json',
         'pruefen.mjs: changed',
       ]);
+      // the checker of the copy says the same since Testumgebung 0a99ee8, a foreign file included
+      // (before, it went only through the files of its stamp)
+      expect(pruefeKopie(folder)).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining('LIESMICH.md fehlt'),
+          expect.stringContaining('pruefen.mjs wurde hier geändert'),
+          expect.stringContaining('hilfe.ts gehört nicht zur Kopie'),
+        ]),
+      );
     } finally {
       rmSync(folder, { recursive: true, force: true });
     }
