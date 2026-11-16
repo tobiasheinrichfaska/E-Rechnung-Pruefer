@@ -70,7 +70,9 @@ export default defineConfig([
     },
   },
   {
-    files: ['src/**/*.{ts,tsx}'],
+    // Plain JavaScript too (audit 2026-11-15, R2-S-03): the ban holds for every script in src/; the
+    // copy of the test frame is ignored above and checked by hash and folder listing instead
+    files: ['src/**/*.{ts,tsx,js,jsx,mjs,cjs}'],
     rules: {
       'no-restricted-globals': ['error', ...NO_STORAGE_OR_NETWORK],
       'no-restricted-properties': ['error', ...NO_STORAGE_PROPERTIES],

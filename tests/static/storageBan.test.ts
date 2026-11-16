@@ -27,6 +27,9 @@ const FORBIDDEN = [
   'globalThis.localStorage.clear();',
   'void navigator.storage.persist();',
   'void fetch("https://example.org/");',
+  // in the access store too, not only in the start of the test version (audit 2026-11-15, R2-T-08)
+  'new XMLHttpRequest();',
+  'new WebSocket("wss://example.org/");',
 ];
 // Where the old test page kept its run and sent its report, the test version's start and the entry
 const ELSEWHERE = [
@@ -70,6 +73,25 @@ describe('network (ESLint)', () => {
       expect(await refusals(`${code}\n`, 'src/testArea.tsx')).not.toEqual([]);
     },
   );
+});
+
+// Plain JavaScript in src/ is held to the same ban (audit 2026-11-15, R2-S-03): only the copy of the
+// test frame is left out, and it is checked by hash and folder listing (tests/static/testrahmen.test.ts).
+describe('JavaScript files in src/ (ESLint)', () => {
+  const CODE =
+    'localStorage.setItem("a", "b");\nvoid fetch("/_zugang/bericht", { method: "POST" });\n';
+
+  it.each(['src/io/hilfe.js', 'src/io/hilfe.mjs', 'src/io/hilfe.cjs', 'src/ui/hilfe.js'])(
+    'refuses storage and network in %s',
+    async (file) => {
+      expect(await eslint.isPathIgnored(file)).toBe(false);
+      expect(await refusals(CODE, file)).toHaveLength(2);
+    },
+  );
+
+  it('refuses them in the TypeScript next to it as well', async () => {
+    expect(await refusals(CODE, 'src/io/hilfe.ts')).toHaveLength(2);
+  });
 });
 
 describe('the copy of the shared test frame', () => {

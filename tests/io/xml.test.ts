@@ -130,6 +130,25 @@ describe('XSD validation from bundled schemas', () => {
     expect(problems[0]?.line).toBeGreaterThan(0);
     doc.dispose();
   });
+
+  // Without XML_PARSE_BIG_LINES libxml2 keeps an element's line as at most 65535, so every schema
+  // message behind it named „Zeile 65535“ (audit 2026-11-15, R2-S-02). A formatted CII invoice
+  // passes that line from about 2 500 positions on, far below the file limit.
+  it('names the real line of a schema message behind line 65535', () => {
+    const text = new TextDecoder().decode(fixture('UBL_ubl-tc434-example1.xml'));
+    const broken = text.replace(/<cbc:IssueDate>/, `${'\n'.repeat(70_000)}<cbc:Bad>x</cbc:Bad>$&`);
+    const line = broken.slice(0, broken.indexOf('<cbc:Bad>')).split('\n').length;
+    expect(line).toBeGreaterThan(70_000);
+    const doc = read(encode(broken));
+    const { problems } = schemaProblems(doc, xsdValidator(SCHEMA_ENTRIES.ublInvoice, SCHEMA_FILES));
+    doc.dispose();
+    expect(problems[0]?.message).toMatch(/Bad/);
+    expect(problems.map((problem) => problem.line)).toEqual([line]);
+    // a message about well-formedness at the same place counts its lines itself
+    const notWellFormed = readXml(encode(broken.replace('<cbc:Bad>x</cbc:Bad>', '<cbc:Bad>')));
+    expect(notWellFormed.ok).toBe(false);
+    if (!notWellFormed.ok) expect(notWellFormed.problems[0]?.line).toBeGreaterThan(65_535);
+  });
 });
 
 // schemaProblems collects the messages itself, through internals of libxml2-wasm, because the

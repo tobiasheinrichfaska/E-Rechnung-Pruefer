@@ -24,21 +24,30 @@ function withMissingStream(attachments: Attachment[]): Uint8Array {
   return new Uint8Array(Buffer.from(broken, 'latin1'));
 }
 
-test('names an attachment the PDF does not give out, in the result and in the list', async ({
+test('names an attachment the PDF does not give out and a broken XML, in the result and in the list', async ({
   page,
 }) => {
   const problems = await openApp(page);
+  // the stream of zweite.xml is missing (the last one, miniPdf sorts by name); kaputt.xml is XML
+  // that is not well-formed (audit 2026-11-15, R2-T-08)
   const pdf = withMissingStream([
     xml('factur-x.xml', officialText('kosit/01.01a-INVOICE_uncefact.xml')),
+    xml('kaputt.xml', '<a>'),
     xml('zweite.xml', '<a/>'),
   ]);
-  await upload(page, 'zwei.pdf', pdf, 'application/pdf');
+  await upload(page, 'drei.pdf', pdf, 'application/pdf');
   await expect(page.getByTestId('verdict')).toHaveClass(/tone-warn/);
   await expect(page.getByTestId('verdict')).toContainText(
     'Der Anhang „zweite.xml“ lässt sich nicht aus dem PDF lesen.',
   );
+  await expect(page.getByTestId('verdict')).toContainText(
+    'Der Anhang „kaputt.xml“ ist XML, lässt sich aber nicht lesen.',
+  );
   const list = page.locator('.card', { hasText: 'Weitere Anhänge im PDF' });
-  await expect(list.getByRole('listitem')).toHaveText(['zweite.xml – nicht lesbar']);
+  await expect(list.getByRole('listitem')).toHaveText([
+    'kaputt.xml – XML, fehlerhaft',
+    'zweite.xml – nicht lesbar',
+  ]);
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);
 });

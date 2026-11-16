@@ -1,4 +1,6 @@
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { CONFIG_VARIABLE, configFile, loadAppConfig } from '../../src/build/kanzleiConfig';
 
 // The GitHub check „Tests“ builds a second copy with the invented Beispielkanzlei, so the e2e
@@ -13,6 +15,15 @@ describe('the Kanzlei configuration a build reads', () => {
     // without the variable (or empty) the usual order: local file, private repo, neutral example
     expect(configFile({})).not.toBe(BEISPIEL);
     expect(configFile({ [CONFIG_VARIABLE]: '' })).toBe(configFile({}));
+  });
+
+  it('takes an absolute path as well (audit 2026-11-15, R2-T-08)', () => {
+    const absolute = resolve(fileURLToPath(new URL('../../', import.meta.url)), BEISPIEL);
+    expect(configFile({ [CONFIG_VARIABLE]: absolute })).toBe(absolute);
+    expect(loadAppConfig({ [CONFIG_VARIABLE]: absolute })).toEqual({
+      file: absolute,
+      config: loadAppConfig({ [CONFIG_VARIABLE]: BEISPIEL }).config,
+    });
   });
 
   it('stops when the named file is missing instead of falling back to another', () => {
