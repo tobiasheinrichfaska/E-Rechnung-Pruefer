@@ -108,18 +108,62 @@ const samePage = (page: Page) =>
 
 const invoice = () => official('kosit/01.01a-INVOICE_ubl.xml');
 
+// The tester sample with the tallest rows of the Pflichtangaben (audit R2-U-01)
+const SAMPLE_07 = '07_Anschriften_ohne_Strasse_Fiskalvertreter_unvollstaendig.xml';
+const sample07 = () => new Uint8Array(readFileSync(join(ROOT, 'beispiele', SAMPLE_07)));
+
+/**
+ * Drags a file over the element and drops it there, as the browser delivers it. `opened`: the
+ * browser would open the file itself; `taken`: the tool started to check it.
+ */
+const dropOn = (page: Page, selector: string, name: string) =>
+  page.evaluate(
+    async ([target, fileName, text]) => {
+      const element = document.querySelector(target);
+      if (!element) throw new Error(`nothing at ${target}`);
+      const transfer = new DataTransfer();
+      transfer.items.add(new File([text], fileName, { type: 'application/xml' }));
+      let drop: DragEvent | undefined;
+      for (const type of ['dragenter', 'dragover', 'drop']) {
+        const event = new DragEvent(type, {
+          dataTransfer: transfer,
+          bubbles: true,
+          cancelable: true,
+        });
+        element.dispatchEvent(event);
+        drop = event;
+      }
+      // a check starts at once: „„…“ wird geprüft …“, then the result
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      return {
+        opened: drop?.defaultPrevented !== true,
+        taken: document.querySelector('.tr-app')?.textContent?.includes(fileName) ?? false,
+      };
+    },
+    [selector, name, new TextDecoder().decode(invoice())] as const,
+  );
+
 test('the live build carries nothing of the test frame and keeps connect-src none', async ({
   page,
 }) => {
   const live = readFileSync(BUILT, 'utf8');
   const testVersion = readFileSync(BUILT_TEST, 'utf8');
-  const frame = ['starteTestrahmen', 'tr-huelle', 'testrahmen:', 'Bericht senden', 'testbericht/1'];
+  // the frame, and the tool's own style beside it (src/testArea.css, a container query)
+  const frame = [
+    'starteTestrahmen',
+    'tr-huelle',
+    'testrahmen:',
+    'Bericht senden',
+    'testbericht/1',
+    '@container',
+  ];
   const texts = [...IDS, ...CASES.map((c) => c.title), ...STEP_LINES];
   expect(CASES.length).toBeGreaterThanOrEqual(5);
   for (const word of [...frame, ...texts]) expect(live, word).not.toContain(word);
   // the check means something: the test version carries the manual tests word for word
   for (const word of texts) expect(testVersion, word).toContain(word);
   expect(testVersion).toContain('tr-huelle');
+  expect(testVersion).toContain('@container');
 
   const problems = await openApp(page);
   const csp = await page
@@ -332,6 +376,132 @@ test('on a phone the tool and the test page are two tabs', async ({ page }) => {
   // the result is still there behind the tab
   await tabs.locator('[data-wert="app"]').click();
   await expect(tool(page).getByTestId('headline')).toBeVisible();
+  expect(problems).toEqual([]);
+  expect(await sideEffects(page, TEST_VERSION_KEYS)).toEqual([]);
+});
+
+// MT-02 has the tool in half of a 1920 screen. From 900 px the frame puts the test page (320–440 px)
+// beside the tool, which leaves it 460–640 px: there its phone layout follows its own width, not the
+// window's (src/testArea.css; audit R2-U-01). Before, the values column shrank to 105 px, words broke
+// inside („Rechnungsem|pfängers“) and a row grew to 584 px.
+test('beside the test page the tool stacks each Pflichtangabe by its own width', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 960, height: 800 });
+  const problems = await openHosted(page, '/', BUILT_TEST);
+  await expect(page.locator('.tr-reiter')).toBeHidden();
+  await passNotice(page);
+  await upload(page, SAMPLE_07, sample07(), 'application/xml');
+  await expect(tool(page).getByTestId('pflicht-summary')).toBeVisible();
+  const area = await tool(page).boundingBox();
+  expect(area && area.width < 641).toBe(true);
+
+  // as on a phone (handy.spec.ts): label and status on one line, the values below and wider
+  const cells = tool(page).getByTestId('pflicht-name-leistender').locator('th, td');
+  const box = async (i: number) => {
+    const found = await cells.nth(i).boundingBox();
+    if (!found) throw new Error(`cell ${i} has no box`);
+    return found;
+  };
+  const [label, values, status] = [await box(0), await box(1), await box(2)];
+  expect(Math.abs(status.y - label.y)).toBeLessThan(2);
+  expect(status.x).toBeGreaterThan(label.x + label.width - 1);
+  expect(values.y).toBeGreaterThanOrEqual(label.y + label.height - 1);
+  expect(values.width).toBeGreaterThan(label.width);
+
+  // every shown row: a wide values column and no tall row; nothing sideways
+  const rows = await tool(page)
+    .locator('.pflicht-table tbody tr')
+    .evaluateAll((list) =>
+      list
+        .map((row) => ({
+          height: row.getBoundingClientRect().height,
+          values: row.children[1]?.getBoundingClientRect().width ?? 0,
+        }))
+        .filter((row) => row.height > 0),
+    );
+  expect(rows.length).toBeGreaterThan(10);
+  expect(Math.min(...rows.map((row) => row.values))).toBeGreaterThan(400);
+  expect(Math.max(...rows.map((row) => row.height))).toBeLessThan(300);
+  const sideways = (selector: string) =>
+    page.locator(selector).evaluate((element) => element.scrollWidth - element.clientWidth);
+  expect(await sideways('.tr-app')).toBeLessThanOrEqual(0);
+  expect(await sideways('html')).toBeLessThanOrEqual(0);
+  expect(problems).toEqual([]);
+  expect(await sideEffects(page, TEST_VERSION_KEYS)).toEqual([]);
+});
+
+// Printing the test version prints the tool and its result as the live build does, upright and
+// across; the test page and the tabs stay off the paper (audit R2-U-02). Before, the upright page
+// (below 900 px) took the frame's tabs with „Tests“ chosen from the start and printed only the test
+// page; across, the result ran beside an empty column. The frame's own print rules (Testumgebung
+// 2645a15) do this.
+test('prints the tool with its result, never the test page', async ({ page }) => {
+  const problems = await openHosted(page, '/', BUILT_TEST);
+  await passNotice(page);
+  await caseButton(page, 'MT-04').click();
+  await upload(page, SAMPLE_07, sample07(), 'application/xml');
+  await page.emulateMedia({ media: 'print' });
+  await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
+  // A4 upright and across with 10 mm margins, in CSS pixels
+  for (const width of [718, 1047]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await expect(panel(page)).toBeHidden();
+    await expect(page.locator('.tr-reiter')).toBeHidden();
+    await expect(tool(page).getByTestId('headline')).toBeVisible();
+    await expect(tool(page).getByTestId('pflicht-summary')).toBeVisible();
+    await expect(tool(page).getByRole('heading', { name: 'Rechnerische Prüfung' })).toBeVisible();
+    // the whole width and the whole length: no empty column beside it, nothing cut off inside
+    const area = await tool(page).boundingBox();
+    expect(area?.x).toBe(0);
+    expect(area && area.width > width - 2).toBe(true);
+    expect(area && area.height > 1000).toBe(true);
+    expect(await tool(page).evaluate((e) => e.scrollHeight - e.clientHeight)).toBeLessThanOrEqual(
+      0,
+    );
+  }
+  await page.evaluate(() => window.dispatchEvent(new Event('afterprint')));
+  await page.emulateMedia({ media: 'screen' });
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await expect(panel(page)).toBeVisible();
+  await expect(panel(page).getByRole('heading', { name: /^MT-04 / })).toBeVisible();
+  expect(problems).toEqual([]);
+  expect(await sideEffects(page, TEST_VERSION_KEYS)).toEqual([]);
+});
+
+// The tool takes a file dropped anywhere on its page (U-05). In the test version a file dropped on
+// the test page or the tabs is refused instead (src/testArea.tsx; audit R2-U-05): below 900 px the
+// tool behind the tab „Tests“ would check it unseen and say nothing, and the tester would note
+// „Passiert nichts“.
+test('a file dropped on the test page is refused, not checked by the tool behind it', async ({
+  page,
+}) => {
+  const problems = await openHosted(page, '/', BUILT_TEST);
+  await passNotice(page);
+  // beside the tool: the test page takes no file, and the browser does not open it either
+  expect(await dropOn(page, '.tr-feld .tr-kopf', 'auf-testseite.xml')).toEqual({
+    opened: false,
+    taken: false,
+  });
+  await expect(tool(page).getByTestId('headline')).toHaveCount(0);
+  // anywhere in the tool a file is still taken, also next to the drop zone
+  expect(await dropOn(page, '.tr-app h1', 'im-tool.xml')).toEqual({ opened: false, taken: true });
+  await expect(tool(page).getByText(/^Geprüfte Datei: „im-tool\.xml“/)).toBeVisible();
+
+  // below 900 px the tool hides behind the tab „Tests“: nothing is checked there unseen
+  await page.setViewportSize({ width: 600, height: 800 });
+  await expect(tool(page)).toBeHidden();
+  for (const target of ['.tr-feld .tr-kopf', '.tr-reiter']) {
+    expect(await dropOn(page, target, 'hinter-dem-reiter.xml'), target).toEqual({
+      opened: false,
+      taken: false,
+    });
+  }
+  await page.locator('.tr-reiter [data-wert="app"]').click();
+  await expect(tool(page).getByText(/^Geprüfte Datei: „im-tool\.xml“/)).toBeVisible();
+  // the tool shown: a file dropped on it is taken again
+  expect(await dropOn(page, '.tr-app h1', 'danach.xml')).toEqual({ opened: false, taken: true });
+  await expect(tool(page).getByText(/^Geprüfte Datei: „danach\.xml“/)).toBeVisible();
   expect(problems).toEqual([]);
   expect(await sideEffects(page, TEST_VERSION_KEYS)).toEqual([]);
 });
