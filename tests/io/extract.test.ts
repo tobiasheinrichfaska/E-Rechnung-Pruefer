@@ -1,16 +1,18 @@
 import { readdirSync } from 'node:fs';
 import { XmlXPath } from 'libxml2-wasm';
-import { extractModel } from '../../src/io/extract';
-import { readXml, rootOf, schemaProblems, xsdValidator } from '../../src/io/xml';
+import type { XmlDocument, XmlNode } from 'libxml2-wasm';
+import { extractModel, familyOf } from '../../src/io/extract';
+import { readXml, rootOf, schemaProblems, valuesAt, xsdValidator } from '../../src/io/xml';
+import type { Namespaces } from '../../src/io/xml';
 import { SCHEMA_ENTRIES, SCHEMA_FILES } from '../../src/io/schemas';
-import { allDefinitions, pathFor } from '../../src/logic/binding';
+import { INVOICE, allDefinitions, pathFor } from '../../src/logic/binding';
 import type { GroupDef, SyntaxFamily, TermDef } from '../../src/logic/binding';
 import { decimalText, normalize as normalizeDecimal, parseDecimal } from '../../src/logic/decimal';
 import { groupsOf, normalize, valuesOf } from '../../src/logic/model';
 import type { InvoiceModel, ModelGroup, RawGroup } from '../../src/logic/model';
 import { SYNTAXES, syntaxOf } from '../../src/logic/syntax';
 import type { SyntaxId } from '../../src/logic/syntax';
-import { official } from '../support/fixtures';
+import { official, officialText } from '../support/fixtures';
 
 function modelOf(path: string): InvoiceModel {
   const read = readXml(official(path));
@@ -285,5 +287,116 @@ describe('values of one official invoice', () => {
   it('turns CII dates (format 102) into ISO dates and keeps the raw text', () => {
     const model = modelOf('kosit/01.01a-INVOICE_uncefact.xml');
     expect(valuesOf(model, 'BT-2')).toEqual([{ value: '2016-04-04', raw: '20160404' }]);
+  });
+});
+
+// Audit R2-S-01: every path compiled once per document, not once per position — a string XPath
+// is compiled anew on each call (12 times per empty position here: 600 089 compilations and 4.5 s
+// for 50 000 of them before, 81 and 2.1 s after)
+describe('each path of the binding compiled once per document (audit R2-S-01)', () => {
+  const LINES =
+    /<ram:IncludedSupplyChainTradeLineItem>[\s\S]*?<\/ram:IncludedSupplyChainTradeLineItem>/g;
+  /** CEN CII example 1 with this many empty positions instead of its own */
+  const withEmptyLines = (count: number) => {
+    let first = true;
+    return officialText('cen/CII_example1.xml').replace(LINES, () =>
+      first ? ((first = false), '<ram:IncludedSupplyChainTradeLineItem/>'.repeat(count)) : '',
+    );
+  };
+  const extracted = (text: string) => {
+    const read = readXml(new TextEncoder().encode(text));
+    if (!read.ok) throw new Error(read.issue);
+    try {
+      const syntax = syntaxOf(rootOf(read.doc));
+      if (!syntax) throw new Error('no syntax');
+      const compile = vi.spyOn(XmlXPath, 'compile');
+      const started = performance.now();
+      try {
+        const raw = extractModel(read.doc, syntax);
+        return {
+          raw,
+          compiled: compile.mock.calls.length,
+          seconds: (performance.now() - started) / 1000,
+        };
+      } finally {
+        compile.mockRestore();
+      }
+    } finally {
+      read.doc.dispose();
+    }
+  };
+  const PATHS = (() => {
+    const { terms, groups } = allDefinitions();
+    return new Set([...terms, ...groups].map((def) => pathFor(def, 'cii')).filter(Boolean)).size;
+  })();
+
+  it('compiles no more paths than the binding has, however many positions there are', () => {
+    const few = extracted(withEmptyLines(10));
+    const many = extracted(withEmptyLines(1_000));
+    expect(many.raw?.groups['BG-25']).toHaveLength(1_000);
+    expect(many.compiled).toBe(few.compiled);
+    expect(many.compiled).toBeLessThanOrEqual(PATHS);
+  });
+
+  // 20 000 empty positions take about 0.9 s here (1.9 s before): a fall back to compiling per
+  // call, or to quadratic time, shows
+  it('reads 20 000 positions in linear time', () => {
+    const { raw, seconds } = extracted(withEmptyLines(20_000));
+    expect(raw?.groups['BG-25']).toHaveLength(20_000);
+    expect(seconds).toBeLessThan(3);
+  });
+
+  // The output is the walk with string XPaths of before (compared on all 252 EN 16931 XML of the
+  // fixtures, the private ones and the PDF attachments included, when the change was made); kept
+  // here on the official files
+  it('gives the same raw model as the walk with string XPaths, on every official file', () => {
+    const before = (
+      context: XmlDocument | XmlNode,
+      def: GroupDef,
+      family: SyntaxFamily,
+      ns: Namespaces,
+    ): RawGroup => ({
+      bg: def.bg,
+      terms: Object.fromEntries(
+        def.terms.flatMap((term) => {
+          const path = pathFor(term, family);
+          return path ? [[term.bt, valuesAt(context, path, ns)]] : [];
+        }),
+      ),
+      groups: Object.fromEntries(
+        def.groups.flatMap((child) => {
+          const path = pathFor(child, family);
+          return path
+            ? [
+                [
+                  child.bg,
+                  context.find(path, { ...ns }).map((node) => before(node, child, family, ns)),
+                ],
+              ]
+            : [];
+        }),
+      ),
+    });
+    const root = new URL('../fixtures/offiziell/', import.meta.url);
+    const files = readdirSync(root, { recursive: true, encoding: 'utf8' }).filter((f) =>
+      f.endsWith('.xml'),
+    );
+    let compared = 0;
+    for (const file of files) {
+      const read = readXml(official(file));
+      if (!read.ok) continue;
+      try {
+        const syntax = syntaxOf(rootOf(read.doc));
+        const family = syntax && familyOf(syntax);
+        if (!syntax || !family) continue;
+        expect(extractModel(read.doc, syntax), file).toEqual(
+          before(read.doc, INVOICE, family, syntax.namespaces),
+        );
+        compared += 1;
+      } finally {
+        read.doc.dispose();
+      }
+    }
+    expect(compared).toBeGreaterThan(90);
   });
 });

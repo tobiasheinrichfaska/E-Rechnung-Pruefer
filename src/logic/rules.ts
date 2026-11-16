@@ -10,8 +10,8 @@ import {
   abs,
   add,
   decimalEquals,
-  decimalText,
   formatAmount,
+  germanNumber,
   multiply,
   normalize,
   parseDecimal,
@@ -120,6 +120,13 @@ export interface RuleForms {
   co14WithoutBreakdown: boolean;
   /** BR-CO-15: CII also accepts BT-112 = BT-109 */
   co15NetAlone: boolean;
+  /**
+   * BR-CO-15: BT-112 = BT-109 + BT-110 only with exactly one VAT total in the document currency
+   * (audit R2-L-03) — UBL `count(cac:TaxTotal/xs:decimal(cbc:TaxAmount[@currencyID=$Currency])) eq
+   * 1`, CII `count(…/ram:TaxTotalAmount[@currencyID = $Currency]) = 1`; without it or with two the
+   * rule fails, in CII unless BT-112 = BT-109 (co15NetAlone)
+   */
+  co15ExactlyOneTax: boolean;
   /** BR-CO-16: UBL rounds BT-112 − BT-113 and BT-115 − BT-114, CII computes exactly */
   co16Rounded: boolean;
   co17: Tolerance;
@@ -146,6 +153,7 @@ export const RULE_FORMS: Readonly<Record<'ubl' | 'cii', RuleForms>> = {
     co13RoundAlone: false,
     co14WithoutBreakdown: false,
     co15NetAlone: false,
+    co15ExactlyOneTax: true,
     co16Rounded: true,
     co17: 'below1',
     breakdown: {
@@ -164,6 +172,7 @@ export const RULE_FORMS: Readonly<Record<'ubl' | 'cii', RuleForms>> = {
     co13RoundAlone: true,
     co14WithoutBreakdown: true,
     co15NetAlone: true,
+    co15ExactlyOneTax: true,
     co16Rounded: false,
     co17: 'upTo1',
     breakdown: {
@@ -220,10 +229,20 @@ function one(source: Source, path: string): Decimal | null | undefined {
   return parseDecimal(first.value);
 }
 
+/**
+ * The sum of part amounts: undefined when one is no number, null when one is missing — shown as
+ * „keine Zahl“ and „nicht angegeben“, so the client looks for the right thing (audit R2-L-07).
+ */
+function sumOf(values: readonly (Decimal | null | undefined)[]): Decimal | null | undefined {
+  if (values.some((v) => v === undefined)) return undefined;
+  if (values.some((v) => v === null)) return null;
+  return sum(values.filter((v): v is Decimal => v !== null && v !== undefined));
+}
+
 const round2 = (value: Decimal) => roundTo(value, 2);
 /** "Gesamtbetrag ohne Umsatzsteuer (BT-109)": the name first, the number for experts */
 const named = (bt: string) => `${termLabel(bt)} (${bt})`;
-const percent = (rate: Decimal) => `${decimalText(normalize(rate)).replace('.', ',')} %`;
+const percent = (rate: Decimal) => `${germanNumber(rate)} %`;
 const code = (source: Source, path: string) =>
   valuesOf(source, path)[0]?.value.trim().toUpperCase();
 
@@ -285,7 +304,7 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
       ? TEXTS.ruleMissing
       : value === undefined
         ? TEXTS.ruleNoNumber
-        : `${formatAmount(value)}${currency ? ` ${currency}` : ''}`;
+        : `${formatAmount(normalize(value))}${currency ? ` ${currency}` : ''}`;
   const results: RuleResult[] = [];
   const add_ = (
     id: string,
@@ -318,15 +337,12 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
 
   // BR-CO-10: BT-106 = round(Σ BT-131)
   const lines = groupsOf(model, 'BG-25');
-  const lineAmounts = lines.map((line) => one(line, 'BT-131'));
-  const lineSum = lineAmounts.every((a): a is Decimal => a !== null && a !== undefined)
-    ? sum(lineAmounts)
-    : undefined;
+  const lineSum = sumOf(lines.map((line) => one(line, 'BT-131')));
   add_(
     'BR-CO-10',
     lines.length > 0 && lineSum && bt106 ? decimalEquals(bt106, round2(lineSum)) : undefined,
     [
-      { label: TEXTS.ruleLineSum, value: lineSum ? money(lineSum) : TEXTS.ruleNoNumber },
+      { label: TEXTS.ruleLineSum, value: money(lineSum) },
       { label: named('BT-106'), value: money(bt106) },
     ],
   );
@@ -338,18 +354,16 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
   ] as const) {
     const parts = groupsOf(model, group);
     if (parts.length === 0 && value === null) continue;
-    const amounts = parts.map((p) => one(p, path));
-    const partSum = amounts.every((a): a is Decimal => a !== null && a !== undefined)
-      ? sum(amounts)
-      : undefined;
+    const partSum = sumOf(parts.map((p) => one(p, path)));
     add_(
       id,
-      partSum === undefined || value === undefined
+      partSum === undefined || partSum === null || value === undefined
         ? undefined
         : value !== null && decimalEquals(value, round2(partSum)),
       [
-        { label: sumLabel, value: partSum ? money(partSum) : TEXTS.ruleNoNumber },
-        { label: bt, value: money(value) },
+        { label: sumLabel, value: money(partSum) },
+        // named like every other value (audit R2-L-08)
+        { label: named(bt), value: money(value) },
       ],
     );
   }
@@ -387,21 +401,40 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
     ]);
   }
 
-  // BR-CO-15: BT-112 = round(BT-109 + BT-110); CII: or BT-112 = BT-109 (then BT-110 may be missing)
+  // BR-CO-15: BT-112 = round(BT-109 + BT-110) with exactly one BT-110 in the document currency;
+  // CII: or BT-112 = BT-109 (then BT-110 may be missing). Without one or with two the sum fails,
+  // as both CEN Schematrons count them (audit R2-L-03)
   {
-    const expected =
-      bt109 && bt110 !== undefined
-        ? forms.co15NetAlone && bt110 === null
-          ? bt109
-          : round2(add(bt109, bt110 ?? ZERO))
-        : undefined;
+    const taxes = valuesOf(model, 'BG-22/BT-110').map((v) => parseDecimal(v.value));
+    const notOneTax = forms.co15ExactlyOneTax && taxes.length !== 1;
     const netAlone = Boolean(forms.co15NetAlone && bt109 && bt112 && decimalEquals(bt112, bt109));
-    const ok = bt112 && expected ? decimalEquals(bt112, expected) : undefined;
-    add_('BR-CO-15', netAlone || ok, [
+    let sumFits: boolean | undefined;
+    let expected: Decimal | undefined;
+    if (notOneTax) {
+      sumFits = false;
+      expected = forms.co15NetAlone && bt109 ? bt109 : undefined;
+    } else if (bt109 && bt110 !== undefined) {
+      expected = forms.co15NetAlone && bt110 === null ? bt109 : round2(add(bt109, bt110 ?? ZERO));
+      sumFits = bt112 ? decimalEquals(bt112, expected) : undefined;
+    }
+    const ok = netAlone || sumFits;
+    add_('BR-CO-15', ok, [
       { label: named('BT-109'), value: money(bt109) },
-      { label: named('BT-110'), value: money(bt110) },
+      {
+        label: named('BT-110'),
+        value: taxes.length > 1 ? taxes.map(money).join(TEXTS.ruleAnd) : money(bt110),
+      },
       { label: named('BT-112'), value: money(bt112) },
       ...expectedValue(expected),
+      // why the sum cannot fit: none (UBL) or more than one VAT total
+      ...(notOneTax && ok !== true && (taxes.length > 1 || !forms.co15NetAlone)
+        ? [
+            {
+              label: TEXTS.ruleTaxTotals,
+              value: fill(TEXTS.ruleTaxTotalsCount, { count: taxes.length }),
+            },
+          ]
+        : []),
     ]);
   }
 
@@ -493,17 +526,13 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
     const theLines = ofThis('BG-25', 'BG-30/BT-151', 'BG-30/BT-152');
     const theCharges = ofThis('BG-21', 'BT-102', 'BT-103');
     const theAllowances = ofThis('BG-20', 'BT-95', 'BT-96');
-    const amountsOf = (groups: ModelGroup[] | undefined, path: string) => {
-      const values = groups?.map((g) => one(g, path));
-      return values?.every((v): v is Decimal => v !== null && v !== undefined)
-        ? sum(values)
-        : undefined;
-    };
+    const amountsOf = (groups: ModelGroup[] | undefined, path: string) =>
+      groups ? sumOf(groups.map((g) => one(g, path))) : undefined;
     const lineSum = amountsOf(theLines, 'BT-131');
     const chargeSum = amountsOf(theCharges, 'BT-99');
     const allowanceSum = amountsOf(theAllowances, 'BT-92');
     // CII rounds each part sum before adding them (round(Σ) + round(Σ) − round(Σ))
-    const partSum = (value: Decimal | undefined) =>
+    const partSum = (value: Decimal | null | undefined) =>
       value && rule.roundParts ? round2(value) : value;
     const [linesPart, chargesPart, allowancesPart] = [lineSum, chargeSum, allowanceSum].map(
       partSum,
@@ -518,6 +547,21 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
     if (expected && base) {
       ok = (!rule.needsOwnPart || ownParts > 0) && fits(base, expected, rule.tolerance);
     }
+    // a part of the category whose rate is no number: that rate is named, not the sum (R2-L-07)
+    const partShown = (
+      groups: ModelGroup[] | undefined,
+      label: string,
+      rateLabel: string,
+      value: Decimal | null | undefined,
+    ): RuleValue =>
+      groups === undefined
+        ? { label: rateLabel, value: TEXTS.ruleNoNumber }
+        : { label, value: money(value) };
+    // UBL BR-S-08 without a line, charge or allowance of its rate: the values say why (R2-L-05)
+    const noOwnPart =
+      rule.needsOwnPart && ownParts === 0 && theLines && theCharges && theAllowances
+        ? [{ label: TEXTS.ruleOwnParts, value: TEXTS.ruleOwnPartsNone }]
+        : [];
     add_(
       rule.id,
       ok,
@@ -528,17 +572,17 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
             { label: named('BT-119'), value: money(rate) },
           ]
         : [
-            { label: TEXTS.ruleLineSum, value: linesPart ? money(linesPart) : TEXTS.ruleNoNumber },
-            {
-              label: TEXTS.ruleSumCharges,
-              value: chargesPart ? money(chargesPart) : TEXTS.ruleNoNumber,
-            },
-            {
-              label: TEXTS.ruleSumAllowances,
-              value: allowancesPart ? money(allowancesPart) : TEXTS.ruleNoNumber,
-            },
+            partShown(theLines, TEXTS.ruleLineSum, TEXTS.ruleLineRate, linesPart),
+            partShown(theCharges, TEXTS.ruleSumCharges, TEXTS.ruleChargeRate, chargesPart),
+            partShown(
+              theAllowances,
+              TEXTS.ruleSumAllowances,
+              TEXTS.ruleAllowanceRate,
+              allowancesPart,
+            ),
             { label: named('BT-116'), value: money(base) },
             ...expectedValue(expected),
+            ...noOwnPart,
           ],
       occurrence,
       withTolerance(

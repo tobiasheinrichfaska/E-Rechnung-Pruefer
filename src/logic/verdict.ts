@@ -7,10 +7,10 @@ import { decimalEquals, formatAmount, parseDecimal } from './decimal';
 import { first } from './model';
 import type { BtId, InvoiceModel } from './model';
 import { checkPflichtangaben } from './check';
-import type { RowResult } from './check';
+import type { RowResult, ShownValue } from './check';
 import { profileOf } from './profiles';
 import { adviceFor, checkRules } from './rules';
-import type { RulesResult } from './rules';
+import type { RuleResult, RuleStatus, RulesResult } from './rules';
 import type { Einordnung, ProfileMatch } from './profiles';
 import { syntaxById } from './syntax';
 import { TEXTS, fill } from './texts';
@@ -81,10 +81,13 @@ export function differingTerms(parts: readonly InvoicePart[]): BtId[] {
 interface Outcome {
   key: string;
   label: string;
-  /** Everything the result shows of it: equal signatures, equal results */
+  /** Everything the result shows of it, by value and in any order: equal signatures, equal results */
   signature: string;
   /** Short, for the line "Unterschiedlich: …" and the comparison table */
   shown: string;
+  /** Where the short texts agree, what differs is told from these (audit R2-L-02) */
+  row?: RowResult;
+  rules?: RulesResult;
 }
 
 const SHOWN_MAX = 120;
@@ -93,6 +96,14 @@ const STATUS_TEXT: Readonly<Record<RowResult['status'], string>> = {
   fehlt: TEXTS.statusFehlt,
   einzelfall: TEXTS.statusEinzelfall,
 };
+const RULE_STATUS_TEXT: Readonly<Record<RuleStatus, string>> = {
+  passt: TEXTS.ruleStatusPasst,
+  auffaellig: TEXTS.ruleStatusAuffaellig,
+  nichtPruefbar: TEXTS.ruleStatusNichtPruefbar,
+};
+
+const shorten = (text: string) =>
+  text.length > SHOWN_MAX ? `${text.slice(0, SHOWN_MAX - 1)}…` : text;
 
 function rowShown(row: RowResult): string {
   const values = row.values.map((v) => v.value).join(', ');
@@ -100,8 +111,7 @@ function rowShown(row: RowResult): string {
     row.hints.length === 0
       ? ''
       : ` (${row.hints.length === 1 ? TEXTS.differingWithHint : fill(TEXTS.differingWithHints, { count: row.hints.length })})`;
-  const text = `${STATUS_TEXT[row.status]}${values ? `: ${values}` : ''}${hints}`;
-  return text.length > SHOWN_MAX ? `${text.slice(0, SHOWN_MAX - 1)}…` : text;
+  return shorten(`${STATUS_TEXT[row.status]}${values ? `: ${values}` : ''}${hints}`);
 }
 
 function rulesShown(rules: RulesResult): string {
@@ -113,6 +123,35 @@ function rulesShown(rules: RulesResult): string {
     : TEXTS.ruleStatusPasst;
 }
 
+/** A list as a sorted multiset of texts: the same entries in another order compare equal. */
+const multiset = (items: readonly unknown[]): string[] =>
+  items.map((item) => JSON.stringify(item)).sort();
+
+/**
+ * A row as the result shows it, independent of the order of positions, breakdowns and values
+ * (audit R2-L-01). The values are already shown by their value (displayValue), so "7" and "7.00"
+ * or "1" and "1.0000" agree.
+ */
+function rowSignature(row: RowResult): string {
+  return JSON.stringify([
+    row.status,
+    row.reason ?? '',
+    multiset(row.missing),
+    multiset(row.hints),
+    multiset(row.values),
+    row.groups.map((g) => [g.group, multiset(g.items.map(multiset))]),
+  ]);
+}
+
+/**
+ * The rule results that are not „passt“, in any order: a rule that only one part applies (e.g.
+ * BR-CO-11 over a document allowance total of 0.00 that the other part leaves out) passes there,
+ * so it says nothing apart (audit R2-L-01).
+ */
+const ruleEntry = (r: RuleResult) => [r.id, r.occurrence ?? '', r.status];
+const notPassing = (rules: RulesResult) =>
+  multiset(rules.results.filter((r) => r.status !== 'passt').map(ruleEntry));
+
 /** What the result shows of one part beside its header: every Pflichtangabe and the rules. */
 function outcomesOf(invoice: InvoiceVerdict): Outcome[] {
   const model = pflichtModel(invoice);
@@ -120,15 +159,9 @@ function outcomesOf(invoice: InvoiceVerdict): Outcome[] {
   const rows = checkPflichtangaben(model).rows.map((row) => ({
     key: row.row.id,
     label: row.row.label,
-    signature: JSON.stringify([
-      row.status,
-      row.reason ?? '',
-      row.missing,
-      row.hints,
-      row.values,
-      row.groups,
-    ]),
+    signature: rowSignature(row),
     shown: rowShown(row),
+    row,
   }));
   const rules = rulesOf(invoice);
   return rules
@@ -137,18 +170,130 @@ function outcomesOf(invoice: InvoiceVerdict): Outcome[] {
         {
           key: 'rules',
           label: TEXTS.differingRules,
-          signature: JSON.stringify(rules.results.map((r) => [r.id, r.occurrence ?? '', r.status])),
+          signature: JSON.stringify(notPassing(rules)),
           shown: rulesShown(rules),
+          rules,
         },
       ]
     : rows;
 }
 
+/** Per list, what it holds beyond what every list holds (multisets, compared by `key`). */
+function beyondCommon<T>(lists: readonly (readonly T[])[], key: (item: T) => string): T[][] {
+  const counts = lists.map((list) => {
+    const count = new Map<string, number>();
+    for (const item of list) count.set(key(item), (count.get(key(item)) ?? 0) + 1);
+    return count;
+  });
+  const common = new Map<string, number>();
+  for (const k of new Set(counts.flatMap((c) => [...c.keys()]))) {
+    common.set(k, Math.min(...counts.map((c) => c.get(k) ?? 0)));
+  }
+  return lists.map((list) => {
+    const left = new Map(common);
+    return [...list]
+      .sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0))
+      .filter((item) => {
+        const k = key(item);
+        const shared = left.get(k) ?? 0;
+        if (shared === 0) return true;
+        left.set(k, shared - 1);
+        return false;
+      });
+  });
+}
+
+const valueText = (v: ShownValue) => `${v.label}: ${v.value}`;
+const itemText = (item: readonly ShownValue[]) => item.map(valueText).join(' · ');
+
+/**
+ * The occurrences (positions, breakdowns) one part has and another has not. Where each part has as
+ * many, they are paired and each shows only what differs, after the first value as its anchor:
+ * "Positionsnummer: 1 · Menge: 1" / "Positionsnummer: 1 · Menge: 5".
+ */
+function differingItems(extras: readonly (readonly ShownValue[][])[]): string[][] {
+  const [head] = extras;
+  const paired = head !== undefined && extras.every((list) => list.length === head.length);
+  if (!paired) return extras.map((list) => list.map(itemText));
+  return extras.map((list, part) =>
+    list.map((item, index) => {
+      const pair = extras.map((other) => other[index] ?? []);
+      const labels = [...new Set(pair.flatMap((other) => other.map((v) => v.label)))];
+      const of = (values: readonly ShownValue[], label: string) =>
+        values
+          .filter((v) => v.label === label)
+          .map((v) => v.value)
+          .join(', ');
+      const differing = labels.filter((label) => new Set(pair.map((o) => of(o, label))).size > 1);
+      const [anchor] = item;
+      const own = pair[part] ?? [];
+      return [
+        ...(anchor && !differing.includes(anchor.label) ? [valueText(anchor)] : []),
+        ...differing.map((label) => `${label}: ${of(own, label) || '–'}`),
+      ].join(' · ');
+    }),
+  );
+}
+
+/** What differs between the rows of the parts whose short texts agree (audit R2-L-02). */
+function rowDetails(rows: readonly (RowResult | undefined)[]): string[] {
+  const of = <T>(pick: (row: RowResult) => readonly T[]) => rows.map((r) => (r ? pick(r) : []));
+  const values = beyondCommon(
+    of((r) => r.values),
+    (v) => JSON.stringify(v),
+  );
+  const missing = beyondCommon(
+    of((r) => r.missing),
+    (m) => m,
+  );
+  const hints = beyondCommon(
+    of((r) => r.hints),
+    (h) => h,
+  );
+  const groupCount = Math.max(...rows.map((r) => r?.groups.length ?? 0));
+  const items = Array.from({ length: groupCount }, (_, g) =>
+    differingItems(
+      beyondCommon(
+        of((r) => r.groups[g]?.items ?? []),
+        (item) => JSON.stringify(item),
+      ),
+    ),
+  );
+  return rows.map((_, part) => {
+    const gaps = missing[part] ?? [];
+    return [
+      ...(values[part] ?? []).map(valueText),
+      ...items.flatMap((group) => group[part] ?? []),
+      ...(gaps.length > 0
+        ? [`${gaps.length === 1 ? TEXTS.missingPart : TEXTS.missingParts} ${gaps.join('; ')}`]
+        : []),
+      ...(hints[part] ?? []).map((hint) => `${TEXTS.rowHintLabel} ${hint}`),
+    ].join(', ');
+  });
+}
+
+/** The rule results apart from „passt“ that one part has and the others have not. */
+function rulesDetails(results: readonly (RulesResult | undefined)[]): string[] {
+  const extras = beyondCommon(
+    results.map((r) => (r ? r.results.filter((x) => x.status !== 'passt') : [])),
+    (r) => JSON.stringify(ruleEntry(r)),
+  );
+  return extras.map((list) =>
+    list
+      .map(
+        (r) => `${r.id}${r.occurrence ? ` (${r.occurrence})` : ''}: ${RULE_STATUS_TEXT[r.status]}`,
+      )
+      .join(', '),
+  );
+}
+
 /**
  * F27: two invoice XML are the same invoice only if the result says the same of each — the
  * compared header values, and also the missing Pflichtangaben, the hints, the values of every row
- * and the rule results (audit QL-01). Not the whole model: the same invoice in UBL and CII differs
- * in documented details (tests/io/extract.test.ts). One item per row or rule that differs.
+ * and the rule results (audit QL-01), each by its value and in any order (audit R2-L-01). Not the
+ * whole model: the same invoice in UBL and CII differs in documented details
+ * (tests/io/extract.test.ts). One item per row or rule that differs; where its short texts agree,
+ * the values that differ are shown instead (audit R2-L-02).
  */
 export function differingResults(
   parts: readonly InvoicePart[],
@@ -163,7 +308,13 @@ export function differingResults(
     const each = outcomes.map((map) => map.get(key));
     if (new Set(each.map((o) => o?.signature ?? '')).size === 1) return [];
     const label = each.find((o) => o !== undefined)?.label ?? key;
-    return [{ label, values: each.map((o) => o?.shown ?? '–') }];
+    const shown = each.map((o) => o?.shown ?? '–');
+    if (new Set(shown).size > 1) return [{ label, values: shown }];
+    const details =
+      key === 'rules'
+        ? rulesDetails(each.map((o) => o?.rules))
+        : rowDetails(each.map((o) => o?.row));
+    return [{ label, values: details.map((text) => (text ? shorten(text) : '–')) }];
   });
 }
 
@@ -412,11 +563,12 @@ function sourceLines(invoice: InvoiceVerdict, inPdf: boolean): string[] {
 /**
  * QL-06: attachments the tool did not read beside an invoice XML — one of them may be a second
  * invoice XML (F27), so the result is at least yellow and names them. An attachment that is no
- * XML or a known other XML was read.
+ * XML or a known other XML was read. `beside`: an invoice XML was read, and a sentence says what
+ * that means for it (audit R2-U-08); without one the caller says that nothing is judged.
  */
-function unreadLines(analysis: Analysis): string[] {
+function unreadLines(analysis: Analysis, beside: boolean): string[] {
   const named = (template: string, name: string) => fill(template, { name });
-  return [
+  const attachments = [
     ...analysis.others.flatMap((o) =>
       o.kind === 'brokenXml'
         ? [named(TEXTS.attachmentBroken, o.origin)]
@@ -427,8 +579,12 @@ function unreadLines(analysis: Analysis): string[] {
             : [],
     ),
     ...(analysis.pdf?.unreadable ?? []).map((name) => named(TEXTS.attachmentUnreadable, name)),
-    ...(analysis.pdf?.truncated ? [TEXTS.attachmentsTruncated] : []),
   ];
+  const truncated = analysis.pdf?.truncated ? [TEXTS.attachmentsTruncated] : [];
+  const lines = [...attachments, ...truncated];
+  if (!beside || lines.length === 0) return lines;
+  const one = attachments.length === 1 && truncated.length === 0;
+  return [...lines, one ? TEXTS.unreadOne : TEXTS.unreadSeveral];
 }
 
 /** What the verdict of one invoice reads beside the invoice itself. */
@@ -457,7 +613,7 @@ function singleVerdict(
   const rules = rulesLines([invoice]);
   const { same } = context;
   // attachments not read beside it (QL-06): after the German lines, before the technical ones
-  const unread = unreadLines(analysis);
+  const unread = unreadLines(analysis, true);
   switch (invoice.einordnung) {
     case 'eRechnung': {
       const hint = invoice.profile.entry?.hint ? [invoice.profile.entry.hint] : [];
@@ -582,7 +738,8 @@ export function verdictOf(analysis: Analysis): Verdict {
 
   if (invoices.length > 1 && only) {
     const differing = differingTerms(analysis.invoices);
-    const names = analysis.invoices.map((p) => p.origin).join(', ');
+    // the names in quotes, as everywhere else (audit R2-U-09)
+    const names = analysis.invoices.map((p) => `„${p.origin}“`).join(', ');
     const format = formatErrorLines(invoices, true);
     if (differing.length === 0 && differingResults(analysis.invoices).length === 0) {
       // F27: the same data twice — one part is shown, with a hint on the standard
@@ -605,7 +762,7 @@ export function verdictOf(analysis: Analysis): Verdict {
         TEXTS.askSupplier,
         ...transitionLines(transitionFor(invoices), false),
         ...schemaParts(invoices, true).german,
-        ...unreadLines(analysis),
+        ...unreadLines(analysis, true),
         ...format.technical,
       ],
       invoices,
@@ -650,7 +807,7 @@ export function verdictOf(analysis: Analysis): Verdict {
   // An XML the tool does not read (DOCTYPE, over its size limit), an attachment it cannot take out
   // of the PDF, or attachments beyond the first 50: not judged — as a single XML with a DOCTYPE,
   // never "Formatfehler" (audit 2026-11-14, U-06) nor "ohne Rechnungsdaten" (audit QL-06).
-  const unread = unreadLines(analysis);
+  const unread = unreadLines(analysis, false);
   if (unread.length > 0) {
     return {
       tone: 'warn',

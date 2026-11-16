@@ -3,7 +3,7 @@ import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { analyzeFile } from '../../src/io/analyze';
 import type { PdfJsLike } from '../../src/io/pdf';
 import { checkRules } from '../../src/logic/rules';
-import { verdictOf } from '../../src/logic/verdict';
+import { rulesOf, verdictOf } from '../../src/logic/verdict';
 import { encode, official, officialText } from '../support/fixtures';
 
 // Step 3a against real files: every official example is valid under the EN 16931 rules (CEN, KoSIT
@@ -68,5 +68,38 @@ describe('calculation rules on the official files', () => {
     expect(verdict.tone).toBe('warn');
     expect(verdict.headline).toBe('E-Rechnung erkannt (XRechnung 3.0) – mit Hinweisen');
     expect(verdict.explanation.join(' ')).toContain('BR-CO-15, BR-CO-16');
+  });
+});
+
+// Audit R2-T-01: the result of the app takes the forms of the part's own syntax (QL-03) only
+// through rulesOf — tested there, not only on checkRules
+describe('the forms of the syntax in the result (audit R2-T-01)', () => {
+  // KoSIT 01.01a in CII with the VAT amount 1.00 above round(314.86 × 7 %) = 22.04, the totals
+  // after it: BR-CO-17 passes in the CII form (≤ 1), not in the UBL form (< 1)
+  const raised = officialText('kosit/01.01a-INVOICE_uncefact.xml')
+    .replace('<ram:CalculatedAmount>22.04<', '<ram:CalculatedAmount>23.04<')
+    .replace(
+      '<ram:TaxTotalAmount currencyID="EUR">22.04<',
+      '<ram:TaxTotalAmount currencyID="EUR">23.04<',
+    )
+    .replace('<ram:GrandTotalAmount>336.9<', '<ram:GrandTotalAmount>337.9<')
+    .replace('<ram:DuePayableAmount>336.9<', '<ram:DuePayableAmount>337.9<');
+
+  it('judges a CII file in the CII forms', async () => {
+    for (const changed of ['>23.04<', '>337.9<']) {
+      expect(raised.split(changed).length - 1).toBe(2);
+    }
+    const analysis = await analyzeFile('r.xml', encode(raised), load);
+    const verdict = verdictOf(analysis);
+    const [invoice] = verdict.invoices;
+    if (!invoice) throw new Error('no invoice');
+    expect(invoice.part.syntax).toBe('cii');
+    expect(invoice.part.schema?.count).toBe(0);
+    expect(rulesOf(invoice)?.auffaellig).toEqual([]);
+    expect(verdict.explanation.join(' ')).not.toContain('BR-CO-17');
+    // the same model in the UBL form would name BR-CO-17
+    const model = invoice.part.model;
+    if (!model) throw new Error('no model');
+    expect(checkRules(model, { syntax: 'ubl-invoice' }).auffaellig).toEqual(['BR-CO-17']);
   });
 });

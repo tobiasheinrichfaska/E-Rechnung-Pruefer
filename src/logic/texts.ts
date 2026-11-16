@@ -82,6 +82,10 @@ export const TEXTS = {
   // pdf.js could not take the attachment out of the PDF (audit QL-06)
   attachmentUnreadable: 'Der Anhang „{name}“ lässt sich nicht aus dem PDF lesen.',
   notJudged: 'Ob das PDF eine E-Rechnung ist, kann das Tool deshalb nicht sagen.',
+  // Beside an invoice XML: what the attachments not read mean for the result (audit R2-U-08)
+  unreadOne: 'Ob dieser Anhang weitere Rechnungsdaten enthält, kann das Tool nicht sagen.',
+  unreadSeveral:
+    'Ob die nicht gelesenen Anhänge weitere Rechnungsdaten enthalten, kann das Tool nicht sagen.',
   formatError: FORMAT_ERROR,
 
   // F26: § 27 Abs. 38 UStG by the date of supply and invoice (src/logic/uebergang.ts)
@@ -237,6 +241,17 @@ export const TEXTS = {
   rulesSomeNotChecked: '{count} Regeln ließen sich nicht prüfen (siehe unten).',
   ruleMissing: '– nicht angegeben',
   ruleNoNumber: '– keine Zahl',
+  // A rate that is no number in a part of a breakdown per rate: the rate is named (audit R2-L-07)
+  ruleLineRate: 'Umsatzsteuersatz einer Position (BT-152)',
+  ruleChargeRate: 'Umsatzsteuersatz eines Zuschlags auf Dokumentebene (BT-103)',
+  ruleAllowanceRate: 'Umsatzsteuersatz eines Nachlasses auf Dokumentebene (BT-96)',
+  // UBL BR-S-08 wants a line, charge or allowance of its rate (audit R2-L-05)
+  ruleOwnParts: 'Positionen, Zuschläge oder Nachlässe mit diesem Satz',
+  ruleOwnPartsNone: 'keine',
+  // BR-CO-15 adds BT-110 only where exactly one is given in the document currency (audit R2-L-03)
+  ruleTaxTotals: 'Angaben „Summe der Umsatzsteuer“ (BT-110) in Rechnungswährung',
+  ruleTaxTotalsCount: '{count} – die Regel verlangt genau eine',
+  ruleAnd: ' und ',
 
   pflichtHeading: 'Pflichtangaben nach § 14 Abs. 4 UStG',
   besondereHeading: 'Angaben in besonderen Fällen (§ 14 Abs. 5, § 14a, § 22c UStG)',
@@ -247,10 +262,9 @@ export const TEXTS = {
   hintBelow: 'Bitte beachten Sie den Hinweis unten.',
   hintsBelow: 'Bitte beachten Sie die {count} Hinweise unten.',
   missingList: 'Es fehlt: {list}.',
-  // QU-05: a row hint is named in words, not by its colour alone — unless its text already starts
-  // with the word of a possible irregularity
+  // QU-05: a row hint is named in words, not by its colour alone — every one with the same word,
+  // the one box and summary use (audit R2-U-06)
   rowHintLabel: 'Hinweis:',
-  rowHintOwnLabel: 'Mögliche Auffälligkeit:',
   // QU-03: what is missing of a partly present row — "nur …" read as "only this is there"
   missingPart: 'davon fehlt:',
   missingParts: 'davon fehlen:',

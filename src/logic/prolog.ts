@@ -55,3 +55,29 @@ export function scanProlog(text: string): PrologScan {
 export function looksLikeXml(bytes: Uint8Array): boolean {
   return scanProlog(textOf(bytes.subarray(0, 64 * 1024))).kind !== 'noRoot';
 }
+
+/** `<!DOCTYPE html>`, also with a public and a system identifier (XHTML), never an internal subset */
+const HTML_DOCTYPE =
+  /^<!DOCTYPE\s+html(?:\s+(?:PUBLIC\s+(?:"[^"]*"|'[^']*')|SYSTEM)(?:\s+(?:"[^"]*"|'[^']*'))?)?\s*>/i;
+const HTML_ROOT = /^<html(?=[\s/>])/i;
+
+/**
+ * Whether the bytes are a web page: the root element is `html` (any case, without a prefix), after
+ * the prolog and an HTML document type declaration. Such a file is no invoice XML and is not
+ * called broken XML (audit R2-L-06) — by its content, never by its name. A declaration with an
+ * internal subset, or another root after `<!DOCTYPE html>`, stays an XML with a DOCTYPE.
+ */
+export function looksLikeHtml(bytes: Uint8Array): boolean {
+  const text = textOf(bytes.subarray(0, 64 * 1024));
+  const scan = scanProlog(text);
+  if (scan.kind === 'noRoot') return false;
+  let rest = text.slice(scan.at);
+  if (scan.kind === 'doctype') {
+    const doctype = HTML_DOCTYPE.exec(rest);
+    if (!doctype) return false;
+    const after = scanProlog(rest.slice(doctype[0].length));
+    if (after.kind !== 'root') return false;
+    rest = rest.slice(doctype[0].length + after.at);
+  }
+  return HTML_ROOT.test(rest);
+}

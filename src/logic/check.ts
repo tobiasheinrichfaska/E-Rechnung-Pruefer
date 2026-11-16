@@ -4,7 +4,7 @@
 import { allDefinitions, termLabel } from './binding';
 import type { TermKind } from './binding';
 import { germanDate, isoDate } from './dates';
-import { compareDecimal, formatAmount, parseDecimal } from './decimal';
+import { compareDecimal, formatAmount, germanNumber, normalize, parseDecimal } from './decimal';
 import { firstValue, groupsOf, valuesOf } from './model';
 import type { InvoiceModel, ModelGroup } from './model';
 import { ADDRESS_PARTS, MODES, PFLICHTANGABEN } from './pflichtangaben';
@@ -60,6 +60,11 @@ const has = (group: ModelGroup, path: string) => valuesOf(group, path).length > 
 
 // --- display ------------------------------------------------------------------------------
 
+/**
+ * A value as the client reads it. Numbers by their value, not as written: "7" and "7.00", "1" and
+ * "1.0000", "314.86" and "314.860" give the same text, so the same invoice in two XML reads the same
+ * (audit R2-L-01); a text that is no number stays as written.
+ */
 export function displayValue(bt: string, value: string, currency: string | undefined): string {
   const kind = KIND.get(bt);
   if (kind === 'date') {
@@ -68,10 +73,13 @@ export function displayValue(bt: string, value: string, currency: string | undef
   }
   if (kind === 'amount') {
     const amount = parseDecimal(value);
-    return amount ? `${formatAmount(amount)}${currency ? ` ${currency}` : ''}` : value;
+    return amount ? `${formatAmount(normalize(amount))}${currency ? ` ${currency}` : ''}` : value;
   }
-  if (kind === 'percent') return `${value.replace('.', ',')} %`;
-  if (kind === 'quantity') return value.replace('.', ',');
+  if (kind === 'percent' || kind === 'quantity') {
+    const number = parseDecimal(value);
+    const text = number ? germanNumber(number) : value.replace('.', ',');
+    return kind === 'percent' ? `${text} %` : text;
+  }
   if (bt === 'BT-118' || bt === 'BT-151' || bt === 'BT-95' || bt === 'BT-102') {
     const label = CATEGORY_LABELS[value.toUpperCase()];
     return label ? `${value} – ${label}` : value;
@@ -352,9 +360,12 @@ export function checkPflichtangaben(model: InvoiceModel): PflichtResult {
   const hintCount = rows.reduce((count, r) => count + r.hints.length, 0);
   const missingLabels = missingRows.map((r) => r.row.label);
   // A partly present row names what is missing, not the whole row (audit 2026-11-14, U-02); the
-  // result box takes the same list (audit QU-03)
+  // result box takes the same list (audit QU-03). A row checked per occurrence has what is there in
+  // its groups (e.g. the other positions), not in its values (audit R2-L-04)
+  const partlyThere = (r: RowResult) =>
+    r.values.length > 0 || r.groups.some((g) => g.items.length > 0);
   const listed = missingRows.map((r) =>
-    r.values.length > 0 && r.missing.length > 0 && r.missing.length <= 3
+    partlyThere(r) && r.missing.length > 0 && r.missing.length <= 3
       ? `${r.row.label} (${r.missing.length === 1 ? TEXTS.missingPart : TEXTS.missingParts} ${r.missing.join('; ')})`
       : r.row.label,
   );

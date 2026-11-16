@@ -202,7 +202,19 @@ export function checkExtendedRules(model: InvoiceModel, ext: ExtendedAmounts): E
   }
 
   // BR-FXEXT-CO-15: with BT-110 |BT-112 − BT-110 − BT-109| ≤ 0.01 × all counts; without it BT-109
-  // equals BT-112
+  // equals BT-112. This follows the message of the assert ("… Else, BT-112 is equal to BT-109"),
+  // not a strict reading of its test (audit R2-L-03, FACTUR-X_EXTENDED.sch 1.09.2):
+  //   - the test binds `$BT110 in xs:decimal(ram:TaxTotalAmount[@currencyID=$Currency])` in its
+  //     `for`. Without such an amount that is the empty sequence, so by XPath 2.0 the whole `for`
+  //     is empty and the assert fails; with two of them `xs:decimal` raises a type error. Its second
+  //     alternative (`$BT109 eq $BT112 and $nb… ne 1`) is then never reached — the authors meant
+  //     the branch the message describes;
+  //   - read from the wording only, not run with Saxon;
+  //   - following the message, the tool never says „auffällig“ where the strict reading would pass:
+  //     in that reading every invoice without BT-110 fails anyway. It says nothing the validator
+  //     does not say;
+  //   - with two amounts in the invoice currency the first is taken (one()), as for every total.
+  // Unlike BR-CO-15 in UBL (RULE_FORMS.ubl.co15ExactlyOneTax), where the CEN test says it plainly.
   {
     const expected = bt109 && bt110 !== undefined ? add(bt109, bt110 ?? ZERO) : undefined;
     let ok: boolean | undefined;

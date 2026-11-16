@@ -1,4 +1,4 @@
-import { encodingByBom, looksLikeXml, scanProlog, textOf } from './prolog';
+import { encodingByBom, looksLikeHtml, looksLikeXml, scanProlog, textOf } from './prolog';
 
 const bytes = (text: string) => new TextEncoder().encode(text);
 const BOM = String.fromCharCode(0xfeff);
@@ -45,5 +45,36 @@ describe('looksLikeXml', () => {
     expect(looksLikeXml(bytes('<?xml version="1.0" encoding="UTF-8"?><x/>'))).toBe(true);
     expect(looksLikeXml(bytes('%PDF-1.4'))).toBe(false);
     expect(looksLikeXml(new Uint8Array([0x89, 0x50, 0x4e, 0x47]))).toBe(false);
+  });
+});
+
+// Audit R2-L-06: a web page is no XML the tool reads — by its root element, never by its name
+describe('looksLikeHtml', () => {
+  it('knows a web page by its root element html, after the prolog and an HTML DOCTYPE', () => {
+    for (const page of [
+      '<html><body><p>Unsere AGB<br></p></body></html>',
+      '<HTML lang="de"><body>AGB</body></HTML>',
+      '<!DOCTYPE html>\n<html lang="de"><head><title>AGB</title></head></html>',
+      '<?xml version="1.0"?>\n<!-- AGB -->\n<html xmlns="http://www.w3.org/1999/xhtml"/>',
+      '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" ' +
+        '"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\n<html xmlns="http://www.w3.org/1999/xhtml"></html>',
+      '<!DOCTYPE html SYSTEM "about:legacy-compat"><html></html>',
+    ]) {
+      expect(looksLikeHtml(bytes(page)), page).toBe(true);
+    }
+  });
+
+  it('keeps every other root, a prefix, an internal subset or another root after the DOCTYPE', () => {
+    for (const other of [
+      '<rsm:CrossIndustryInvoice xmlns:rsm="urn:x"/>',
+      '<htmlx/>',
+      '<h:html xmlns:h="http://www.w3.org/1999/xhtml"/>',
+      '<!DOCTYPE html [<!ENTITY x "y">]><html>&x;</html>',
+      '<!DOCTYPE html><Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"/>',
+      '<!DOCTYPE invoice><invoice/>',
+      'Lieferschein',
+    ]) {
+      expect(looksLikeHtml(bytes(other)), other).toBe(false);
+    }
   });
 });
