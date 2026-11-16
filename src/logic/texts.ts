@@ -163,8 +163,9 @@ export const TEXTS = {
     'Kopieren hat nicht geklappt. Bitte markieren Sie den Text und kopieren Sie ihn selbst.',
   copyTitle: 'E-Rechnung prüfen – Ergebnis',
   copyHeadline: 'Ergebnis: {headline}',
-  copyPflicht: 'Pflichtangaben: {summary}',
-  copyRules: 'Rechnerische Prüfung: {summary}',
+  // a dash, not a colon: the summaries have colons of their own („Mögliche Auffälligkeit: …“, R3-U-08)
+  copyPflicht: 'Pflichtangaben – {summary}',
+  copyRules: 'Rechnerische Prüfung – {summary}',
   copyVersion: 'Version {version}',
   // G-5: the drop zone after a result, and on a phone
   anotherFile: 'Andere Datei prüfen',
@@ -332,6 +333,18 @@ export const TEXTS = {
     },
   } satisfies Record<FileProblemKind, { tone: Tone; headline: string; explanation: string[] }>,
 };
+
+/**
+ * Pointers to other parts of the page inside the sentences above. The copied text for a mail (G-4,
+ * zusammenfassung.ts) has no „unten“ and no section to point to, so it leaves them out, together
+ * with `hintBelow` / `hintsBelow` (audit R3-U-08); zusammenfassung.test.ts checks that no sentence
+ * of TEXTS keeps one there.
+ */
+export const PAGE_POINTERS: readonly string[] = [
+  ' (siehe unten)',
+  ' (siehe „Pflichtangaben“)',
+  ' (siehe „Rechnerische Prüfung“)',
+];
 
 /** Replaces {name} placeholders. */
 export function fill(text: string, values: Readonly<Record<string, string | number>>): string {
