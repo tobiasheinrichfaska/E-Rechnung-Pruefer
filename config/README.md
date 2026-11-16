@@ -50,7 +50,19 @@ Fußzeile und Farben auch ohne die privaten Dateien laufen (`tests/fixtures/conf
   noch einer seiner Sätze mit dem Namen der Kanzlei (der erste und jeder mit einem Namen der
   privaten Namensliste `config/marken.txt` im privaten Repo), weder ein Name dieser Liste noch die
   Domain der beiden Adressen (ohne Subdomain). Leerzeichen, Zeilenumbrüche, `>`-Zitatzeichen und
-  Groß- und Kleinschreibung zählen nicht. Gesucht wird in jeder Datei des Repos, auch als Bytes
-  (etwa in einer PDF), in den Dateien jedes Commits, den noch kein Remote hat (auch wenn ein
-  späterer Commit sie wieder entfernt), und in allen Commit-Nachrichten mit Autor und Committer.
-  Ohne die privaten Dateien oder ohne git wird die Suche übersprungen und nennt den Grund.
+  Groß- und Kleinschreibung zählen nicht. Gesucht wird:
+  - in jeder Datei, die ein Commit mitnehmen könnte: in den versionierten und in den neuen, die
+    `.gitignore` nicht ausschließt, auch als Bytes (etwa in einer PDF). Verlinkte Ordner wie
+    `node_modules` oder `tests/fixtures/lokal` werden nicht durchsucht;
+  - in den Dateien jedes Commits, den noch kein Remote hat, auf HEAD und auf jedem lokalen Zweig
+    (auch wenn ein späterer Commit sie wieder entfernt);
+  - in den Commit-Nachrichten mit Autor und Committer, soweit der Klon die Geschichte von HEAD und
+    den lokalen Zweigen hat;
+  - in den Pfaden der Dateien und Ordner, im Arbeitsstand und in den Commits, die noch kein Remote
+    hat: Kein Name der Liste und keine der Domains darf darin stehen. Verglichen werden nur
+    Buchstaben und Ziffern, `Erika_Probe.pdf` zählt also wie „Erika Probe“. Ein Treffer wird nur
+    gezählt, nicht genannt, denn der Pfad enthält ja den Namen.
+
+  Nicht gefunden werden der Name in einem Bild oder in gepacktem Text (etwa komprimierter Text
+  einer PDF) und alles, was ein Remote schon hat; dort sieht die Wochenprüfung nach. Ohne die
+  privaten Dateien oder ohne git wird die Suche übersprungen und nennt den Grund.

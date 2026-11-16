@@ -221,6 +221,9 @@ describe('schemaProblems (own collector of the schema messages)', () => {
     expect(pinned.dependencies['libxml2-wasm']).toBe(ENGINE_VERSION);
   });
 
+  // A test of correctness, not of time: it runs about 2.4 s alone, and parallel Vitest runs pushed
+  // it past the default 5 s (audit 2026-11-16, R3-T-05). The time limit of the collector is the
+  // test "collects 80 000 messages in linear time" below.
   it('gives the messages, lines and count of XsdValidator.validate on every official file and broken forms of it', () => {
     const files = [
       ...xmlFiles(join(FIXTURES, 'offiziell')),
@@ -260,7 +263,7 @@ describe('schemaProblems (own collector of the schema messages)', () => {
     expect(differing).toEqual([]);
     expect(compared).toBeGreaterThan(1000);
     expect(withProblems).toBeGreaterThan(500);
-  });
+  }, 60_000);
 
   it('keeps every message without a limit, and counts beyond it', () => {
     const text = new TextDecoder().decode(fixture('CII_example1.xml'));

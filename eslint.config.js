@@ -62,7 +62,9 @@ export default defineConfig([
     'src/testrahmen',
   ]),
   {
-    files: ['**/*.{ts,tsx}'],
+    // .mts and .cts too: Vite bundles them and tsc checks them, and without this block espree would
+    // read them and stop at the first type (audit 2026-11-16, R3-S-01)
+    files: ['**/*.{ts,tsx,mts,cts}'],
     extends: [js.configs.recommended, tseslint.configs.strict],
     languageOptions: { globals: globals.browser },
     rules: {
@@ -70,9 +72,11 @@ export default defineConfig([
     },
   },
   {
-    // Plain JavaScript too (audit 2026-11-15, R2-S-03): the ban holds for every script in src/; the
-    // copy of the test frame is ignored above and checked by hash and folder listing instead
-    files: ['src/**/*.{ts,tsx,js,jsx,mjs,cjs}'],
+    // Every script form in src/ that Vite bundles: TypeScript (.ts, .tsx, .mts, .cts) and plain
+    // JavaScript (.js, .jsx, .mjs, .cjs) — audit 2026-11-15, R2-S-03, and 2026-11-16, R3-S-01; a file
+    // with another ending is not linted at all. The copy of the test frame is ignored above and checked
+    // by hash and folder listing instead.
+    files: ['src/**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}'],
     rules: {
       'no-restricted-globals': ['error', ...NO_STORAGE_OR_NETWORK],
       'no-restricted-properties': ['error', ...NO_STORAGE_PROPERTIES],
@@ -93,8 +97,9 @@ export default defineConfig([
     extends: [reactHooks.configs.flat.recommended, reactRefresh.configs.vite],
   },
   {
-    // Workspace rule: the logic layer runs and is testable without any UI, browser, WASM or IO.
-    files: ['src/logic/**/*.ts'],
+    // Workspace rule: the logic layer runs and is testable without any UI, browser, WASM or IO —
+    // in every script form, not only .ts (R3-S-01).
+    files: ['src/logic/**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -130,9 +135,9 @@ export default defineConfig([
       'vite.config.ts',
       'playwright.config.ts',
       'eslint.config.js',
-      'src/build/**/*.ts',
-      'tests/**/*.ts',
-      'src/**/*.test.ts',
+      'src/build/**/*.{ts,mts,cts}',
+      'tests/**/*.{ts,mts,cts}',
+      'src/**/*.test.{ts,mts,cts}',
     ],
     languageOptions: { globals: globals.node },
   },

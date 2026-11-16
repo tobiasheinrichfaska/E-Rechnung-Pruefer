@@ -338,8 +338,9 @@ describe('each path of the binding compiled once per document (audit R2-S-01)', 
     expect(many.compiled).toBeLessThanOrEqual(PATHS);
   });
 
-  // 20 000 empty positions take about 0.9 s here (1.9 s before): a fall back to compiling per
-  // call, or to quadratic time, shows
+  // 20 000 empty positions take about 0.9 s here: this one catches quadratic time. A fall back to
+  // compiling per call (1.9 to 2.3 s, under the limit) is caught by the count test above, not here
+  // (audit 2026-11-16, R3-T-06).
   it('reads 20 000 positions in linear time', () => {
     const { raw, seconds } = extracted(withEmptyLines(20_000));
     expect(raw?.groups['BG-25']).toHaveLength(20_000);
