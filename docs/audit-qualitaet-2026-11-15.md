@@ -262,6 +262,15 @@ Steuerfragen: **F31** und **F32** in `docs/offene-fragen.md`.
 - **Testrahmen:** Die Kopie wurde auf `Testumgebung` `61c19c6` erneuert. Er bringt eine dauerhafte
   Ansage-Region und den Kontrastmodus mit, und `pruefeKopie()` meldet fremde Dateien.
 
+- **Nach dem Zusammenführen** (0.10.2, `2dc8284`), beobachtet in dieser Sitzung:
+  - die Prüfung „Tests“ auf GitHub grün für `2dc8284` (PR #37) und den Merge `4e25659`;
+  - der Prüf-Agent für Tests/Doku in Runde 4, auf `2dc8284`:
+    - mit den privaten Dateien 648 von 648 Unit-Tests, E2E 189 bestanden und 9 übersprungen;
+    - ohne sie 569 bestanden und 4 übersprungen, E2E 165 bestanden und 33 übersprungen;
+    - der Lauf mit der erfundenen Kanzlei 33 von 33.
+  - Der letzte volle Lauf der Sitzung vor `2dc8284` hatte einen Firefox-Fehler (Liste zu früh gelesen),
+    behoben mit `2dc8284` und 24 von 24 Wiederholungen.
+
 ### Ergebnis
 
 35 Befunde, **keiner „hoch“**, einer widerlegt (R3-S-06).
@@ -276,8 +285,10 @@ Steuerfragen: **F31** und **F32** in `docs/offene-fragen.md`.
 ### Behoben
 
 - **Logik:**
-  - Ohne Rechnungswährung (BT-5) sind BR-CO-14 und BR-CO-15 „nicht prüfbar“, statt den Steuerbetrag als
-    fehlend zu melden (R3-L-01; ob BT-5 selbst eine Pflichtangabe ist, fragt **F33**).
+  - Ohne Rechnungswährung (BT-5) sind BR-CO-14 und BR-CO-15 „nicht prüfbar“ (R3-L-01; ob BT-5 selbst
+    eine Pflichtangabe ist, fragt **F33**). **Berichtigt in Runde 4:** Die Pflichtangabe „Steuerbetrag“
+    meldet dann weiter „fehlt“, weil BT-110 nur in Rechnungswährung gelesen wird. Das war gewollt, bis
+    F33 entschieden ist; hier stand zuerst das Gegenteil.
   - Ein CII-Steuerbetrag ohne Währungsangabe zählt nur, wo keiner die Rechnungswährung trägt (R3-L-02).
   - Leerzeichen zählen im Vergleich nicht (R3-L-03; Groß- und Kleinschreibung: **G-22**).
   - Die Zeile „Unterschiedlich“ nennt die Bezeichnungen und den Status nur, wo er abweicht. Sie fasst
