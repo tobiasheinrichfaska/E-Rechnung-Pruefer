@@ -8,10 +8,11 @@ import {
   tooLargeFile,
 } from '../../src/io/analyze';
 import { readXml, rootOf } from '../../src/io/xml';
+import { checkPflichtangaben } from '../../src/logic/check';
 import { syntaxOf } from '../../src/logic/syntax';
 import type { PdfJsLike } from '../../src/io/pdf';
 import { TEXTS, fill } from '../../src/logic/texts';
-import { differingLine, verdictOf } from '../../src/logic/verdict';
+import { comparisonRows, differingLine, verdictOf } from '../../src/logic/verdict';
 import { encode, official, officialText, withInvoiceNumber, withSpecId } from '../support/fixtures';
 import { compressedPdf } from '../../src/build/compressedPdf';
 import { miniPdf } from '../../src/build/minipdf';
@@ -199,6 +200,27 @@ describe('PDF files', () => {
     );
   });
 
+  // Audit R2-L-04: a row checked per position has what is there in its positions, not in its
+  // values — the box and the summary name the gap, not the whole row
+  it('names only the position without a quantity, in the box and in the summary', async () => {
+    const text = officialText(XR_CII).replace(
+      '<ram:BilledQuantity unitCode="XPP">1</ram:BilledQuantity>',
+      '',
+    );
+    expect(text).toContain('<ram:BilledQuantity');
+    const { analysis, verdict } = await check('r.xml', encode(text));
+    expect(analysis.invoices[0]?.schema?.count).toBe(0);
+    const row =
+      'Menge und Art der Lieferung oder Umfang und Art der Leistung ' +
+      '(davon fehlt: Position Zeitschrift [...]: Menge)';
+    expect(verdict.explanation).toContain(
+      `Es fehlen Pflichtangaben: ${row} (siehe „Pflichtangaben“).`,
+    );
+    const model = analysis.invoices[0]?.model;
+    if (!model) throw new Error('no model');
+    expect(checkPflichtangaben(model).summary).toBe(`Es fehlt: ${row}.`);
+  });
+
   it('keeps the invoice when other attachments are present', async () => {
     const pdf = miniPdf({
       attachments: [
@@ -278,6 +300,26 @@ describe('PDF files', () => {
     }
   });
 
+  // Audit R2-T-03: a difference only in the rule results — the copy says BT-106 = 1.00, so only
+  // BR-CO-10 and BR-CO-13 differ (no Pflichtangabe shows BT-106)
+  it('calls two invoice XML different that differ only in BT-106, in any order', async () => {
+    const cii = officialText(XR_CII);
+    const header = '<ram:LineTotalAmount>314.86</ram:LineTotalAmount>';
+    expect(cii.split(header)).toHaveLength(2);
+    const other = cii.replace(header, '<ram:LineTotalAmount>1.00</ram:LineTotalAmount>');
+    for (const attachments of [
+      [xml('a.xml', cii), xml('b.xml', other)],
+      [xml('b.xml', other), xml('a.xml', cii)],
+    ]) {
+      const { analysis, verdict } = await check('r.pdf', miniPdf({ attachments }));
+      expect(analysis.invoices.map((p) => p.schema?.count)).toEqual([0, 0]);
+      expect(verdict.comparison).toEqual({ same: false, differing: [] });
+      expect(verdict.headline).toBe(TEXTS.contradicting);
+      expect(verdict.tone).toBe('bad');
+      expect(differingLine(analysis.invoices, [])).toContain('Rechnerische Prüfung');
+    }
+  });
+
   it('never picks one of two different invoices', async () => {
     const pdf = miniPdf({
       attachments: [xml('a.xml', CII), xml('b.xml', withInvoiceNumber(CII, 'ANDERE-NR'))],
@@ -320,7 +362,8 @@ describe('PDF files', () => {
       const { verdict } = await check('r.pdf', pdf);
       expect(verdict.tone).toBe('warn');
       expect(verdict.headline).toBe('E-Rechnung erkannt (XRechnung 3.0) – mit Hinweisen');
-      expect(verdict.explanation.at(-1)).toBe(line);
+      // and what that means for the result (audit R2-U-08)
+      expect(verdict.explanation.slice(-2)).toEqual([line, TEXTS.unreadOne]);
     }
   });
 
@@ -423,6 +466,153 @@ describe('PDF files', () => {
     big.set(encode('%PDF-1.7'));
     const { verdict } = await check('r.pdf', big);
     expect(verdict.headline).toBe('Die Datei ist zu groß');
+  });
+});
+
+// Audit R2-L-01/R2-L-02: two invoice XML are compared by what they say, not by how they write it
+describe('two invoice XML of the same invoice, written another way', () => {
+  const cii = officialText(XR_CII);
+  /** Both orders of the two attachments, each with its verdict and its line "Unterschiedlich" */
+  const both = async (a: string, b: string) =>
+    Promise.all(
+      [
+        [xml('a.xml', a), xml('b.xml', b)],
+        [xml('b.xml', b), xml('a.xml', a)],
+      ].map(async (attachments) => {
+        const { analysis, verdict } = await check('r.pdf', miniPdf({ attachments }));
+        expect(analysis.invoices.map((p) => p.schema?.count)).toEqual([0, 0]);
+        return { analysis, verdict, line: differingLine(analysis.invoices, []) };
+      }),
+    );
+  const replaced = (text: string, from: string | RegExp, to: string) => {
+    const result = text.replace(from, to);
+    expect(result).not.toBe(text);
+    return result;
+  };
+
+  it.each([
+    // a rate and a quantity with more decimals (the amounts kept as they are)
+    [
+      'the rate 7 as 7.00',
+      (t: string) => t.replaceAll('7</ram:RateApplicable', '7.00</ram:RateApplicable'),
+    ],
+    [
+      'the quantity 1 as 1.0000',
+      (t: string) => t.replaceAll('">1</ram:BilledQuantity>', '">1.0000</ram:BilledQuantity>'),
+    ],
+    [
+      'an amount with a third decimal 0',
+      (t: string) =>
+        t.replace('<ram:TaxBasisTotalAmount>314.86<', '<ram:TaxBasisTotalAmount>314.860<'),
+    ],
+    // a document total of 0.00 that the other copy leaves out (BR-CO-11/-12 run only there)
+    [
+      'zero document allowances and charges in one copy only',
+      (t: string) =>
+        t.replace(
+          '<ram:LineTotalAmount>314.86</ram:LineTotalAmount>',
+          '<ram:LineTotalAmount>314.86</ram:LineTotalAmount><ram:ChargeTotalAmount>0.00</ram:ChargeTotalAmount><ram:AllowanceTotalAmount>0.00</ram:AllowanceTotalAmount>',
+        ),
+    ],
+  ])('sees %s as the same invoice', async (_, change) => {
+    const other = change(cii);
+    expect(other).not.toBe(cii);
+    for (const { verdict } of await both(cii, other)) {
+      expect(verdict.comparison).toEqual({ same: true, differing: [] });
+      expect(verdict.tone).toBe('warn');
+      expect(verdict.headline).toBe('E-Rechnung erkannt (XRechnung 3.0) – mit Hinweisen');
+    }
+  });
+
+  it('sees the VAT breakdowns in another order as the same invoice', async () => {
+    const text = officialText('kosit/paare/03.01a-INVOICE_uncefact.xml');
+    const header =
+      /(<ram:ApplicableTradeTax>\s*<ram:CalculatedAmount>[\s\S]*?<\/ram:ApplicableTradeTax>)(\s*)(<ram:ApplicableTradeTax>\s*<ram:CalculatedAmount>[\s\S]*?<\/ram:ApplicableTradeTax>)/;
+    const [first = '', space = '', second = ''] = header.exec(text)?.slice(1) ?? [];
+    expect(first).toContain('<ram:RateApplicablePercent>19<');
+    expect(second).toContain('<ram:RateApplicablePercent>7<');
+    const swapped = text.replace(header, `${second}${space}${first}`);
+    expect(swapped).not.toBe(text);
+    for (const { verdict } of await both(text, swapped)) {
+      expect(verdict.comparison).toEqual({ same: true, differing: [] });
+    }
+  });
+
+  it.each([
+    [
+      'a quantity 1 → 5',
+      (t: string) => t.replace('">1</ram:BilledQuantity>', '">5</ram:BilledQuantity>'),
+    ],
+    // BT-107 without any document allowance (BG-20): BR-CO-11 in this copy only
+    [
+      'a BT-107 without a document allowance',
+      (t: string) =>
+        replaced(
+          t,
+          '<ram:TaxBasisTotalAmount>',
+          '<ram:AllowanceTotalAmount>10.00</ram:AllowanceTotalAmount><ram:TaxBasisTotalAmount>',
+        ),
+    ],
+  ])('keeps %s apart', async (_, change) => {
+    const other = change(cii);
+    expect(other).not.toBe(cii);
+    for (const { verdict } of await both(cii, other)) {
+      expect(verdict.comparison).toEqual({ same: false, differing: [] });
+      expect(verdict.headline).toBe(TEXTS.contradicting);
+    }
+  });
+
+  // R2-L-02: what differs is shown, not "vorhanden / vorhanden"
+  it('names the two quantities of the position that differs, in the line and the table', async () => {
+    const other = replaced(cii, '">1</ram:BilledQuantity>', '">5</ram:BilledQuantity>');
+    for (const { analysis, line } of await both(cii, other)) {
+      const [a, b] = analysis.invoices[0]?.origin === 'a.xml' ? ['1', '5'] : ['5', '1'];
+      const label = 'Menge und Art der Lieferung oder Umfang und Art der Leistung';
+      expect(line).toBe(
+        `Unterschiedlich: ${label} (Positionsnummer: Zeitschrift [...] · Menge: ${a} / ` +
+          `Positionsnummer: Zeitschrift [...] · Menge: ${b}).`,
+      );
+      const row = comparisonRows(analysis.invoices).find((r) => r.label === label);
+      expect(row).toEqual({
+        label,
+        values: [
+          `Positionsnummer: Zeitschrift [...] · Menge: ${a}`,
+          `Positionsnummer: Zeitschrift [...] · Menge: ${b}`,
+        ],
+        differs: true,
+      });
+    }
+  });
+
+  it('keeps the short texts of the rule results where they differ', async () => {
+    const other = replaced(
+      cii,
+      '<ram:TaxBasisTotalAmount>',
+      '<ram:AllowanceTotalAmount>10.00</ram:AllowanceTotalAmount><ram:TaxBasisTotalAmount>',
+    );
+    const [first] = await both(cii, other);
+    expect(first?.line).toContain(
+      'Rechnerische Prüfung (passt / mögliche Auffälligkeit: BR-CO-11, BR-CO-13)',
+    );
+  });
+
+  // Every KoSIT pair is one invoice in UBL and in CII. Apart stay only those whose files differ in
+  // what the result shows (tests/io/extract.test.ts, KNOWN): 01.20a also in BT-113 = 0.00 (a
+  // question for Tobias), 03.07a only in BT-29, which no Pflichtangabe shows
+  it('sees every KoSIT pair as the same invoice, but the four whose data differ', async () => {
+    const pairs = readdirSync(new URL('../fixtures/offiziell/kosit/paare/', import.meta.url))
+      .filter((name) => name.endsWith('_ubl.xml'))
+      .map((name) => name.replace('-INVOICE_ubl.xml', ''));
+    expect(pairs).toHaveLength(33);
+    const apart: string[] = [];
+    for (const pair of pairs) {
+      const ubl = officialText(`kosit/paare/${pair}-INVOICE_ubl.xml`);
+      const uncefact = officialText(`kosit/paare/${pair}-INVOICE_uncefact.xml`);
+      const pdf = miniPdf({ attachments: [xml('a.xml', ubl), xml('b.xml', uncefact)] });
+      const { verdict } = await check('r.pdf', pdf);
+      if (!verdict.comparison?.same) apart.push(pair);
+    }
+    expect(apart).toEqual(['01.20a', '01.21a', '03.01a', '03.06a']);
   });
 });
 

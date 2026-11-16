@@ -82,6 +82,10 @@ export const TEXTS = {
   // pdf.js could not take the attachment out of the PDF (audit QL-06)
   attachmentUnreadable: 'Der Anhang „{name}“ lässt sich nicht aus dem PDF lesen.',
   notJudged: 'Ob das PDF eine E-Rechnung ist, kann das Tool deshalb nicht sagen.',
+  // Beside an invoice XML: what the attachments not read mean for the result (audit R2-U-08)
+  unreadOne: 'Ob dieser Anhang weitere Rechnungsdaten enthält, kann das Tool nicht sagen.',
+  unreadSeveral:
+    'Ob die nicht gelesenen Anhänge weitere Rechnungsdaten enthalten, kann das Tool nicht sagen.',
   formatError: FORMAT_ERROR,
 
   // F26: § 27 Abs. 38 UStG by the date of supply and invoice (src/logic/uebergang.ts)
