@@ -1,12 +1,12 @@
 {
   "quelle": "Testumgebung, testrahmen/",
-  "stand": "2645a15",
+  "stand": "61c19c6",
   "dateien": {
-    "testrahmen.js": "a4f37a9975ee20ac1ef3c5bd51566d207ef0d898fa404bc5e355667d33ec27d6",
+    "testrahmen.js": "dca7c94e896009ae9b756b3b58a23a299a5c2e15a615c31bf15a49bc2c81c4d6",
     "testrahmen.d.ts": "a39343b2cc963479f97dff996d6f27fafb6a4cc2764eb22d6c0f7e7610fe1a7a",
-    "testrahmen.css": "05226fe7fc9e7105833653bdf35d2a21c11f634e936e3a3a83fdb0d340f3a1a9",
-    "pruefen.mjs": "e913baa65be2f991974d09f032f817a3b7caf08b4765b4d33bdecf00028b6af9",
+    "testrahmen.css": "0f93a13dca745413bd336b70a93a6bdad3ce71a03370b970ff7318c8c5984e86",
+    "pruefen.mjs": "4e6d5d0c31b414a6c3de1642a49510c610fdea79ca3d6728dd18c34e0a9e3589",
     "pruefen.d.mts": "972da8395b5bac562fda3a2be754cd9b4c189fd508f892442ea9e1464fd46152",
-    "LIESMICH.md": "a5fbf223720c22a2d9e8bc3494d0b59b1971211ec2adc9eace7fe336a6b4277d"
+    "LIESMICH.md": "827724dac2d7e1c22166240b5a9fade7edbea775c1e077427da701368604884e"
   }
 }
