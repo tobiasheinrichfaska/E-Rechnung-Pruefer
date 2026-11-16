@@ -26,7 +26,16 @@ function schemaDetail(invoice: InvoiceVerdict): string {
     : fill(TEXTS.schemaDetail, { schema: schema.schema, count: schema.count });
 }
 
-export function invoiceDetails(invoice: InvoiceVerdict, inPdf: boolean): DetailRow[] {
+/**
+ * The detail rows of one invoice XML. `same`: every part with these data (F27, G-8) — the row
+ * „Anhänge“ names each, and a technical row in which the parts differ (e.g. the syntax of UBL and
+ * CII) is shown once per part, with its name (audit R3-U-09).
+ */
+export function invoiceDetails(
+  invoice: InvoiceVerdict,
+  inPdf: boolean,
+  same: readonly InvoiceVerdict[] = [invoice],
+): DetailRow[] {
   const h = invoice.part.header;
   const date = first(h, 'BT-2');
   const iso = isoDate(date);
@@ -37,7 +46,16 @@ export function invoiceDetails(invoice: InvoiceVerdict, inPdf: boolean): DetailR
   // G-2: what the client knows from the invoice first, the technical rows after it
   return [
     // an XML file's name already stands above the result ("Geprüfte Datei", audit E-08)
-    ...(inPdf ? [{ label: 'Anhang', value: invoice.part.origin }] : []),
+    ...(inPdf
+      ? [
+          same.length > 1
+            ? {
+                label: TEXTS.attachmentsRow,
+                value: same.map((part) => part.part.origin).join(TEXTS.labelsAnd),
+              }
+            : { label: 'Anhang', value: invoice.part.origin },
+        ]
+      : []),
     {
       label: 'Art der Rechnung (BT-3)',
       value: type ? `${type}${TYPE_CODES[type] ? ` – ${TYPE_CODES[type]}` : ''}` : MISSING,
@@ -55,16 +73,41 @@ export function invoiceDetails(invoice: InvoiceVerdict, inPdf: boolean): DetailR
         ? `${formatAmount(normalize(parsed))}${currency ? ` ${currency}` : ''}`
         : (amount ?? MISSING),
     },
-    { label: 'Syntax', value: invoice.syntaxLabel, technical: true },
+    ...technicalRows(same.includes(invoice) ? same : [invoice, ...same]),
+  ];
+}
+
+/** The technical rows of one part, or of every part with the same data where they differ */
+function technicalRows(parts: readonly InvoiceVerdict[]): DetailRow[] {
+  const rows = (part: InvoiceVerdict): DetailRow[] => [
+    { label: 'Syntax', value: part.syntaxLabel, technical: true },
     {
       label: 'Spezifikation',
-      value: invoice.profile.entry?.note
-        ? `${invoice.specLabel} (${invoice.profile.entry.note})`
-        : invoice.specLabel,
+      value: part.profile.entry?.note
+        ? `${part.specLabel} (${part.profile.entry.note})`
+        : part.specLabel,
       technical: true,
     },
-    { label: 'Kennung (BT-24)', value: invoice.profile.id ?? MISSING, technical: true },
+    { label: 'Kennung (BT-24)', value: part.profile.id ?? MISSING, technical: true },
     // a format error stays visible (G-2); "keine E-Rechnung" has none (F19, audit QL-09)
-    { label: 'Schema (XSD)', value: schemaDetail(invoice), technical: !schemaFailed(invoice) },
+    { label: 'Schema (XSD)', value: schemaDetail(part), technical: !schemaFailed(part) },
   ];
+  const each = parts.map(rows);
+  const [head = []] = each;
+  return head.flatMap((row, index) => {
+    const values = each.map((list) => list[index]);
+    if (values.every((other) => other?.value === row.value)) {
+      return [{ ...row, technical: values.every((other) => other?.technical !== false) }];
+    }
+    return values.flatMap((other, part) =>
+      other
+        ? [
+            {
+              ...other,
+              label: fill(TEXTS.ofPart, { label: row.label, name: parts[part]?.part.origin ?? '' }),
+            },
+          ]
+        : [],
+    );
+  });
 }

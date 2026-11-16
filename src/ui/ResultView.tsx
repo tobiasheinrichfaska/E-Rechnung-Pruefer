@@ -190,13 +190,16 @@ function InvoiceCard({
   invoice,
   inPdf,
   heading,
+  same,
 }: {
   invoice: InvoiceVerdict;
   inPdf: boolean;
   heading: string;
+  /** G-8: every part with these data, named in its rows (audit R3-U-09) */
+  same?: readonly InvoiceVerdict[] | undefined;
 }) {
   const headingId = useId();
-  const rows = invoiceDetails(invoice, inPdf);
+  const rows = invoiceDetails(invoice, inPdf, same);
   const technical = rows.filter((r) => r.technical);
   return (
     <div className="card">
@@ -277,6 +280,7 @@ export function ResultView({ analysis, verdict, notice, actions }: Props) {
           invoice={invoice}
           inPdf={inPdf}
           heading={comparison?.same ? fill(TEXTS.sameHeading, { names }) : TEXTS.invoiceDataHeading}
+          same={comparison?.same ? verdict.invoices : undefined}
         />
       ))}
 

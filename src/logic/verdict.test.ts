@@ -747,3 +747,75 @@ describe('what differs where the short texts agree (audit R2-L-02)', () => {
     });
   });
 });
+
+// Audit R3-U-09 (G-8): the same data in two parts — every place names both, and a technical row in
+// which they differ (UBL and CII) is shown for each part
+describe('the same data in two parts (audit R3-U-09)', () => {
+  const cii = part({}, 'factur-x.xml');
+  const ubl = { ...part({}, 'ubl.xml'), syntax: 'ubl-invoice' as const };
+  const schema = (name: string, count = 0) => ({
+    schema: name,
+    checked: true,
+    problems: [],
+    count,
+  });
+
+  it('names both attachments in the source sentence', () => {
+    const verdict = verdictOf(analysis({ invoices: [cii, ubl] }));
+    expect(verdict.comparison?.same).toBe(true);
+    expect(verdict.explanation[0]).toBe(
+      'Das PDF enthält Rechnungsdaten als XML (Anhänge „factur-x.xml“ und „ubl.xml“).',
+    );
+    // one part: as before
+    expect(verdictOf(analysis({ invoices: [cii] })).explanation[0]).toBe(
+      'Das PDF enthält Rechnungsdaten als XML (Anhang „factur-x.xml“).',
+    );
+  });
+
+  it('names both in the row „Anhänge“ and shows a differing technical row per part', () => {
+    const ciiPart = { ...cii, schema: schema('UN/CEFACT CII D16B') };
+    const parts = [ciiPart, { ...ubl, schema: schema('UBL 2.1 (Invoice)') }];
+    const verdict = verdictOf(analysis({ invoices: parts }));
+    const [first] = verdict.invoices;
+    if (!first) throw new Error('no invoice');
+    const rows = invoiceDetails(first, true, verdict.invoices);
+    expect(rows[0]).toEqual({ label: 'Anhänge', value: 'factur-x.xml und ubl.xml' });
+    expect(rows.filter((r) => r.technical).map((r) => `${r.label}: ${r.value}`)).toEqual([
+      'Syntax, Anhang „factur-x.xml“: UN/CEFACT CII (Cross Industry Invoice)',
+      'Syntax, Anhang „ubl.xml“: UBL 2.1 (Invoice)',
+      'Spezifikation: EN 16931 (bei ZUGFeRD/Factur-X: Profil EN 16931, früher COMFORT)',
+      'Kennung (BT-24): urn:cen.eu:en16931:2017',
+      'Schema (XSD), Anhang „factur-x.xml“: keine Abweichung vom Schema UN/CEFACT CII D16B',
+      'Schema (XSD), Anhang „ubl.xml“: keine Abweichung vom Schema UBL 2.1 (Invoice)',
+    ]);
+    // the same syntax and schema: each row once
+    const twice = verdictOf(analysis({ invoices: [ciiPart, { ...ciiPart, origin: 'b.xml' }] }));
+    const [one] = twice.invoices;
+    if (!one) throw new Error('no invoice');
+    expect(invoiceDetails(one, true, twice.invoices).map((r) => r.label)).toEqual([
+      'Anhänge',
+      'Art der Rechnung (BT-3)',
+      'Rechnungsnummer (BT-1)',
+      'Rechnungsdatum (BT-2)',
+      'Lieferant (BT-27)',
+      'Gesamtbetrag mit Umsatzsteuer (BT-112)',
+      'Syntax',
+      'Spezifikation',
+      'Kennung (BT-24)',
+      'Schema (XSD)',
+    ]);
+  });
+
+  it('keeps the schema row of a part with a format error visible (G-2)', () => {
+    const failed = { ...ubl, schema: schema('UBL 2.1 (Invoice)', 1) };
+    const verdict = verdictOf(
+      analysis({ invoices: [{ ...cii, schema: schema('UN/CEFACT CII D16B') }, failed] }),
+    );
+    const [first] = verdict.invoices;
+    if (!first) throw new Error('no invoice');
+    const schemaRows = invoiceDetails(first, true, verdict.invoices).filter((r) =>
+      r.label.startsWith('Schema (XSD)'),
+    );
+    expect(schemaRows.map((r) => r.technical)).toEqual([true, false]);
+  });
+});

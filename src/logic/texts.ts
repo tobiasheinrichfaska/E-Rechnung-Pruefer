@@ -28,6 +28,8 @@ export const TEXTS = {
   // G-3: a yellow result says so in its headline (and the announcement)
   eRechnungHints: 'E-Rechnung erkannt ({spec}) – mit Hinweisen',
   hybridSource: 'Das PDF enthält Rechnungsdaten als XML (Anhang „{name}“).',
+  // G-8: the same data in several attachments, each named (audit R3-U-09)
+  hybridSourceSeveral: 'Das PDF enthält Rechnungsdaten als XML (Anhänge {names}).',
   xmlCounts: 'Maßgeblich sind die Daten in der XML, nicht das Bild des PDF.',
   xmlFile: 'Die Datei enthält die Rechnungsdaten als XML.',
 
@@ -155,6 +157,9 @@ export const TEXTS = {
   invoiceDataHeading: 'Rechnungsdaten',
   // G-8/F27: several invoice XML in one PDF
   sameHeading: 'Rechnungsdaten (gleich in {names})',
+  // G-8: a technical row of one of the parts, where the parts differ in it (audit R3-U-09)
+  attachmentsRow: 'Anhänge',
+  ofPart: '{label}, Anhang „{name}“',
   comparisonHeading: 'Vergleich der Rechnungsdaten',
   comparisonValue: 'Wert',
   // G-4: pass the result on to the Kanzlei

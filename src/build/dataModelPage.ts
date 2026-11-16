@@ -438,7 +438,7 @@ export const FUNCTIONS: { layer: string; signature: string; purpose: string }[] 
   },
   {
     layer: 'logic',
-    signature: 'invoiceDetails(invoice, inPdf): DetailRow[]',
+    signature: 'invoiceDetails(invoice, inPdf, same?): DetailRow[]',
     purpose: 'Detailzeilen (deutsches Datum und Betrag)',
   },
   {

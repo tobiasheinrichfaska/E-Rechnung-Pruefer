@@ -358,12 +358,8 @@ function mergeSameValues(
 }
 
 /** One label as it is; several in quotes, as their own labels hold commas and „und“ */
-function labelList(labels: readonly string[]): string {
-  const [only, ...more] = labels;
-  if (only === undefined || more.length === 0) return only ?? '';
-  const quoted = labels.map((label) => `„${label}“`);
-  return `${quoted.slice(0, -1).join(', ')}${TEXTS.labelsAnd}${quoted.at(-1) ?? ''}`;
-}
+const labelList = (labels: readonly string[]): string =>
+  labels.length === 1 ? (labels[0] ?? '') : quotedNames(labels);
 
 /**
  * A compared value as the client reads it: German date, the amount by its value ("336.900" as
@@ -605,10 +601,24 @@ function formatErrorLines(
   };
 }
 
-function sourceLines(invoice: InvoiceVerdict, inPdf: boolean): string[] {
-  return inPdf
-    ? [fill(TEXTS.hybridSource, { name: invoice.part.origin }), TEXTS.xmlCounts]
-    : [TEXTS.xmlFile];
+/** „„a.xml“ und „b.xml““ — the names of several attachments, in quotes */
+export function quotedNames(names: readonly string[]): string {
+  const quoted = names.map((name) => `„${name}“`);
+  return quoted.length < 2
+    ? (quoted[0] ?? '')
+    : `${quoted.slice(0, -1).join(', ')}${TEXTS.labelsAnd}${quoted.at(-1) ?? ''}`;
+}
+
+/** Where the data come from: with the same data in several parts, each of them (R3-U-09, G-8) */
+function sourceLines(invoices: readonly InvoiceVerdict[], inPdf: boolean): string[] {
+  if (!inPdf) return [TEXTS.xmlFile];
+  const [only, ...more] = invoices;
+  return [
+    more.length === 0
+      ? fill(TEXTS.hybridSource, { name: only?.part.origin ?? '' })
+      : fill(TEXTS.hybridSourceSeveral, { names: quotedNames(invoices.map((i) => i.part.origin)) }),
+    TEXTS.xmlCounts,
+  ];
 }
 
 /**
@@ -675,7 +685,7 @@ function singleVerdict(
           tone: 'bad',
           headline: fill(TEXTS.schemaErrorHeadline, { spec: failed.specLabel }),
           explanation: [
-            ...sourceLines(invoice, inPdf),
+            ...sourceLines(context.invoices, inPdf),
             ...hint,
             ...same,
             ...format.german,
@@ -695,7 +705,7 @@ function singleVerdict(
         tone: warn ? 'warn' : 'ok',
         headline: fill(warn ? TEXTS.eRechnungHints : TEXTS.eRechnung, { spec: invoice.specLabel }),
         explanation: [
-          ...sourceLines(invoice, inPdf),
+          ...sourceLines(context.invoices, inPdf),
           ...hint,
           ...same,
           ...pflicht,
