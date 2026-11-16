@@ -58,6 +58,14 @@ export function decimalText(value: Decimal): string {
   return `${negative ? '-' : ''}${whole}${value.scale > 0 ? `.${fraction}` : ''}`;
 }
 
+/**
+ * A rate or quantity in German, by its value: "7.00" and "7" both read "7", "1.50" reads "1,5" —
+ * so the same value written two ways shows the same text (audit R2-L-01).
+ */
+export function germanNumber(value: Decimal): string {
+  return decimalText(normalize(value)).replace('.', ',');
+}
+
 /** German display with at least two decimals and thousands dots: "1.234,50". */
 export function formatAmount(value: Decimal): string {
   const scaled =

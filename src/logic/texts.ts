@@ -236,6 +236,17 @@ export const TEXTS = {
   rulesSomeNotChecked: '{count} Regeln ließen sich nicht prüfen (siehe unten).',
   ruleMissing: '– nicht angegeben',
   ruleNoNumber: '– keine Zahl',
+  // A rate that is no number in a part of a breakdown per rate: the rate is named (audit R2-L-07)
+  ruleLineRate: 'Umsatzsteuersatz einer Position (BT-152)',
+  ruleChargeRate: 'Umsatzsteuersatz eines Zuschlags auf Dokumentebene (BT-103)',
+  ruleAllowanceRate: 'Umsatzsteuersatz eines Nachlasses auf Dokumentebene (BT-96)',
+  // UBL BR-S-08 wants a line, charge or allowance of its rate (audit R2-L-05)
+  ruleOwnParts: 'Positionen, Zuschläge oder Nachlässe mit diesem Satz',
+  ruleOwnPartsNone: 'keine',
+  // BR-CO-15 adds BT-110 only where exactly one is given in the document currency (audit R2-L-03)
+  ruleTaxTotals: 'Angaben „Summe der Umsatzsteuer“ (BT-110) in Rechnungswährung',
+  ruleTaxTotalsCount: '{count} – die Regel verlangt genau eine',
+  ruleAnd: ' und ',
 
   pflichtHeading: 'Pflichtangaben nach § 14 Abs. 4 UStG',
   besondereHeading: 'Angaben in besonderen Fällen (§ 14 Abs. 5, § 14a, § 22c UStG)',
