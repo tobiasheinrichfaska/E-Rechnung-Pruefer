@@ -38,9 +38,9 @@
 
 ## Testfassung (15.11.2026)
 
-- [x] **„Tester einladen“ nur in der Testfassung** — `npm run build:test` (`dist-test/`): Link in der Fußzeile auf `/_zugang/einladen`, im selben Tab; `dist/index.html` enthält weder die Adresse noch das Wort
+- [x] **„Tester einladen“ nur in der Testfassung** — `npm run build:test` (`dist-test/`): Link im Kopf des gemeinsamen Testrahmens auf `/_zugang/einladen`, im selben Tab, genau einmal; `dist/index.html` enthält weder die Adresse noch das Wort
 - [x] **Nicht installierbar** — kein Manifest, kein Service Worker, keine Apple-Web-App-Angaben; CSP `manifest-src` und `worker-src` `'none'` (öffentliche Fassung und Testfassung)
-- [x] **Testseite der Testfassung** — alle Handtests neben dem Tool (am Handy zwei Reiter); je Test „Bestanden“ / „Nicht bestanden“ mit Schritten und Grund aus fester Liste, **kein Textfeld**; die Zeit misst die Seite selbst; „Bericht senden“ an `/_zugang/bericht` im Format `testbericht/1`, Meldung bei 400 und 404; nur die Testfassung darf verbinden (`connect-src 'self'`); der Testlauf übersteht ein Neuladen und ist nach dem Senden gelöscht, „Neu beginnen“ mit Rückfrage
+- [x] **Testseite der Testfassung** (seit 0.10.0 der gemeinsame Testrahmen aus `Testumgebung`) — alle Handtests neben dem Tool (am Handy zwei Reiter); je Test „Bestanden“ / „Nicht bestanden“ mit Schritten und Grund aus fester Liste, **kein Textfeld**; die Zeit misst die Seite selbst; „Bericht senden“ an `/_zugang/bericht` im Format `testbericht/1` mit `app`, Version, Stand und allen Handtests; „App neu starten“ und „App vollständig zurücksetzen“ mit Rückfrage; nur die Testfassung darf verbinden (`connect-src 'self'`); die öffentliche Fassung enthält nichts vom Rahmen
 - [x] **GitHub-Prüfung „Tests“** — Typen, Lint, Format, Unit-Tests und E2E in drei Browsern; jeder Upload wartet darauf
 
 ## Rahmen

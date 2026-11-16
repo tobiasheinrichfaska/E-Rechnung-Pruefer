@@ -6,9 +6,6 @@ declare const __APP_VERSION__: string;
 /** The local Kanzlei configuration (config/kanzlei.local.json or the neutral example). */
 declare const __APP_CONFIG__: import('./logic/appConfig').AppConfig;
 
-/** The test version's „Tester einladen“ address (mode `testbereich`), else null (vite.config.ts). */
-declare const __TESTER_INVITE__: string | null;
-
 /** The commit of the test version (`git rev-parse --short HEAD`, mode `testbereich`), else null. */
 declare const __APP_STAND__: string | null;
 

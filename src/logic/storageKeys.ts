@@ -1,17 +1,12 @@
 // What the tool keeps in the browser (Tobias 2026-11-15: the storage ban falls with the own
-// subdomain; first use the confirmed access notice, then the tester's run in the test version). While a copy still shares its origin
-// with other apps (the test copy in NebenprojektERechnung/ on the Fragebogen subdomain), the tool
-// uses only keys with its own prefix and never reads or clears anything else.
+// subdomain; its use: the confirmed access notice). While a copy still shares its origin with other
+// apps (the test copy in NebenprojektERechnung/ on the Fragebogen subdomain), the tool uses only keys
+// with its own prefix and never reads or clears anything else. The test version's shared test frame
+// (src/testrahmen/, a copy from Testumgebung) keeps the tester's run under its own key
+// `testrahmen:erechnung`; the tool's code never touches it.
 
 /** The name of the confirmed access notice; the ESLint storage ban and the e2e spy allow it. */
 export const ACCESS_STORAGE = 'e-rechnung-pruefer-zugang';
-
-/**
- * The tester's run on the test page — **test version only** (Tobias 2026-11-15: „Ja, wie
- * Fragebogen“): results, seconds and failed steps with their reason, no free text, no name. Cleared
- * when the report is sent or the tester starts anew. The live build never uses it.
- */
-export const TEST_RUN_STORAGE = 'e-rechnung-pruefer-testlauf';
 
 /** The folder of a page address: "/" for "/" and "/index.html", "/test/" for "/test/index.html". */
 export function folderOf(pathname: string): string {

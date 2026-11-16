@@ -14,9 +14,10 @@ echter Lieferanten, echte Mailprogramme, echte Handys. Was eine Maschine prüfen
   - Bei „Nicht bestanden“ wählen Sie die Schritte mit Problem, je mit einem Grund aus der Liste.
     **Es gibt kein Textfeld.** Wo eine Anleitung „Notieren Sie …“ sagt, wählen Sie stattdessen den
     Schritt und seinen Grund; mehr sagen Sie Tobias direkt.
-  - Zum Schluss **Bericht senden**. Bis dahin bleiben die Ergebnisse in diesem Browser gespeichert,
-    auch wenn Sie die Seite neu laden; nach dem Senden sind sie gelöscht. „Neu beginnen“ löscht sie
-    nach einer Rückfrage.
+  - Zum Schluss **Bericht senden**. Die Ergebnisse bleiben in diesem Browser gespeichert, auch wenn
+    Sie die Seite neu laden; gesendete Ergebnisse bleiben als „gesendet“ markiert stehen und gehen
+    nicht zweimal. „App neu starten“ und „App vollständig zurücksetzen“ fragen vorher nach. (Seit
+    0.10.0 ist die Testseite der gemeinsame Testrahmen aus dem Repo `Testumgebung`.)
 - Lokal: `npm run build`, dann `dist/index.html` mit einem Doppelklick öffnen.
 - Beispielrechnungen: im öffentlichen Repo unter
   https://github.com/tobiasheinrichfaska/E-Rechnung-Pruefer/tree/main/beispiele (die Tabelle „Was
@@ -48,12 +49,12 @@ echter Lieferanten, echte Mailprogramme, echte Handys. Was eine Maschine prüfen
   - Pflichtangaben vollständig, mit Lücken und Hinweisen, Kleinbetrag; Positionen aufklappen.
   - Handybreite (375 px und 320 px, auch mit langem Dateinamen): nichts verschiebt sich seitlich, die
     Werte stehen unter Bezeichnung und Marke.
-  - Testfassung (`dist-test/index.html`): „Tester einladen“ in der Fußzeile, im selben Tab, auf
-    `/_zugang/einladen`; die öffentliche Fassung hat den Link nicht.
-  - Testseite der Testfassung: alle Handtests neben dem Tool, die Zeit je Test (läuft, ruht beim
-    Verlassen, endet mit dem Ergebnis), Schritte mit Grund, „Bericht senden“ mit genau den Feldern
-    des Formats `testbericht/1`, Ablehnung (400) und fehlende Empfangsstelle (404), zwei Reiter am
-    Handy; die öffentliche Fassung hat nichts davon und bleibt bei `connect-src 'none'`.
+  - Testfassung (`dist-test/index.html`): genau ein „Tester einladen“, im Kopf des Testrahmens, im
+    selben Tab, auf `/_zugang/einladen`; die öffentliche Fassung hat den Link nicht.
+  - Testrahmen der Testfassung: alle Handtests neben dem Tool, kein Textfeld, „Bericht senden“ mit
+    `app`, Version, Stand und allen Handtests, „App neu starten“ und „App vollständig zurücksetzen“
+    mit Rückfrage, zwei Reiter am Handy; die öffentliche Fassung hat nichts davon und bleibt bei
+    `connect-src 'none'`. Die Uhr, die Gründe und das Senden selbst prüft `Testumgebung`.
   - Screenreader: Statuszeile mit kurzem Ergebnissatz, Fokus auf dem Ergebnis, Zeilen- und
     Spaltenköpfe der Pflichtangaben, benannte Tabellen (`zugang.spec.ts`). Wie ein echter
     Screenreader vorliest, prüft das nicht.

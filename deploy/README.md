@@ -23,17 +23,19 @@ Die Testfassung läuft in einer eigenen geschützten Testzone bei bunny.net, get
 | öffentlich           | `erechnung`                | `npm run build`      | `dist/index.html` als `index.html`      |
 | Testzone (geschützt) | `erechnungtest`            | `npm run build:test` | `dist-test/index.html` als `index.html` |
 
-- **Nur die Testfassung** hat unten den Link **„Tester einladen“**. Er führt im selben Tab auf
-  `/_zugang/einladen`, die Seite des Anmeldeskripts für einen Einladungslink. Die öffentliche Fassung
-  enthält diese Adresse nie; `tests/e2e/testfassung.spec.ts` prüft das an `dist/index.html`.
+- **Nur die Testfassung** hat den Link **„Tester einladen“**, seit 0.10.0 im Kopf des gemeinsamen
+  Testrahmens (nicht mehr in der Fußzeile). Er führt im selben Tab auf `/_zugang/einladen`, die Seite
+  des Anmeldeskripts für einen Einladungslink. Die öffentliche Fassung enthält diese Adresse nie;
+  `tests/e2e/testfassung.spec.ts` prüft das an `dist/index.html`.
 - **Nicht installierbar** (Tobias, 15.11.2026): Keine der beiden Fassungen hat ein Manifest oder einen
   Service Worker; ihre CSP verbietet beides (`manifest-src`, `worker-src`). Deshalb nie eine
   `manifest.webmanifest` oder ein `sw.js` neben `index.html` hochladen.
 - Beide Builds brauchen vorher die Kanzlei-Konfiguration (Abschnitt „Zugangshinweis im
   Freigabe-Lauf“).
-- **Testseite** (ab 0.8.0): Die Testfassung zeigt neben dem Tool die Handtests und schickt mit
-  „Bericht senden“ einen Bericht ohne Freitext an `/_zugang/bericht` (Format `testbericht/1`, Repo
-  `Testumgebung`, `docs/testbericht.md`). Deshalb erlaubt nur ihre CSP `connect-src 'self'`; die
+- **Testseite** (ab 0.8.0, seit 0.10.0 der gemeinsame Testrahmen aus dem Repo `Testumgebung`, als
+  unveränderte Kopie in `src/testrahmen/`): Die Testfassung zeigt neben dem Tool die Handtests und
+  schickt mit „Bericht senden“ einen Bericht ohne Freitext an `/_zugang/bericht` (Format
+  `testbericht/1`, `docs/testbericht.md` dort). Deshalb erlaubt nur ihre CSP `connect-src 'self'`; die
   öffentliche Fassung bleibt bei `connect-src 'none'`. Eine CSP-Kopfzeile der **Testzone** darf
   `connect-src` nicht auf `'none'` stellen. Der Testbuild braucht `git` (Commit als `stand`).
 - **Gate:** Jeder Upload wartet auf die GitHub-Prüfung **„Tests“** (`.github/workflows/tests.yml`).

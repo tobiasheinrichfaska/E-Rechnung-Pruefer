@@ -9,9 +9,10 @@ import { defineConfig, globalIgnores } from 'eslint/config';
 // Fixed frame (hand-over 2026-11-13): the file never leaves the computer and nothing is stored.
 // The browser's CSP blocks the network; these rules keep the code from even trying. Changed
 // 2026-11-15 (Tobias, „ja, Beschränkung fällt“): one exception, the remembered access notice —
-// localStorage in src/io/accessStore.ts (ACCESS_STORE below) and, for the test version's run,
-// src/io/testRunStore.ts (TEST_RUN_STORE). And the test version's „Bericht senden“ (2026-11-15):
-// fetch in src/io/testReportSend.ts only (REPORT_SENDER below).
+// localStorage in src/io/accessStore.ts (ACCESS_STORE below). The tool itself has no fetch at all:
+// the test version's run and „Bericht senden“ belong to the shared test frame, a copy from the repo
+// Testumgebung in src/testrahmen/ that is ignored above and checked by hash instead; only the test
+// version bundles it, and only its CSP says connect-src 'self'.
 // Anything else stays refused (tests/static/storageBan.test.ts).
 const NO_STORAGE_OR_NETWORK = [
   'localStorage',
@@ -45,18 +46,21 @@ const NO_STORAGE_PROPERTIES = [
   { object: 'window', property: 'name' },
 ];
 
-/** The files allowed to use localStorage: the remembered access notice and the test run. */
+/** The one file allowed to use localStorage: the remembered access notice. */
 export const ACCESS_STORE = 'src/io/accessStore.ts';
-/** The tester's run of the test version (Tobias 2026-11-15: „Ja, wie Fragebogen“). */
-export const TEST_RUN_STORE = 'src/io/testRunStore.ts';
-/**
- * The only file allowed to use fetch: „Bericht senden“ of the test version (Tobias 2026-11-15). The
- * live build has no test page; its CSP keeps connect-src 'none' (tests/e2e/testbericht.spec.ts).
- */
-export const REPORT_SENDER = 'src/io/testReportSend.ts';
 
 export default defineConfig([
-  globalIgnores(['dist', 'dist-test', 'coverage', '.tmp', 'playwright-report', 'test-results']),
+  // src/testrahmen/: the shared test frame, a copy from Testumgebung checked by hash — never linted
+  // or changed here (tests/static/testrahmen.test.ts)
+  globalIgnores([
+    'dist',
+    'dist-test',
+    'coverage',
+    '.tmp',
+    'playwright-report',
+    'test-results',
+    'src/testrahmen',
+  ]),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [js.configs.recommended, tseslint.configs.strict],
@@ -74,21 +78,11 @@ export default defineConfig([
   },
   {
     // The one place that may keep something in the browser: the confirmed access notice
-    files: [ACCESS_STORE, TEST_RUN_STORE],
+    files: [ACCESS_STORE],
     rules: {
       'no-restricted-globals': [
         'error',
         ...NO_STORAGE_OR_NETWORK.filter((name) => name !== 'localStorage'),
-      ],
-    },
-  },
-  {
-    // The one place that may use the network: posting the test report of the test version
-    files: [REPORT_SENDER],
-    rules: {
-      'no-restricted-globals': [
-        'error',
-        ...NO_STORAGE_OR_NETWORK.filter((name) => name !== 'fetch'),
       ],
     },
   },

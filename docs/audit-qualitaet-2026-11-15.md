@@ -137,4 +137,10 @@ Gestaltungsfragen (fortlaufend nach G-1 … G-10 aus `audit-bedienung-2026-11-14
 - **G-16 (QT-09, QS-05):** Wird die alte IONOS-Kopie (`NebenprojektERechnung/`) noch hochgeladen?
   Oder dürfen `deploy/upload.json` und `npm run hochladen` weg?
 
+- **G-17 (Testrahmen, 0.10.0):** Der gemeinsame Testrahmen aus `Testumgebung` behält gesendete
+  Ergebnisse im Browser, als „gesendet“ markiert, und hat kein „Neu beginnen“. Für die eigene
+  Testseite hatten Sie entschieden: gelöscht, sobald gesendet. Passt das Verhalten des Rahmens? Oder
+  soll `Testumgebung` die gesendeten Ergebnisse löschen oder ein „Neu beginnen“ anbieten? Das ist
+  auch ein Wunsch an `Testumgebung`, die Kopie hier wird nie geändert.
+
 Steuerfragen: **F31** und **F32** in `docs/offene-fragen.md`.

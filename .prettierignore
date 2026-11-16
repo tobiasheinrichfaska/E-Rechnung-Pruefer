@@ -14,3 +14,5 @@ LICENSE
 LICENSE_COMMERCIAL.md
 CONTRIBUTING.md
 beispiele/
+# The shared test frame, copied from Testumgebung and checked by hash (tests/static/testrahmen.test.ts)
+src/testrahmen/
