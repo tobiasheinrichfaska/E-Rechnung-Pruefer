@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
@@ -36,6 +36,29 @@ function contentSecurityPolicy(testArea: boolean): Plugin {
   };
 }
 
+/**
+ * The folder of each build follows from its mode: the test version (test frame, `connect-src
+ * 'self'`) goes to dist-test/ for the protected test zone, every other build to dist/, the file of
+ * the public zone. A test version named into dist/ (`--outDir dist`) stops the build, so it can
+ * never take the live file's place (audit 2026-11-15, R2-S-04; tests/build/viteConfig.test.ts).
+ */
+const outDirOf = (testArea: boolean) => (testArea ? 'dist-test' : 'dist');
+
+function testVersionFolder(testArea: boolean): Plugin {
+  return {
+    name: 'test-version-folder',
+    apply: 'build',
+    configResolved: (config) => {
+      const live = resolve(config.root, outDirOf(false));
+      if (testArea && resolve(config.root, config.build.outDir) === live) {
+        throw new Error(
+          `Die Testfassung gehört nach ${outDirOf(true)}/, nie nach ${outDirOf(false)}/ (npm run build:test)`,
+        );
+      }
+    },
+  };
+}
+
 /** The commit a test report names (`stand`): the test version needs git, the live build does not. */
 function standOf(testArea: boolean): string | null {
   if (!testArea) return null;
@@ -63,7 +86,12 @@ const TEST_AREA_STUB = fileURLToPath(new URL('./src/testAreaStub.ts', import.met
 export default defineConfig(({ mode }) => ({
   // Relative paths so the single file also runs from file://
   base: './',
-  plugins: [react(), viteSingleFile(), contentSecurityPolicy(mode === 'testbereich')],
+  plugins: [
+    react(),
+    viteSingleFile(),
+    contentSecurityPolicy(mode === 'testbereich'),
+    testVersionFolder(mode === 'testbereich'),
+  ],
   resolve: {
     alias:
       mode !== 'testbereich' && process.env.VITEST === undefined
@@ -76,6 +104,7 @@ export default defineConfig(({ mode }) => ({
     __APP_STAND__: JSON.stringify(standOf(mode === 'testbereich')),
   },
   build: {
+    outDir: outDirOf(mode === 'testbereich'),
     target: 'es2022',
     // The preload polyfill uses fetch(), which the CSP forbids — everything is inlined anyway
     modulePreload: { polyfill: false },
