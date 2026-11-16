@@ -1,7 +1,8 @@
 // The test version (Kanzlei PC session, Tobias 2026-11-15): `npm run build:test` builds it into
-// dist-test/ for the protected test zone at bunny.net. Its footer links „Tester einladen“ to the page
-// of the login script (repo Testumgebung) that makes a one-time invitation link. The live build must
-// never carry that address.
+// dist-test/ for the protected test zone at bunny.net. „Tester einladen“ leads to the page of the
+// login script (repo Testumgebung) that makes a one-time invitation link. Since the shared test frame
+// came in, the frame offers the link beside the tool and the tool's footer no longer does: one link,
+// not two. The live build must never carry that address.
 import { expect, test } from '@playwright/test';
 import { existsSync, readFileSync } from 'node:fs';
 import {
@@ -27,28 +28,24 @@ test('the live build carries no invitation link', async ({ page }) => {
   await expect(page.getByRole('link', { name: inviteLink })).toHaveCount(0);
 });
 
-test('the test version links „Tester einladen“ in the footer, in the same tab', async ({
+test('the test version offers „Tester einladen“ once, on the test page, in the same tab', async ({
   page,
 }) => {
   expect(existsSync(BUILT_TEST), 'dist-test/index.html fehlt: npm run build:test').toBe(true);
   expect(readFileSync(BUILT_TEST, 'utf8')).toContain(INVITE);
   const problems = await openHosted(page, '/', BUILT_TEST);
-  const link = page.locator('footer').getByRole('link', { name: inviteLink, exact: true });
+  // exactly one link on the page, the frame's; the tool's footer shows only the version
+  await expect(page.getByRole('link', { name: inviteLink, exact: true })).toHaveCount(1);
+  await expect(page.locator('footer').first()).toContainText('Version');
+  await expect(page.locator('footer').getByRole('link', { name: inviteLink })).toHaveCount(0);
+  const link = page
+    .getByRole('complementary', { name: 'Testbereich' })
+    .getByRole('link', { name: inviteLink, exact: true });
   await expect(link).toBeVisible();
   await expect(link).toHaveAttribute('href', INVITE);
   // a plain navigation: no new tab, the login script's page leads back with „Zurück zur App“
   expect(await link.getAttribute('target')).toBeNull();
   expect(await link.evaluate((a: HTMLAnchorElement) => a.href)).toBe(`${HOSTED}${INVITE}`);
-  // styled like the other links of the page: the accent colour (the Kanzlei's, where configured)
-  const [color, accent] = await link.evaluate((a) => {
-    const probe = document.createElement('span');
-    probe.style.color = 'var(--accent)';
-    document.body.append(probe);
-    const colors = [getComputedStyle(a).color, getComputedStyle(probe).color];
-    probe.remove();
-    return colors;
-  });
-  expect(color).toBe(accent);
   expect(problems).toEqual([]);
   expect(await sideEffects(page, TEST_VERSION_KEYS)).toEqual([]);
   // following it asks the host for exactly that page (refused here: the test serves only the app)

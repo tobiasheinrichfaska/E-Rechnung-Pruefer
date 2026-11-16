@@ -3,10 +3,15 @@ import type { Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { ACCESS_STORAGE, TEST_RUN_STORAGE } from '../../src/logic/storageKeys';
+import { ACCESS_STORAGE } from '../../src/logic/storageKeys';
+import { TEST_APP } from '../../src/logic/testBinding';
+import { speicherSchluessel } from '../../src/testrahmen/testrahmen.js';
 
-/** The keys a test of the test version may allow: the access notice and the tester's run. */
-export const TEST_VERSION_KEYS = [ACCESS_STORAGE, TEST_RUN_STORAGE];
+/** The tester's run, kept by the shared test frame of the test version: `testrahmen:erechnung`. */
+export const FRAME_STORAGE = speicherSchluessel(TEST_APP);
+
+/** The keys a test of the test version may allow: the access notice and the frame's run. */
+export const TEST_VERSION_KEYS = [ACCESS_STORAGE, FRAME_STORAGE];
 
 /** The live build (`npm run build`) and the test version for the test zone (`npm run build:test`). */
 export const BUILT = join(import.meta.dirname, '..', '..', 'dist', 'index.html');
@@ -155,18 +160,22 @@ export async function upload(page: Page, name: string, bytes: Uint8Array, mimeTy
  * `localStorage.x = 1` passes no Storage method, so the stores themselves are checked as well.
  * Allowed are only the given keys — by default the confirmed access notice, and that only over
  * https: a downloaded copy (file://) neither reads nor keeps it (config/README.md; audit 2026-11-15,
- * QT-06). Tests of the test version also allow the tester's run (TEST_VERSION_KEYS), which alone may
- * also be removed (sent or started anew). The access notice is never removed, so removing it stays
- * reported.
+ * QT-06). Tests of the test version also allow the frame's run (TEST_VERSION_KEYS). Removing a key
+ * stays reported unless it is named in `removable` — only „App vollständig zurücksetzen“ of the test
+ * version forgets the access notice; nothing ever removes the frame's run.
  */
-export async function sideEffects(page: Page, allowed?: string[]): Promise<string[]> {
+export async function sideEffects(
+  page: Page,
+  allowed?: string[],
+  removable: string[] = [],
+): Promise<string[]> {
   return page.evaluate(
-    async ({ given, access, run }) => {
+    async ({ given, access, gone }) => {
       const names = given ?? (location.protocol === 'https:' ? [access] : []);
       const ownTo = (list: string[]) => (key: string) =>
         list.some((name) => key === name || key.startsWith(`${name}@/`));
       const own = ownTo(names);
-      const removable = ownTo(names.filter((name) => name === run));
+      const removable = ownTo(names.filter((name) => gone.includes(name)));
       const seen = (window as unknown as { __sideEffects: string[] }).__sideEffects.filter(
         (entry) => {
           const match = /^storage\.(getItem|setItem|removeItem):(.*)$/.exec(entry);
@@ -202,6 +211,6 @@ export async function sideEffects(page: Page, allowed?: string[]): Promise<strin
       }
       return seen;
     },
-    { given: allowed, access: ACCESS_STORAGE, run: TEST_RUN_STORAGE },
+    { given: allowed, access: ACCESS_STORAGE, gone: removable },
   );
 }
