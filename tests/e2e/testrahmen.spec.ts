@@ -157,22 +157,16 @@ test('the live build carries nothing of the test frame and keeps connect-src non
 }) => {
   const live = readFileSync(BUILT, 'utf8');
   const testVersion = readFileSync(BUILT_TEST, 'utf8');
-  // the frame, and the tool's own style beside it (src/testArea.css, a container query)
-  const frame = [
-    'starteTestrahmen',
-    'tr-huelle',
-    'testrahmen:',
-    'Bericht senden',
-    'testbericht/1',
-    '@container',
-  ];
+  // the frame, and the tool's own style beside it (src/testArea.css, a container query). Only words
+  // the bundle keeps: the minifier renames the frame's exports, so a name like starteTestrahmen
+  // stood in neither build and could never fire (audit R3-S-05)
+  const frame = ['tr-huelle', 'testrahmen:', 'Bericht senden', 'testbericht/1', '@container'];
   const texts = [...IDS, ...CASES.map((c) => c.title), ...STEP_LINES];
   expect(CASES.length).toBeGreaterThanOrEqual(5);
   for (const word of [...frame, ...texts]) expect(live, word).not.toContain(word);
-  // the check means something: the test version carries the manual tests word for word
-  for (const word of texts) expect(testVersion, word).toContain(word);
-  expect(testVersion).toContain('tr-huelle');
-  expect(testVersion).toContain('@container');
+  // the check means something: the test version carries every marker and the manual tests word
+  // for word
+  for (const word of [...frame, ...texts]) expect(testVersion, word).toContain(word);
 
   const problems = await openApp(page);
   const csp = await page
