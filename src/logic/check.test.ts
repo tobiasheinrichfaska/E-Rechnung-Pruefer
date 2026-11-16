@@ -627,6 +627,18 @@ describe('hint on a "Gutschrift" that is no Gutschrift (F11)', () => {
     );
     expect(row(checkPflichtangaben(model({ 'BT-3': '381' })), 'gutschrift').hints).toEqual([]);
   });
+
+  // Audit R2-U-06: the page puts „Hinweis:“ before every row hint, the word the box and the summary
+  // use — so no hint brings a label of its own (the credit-note hint once began „Mögliche
+  // Auffälligkeit:“, the word of the calculation rules)
+  it('brings no label of its own, as no hint does', () => {
+    const texts = PFLICHTANGABEN.flatMap((p) => (p.hints ?? []).map((h) => h.text));
+    expect(texts.length).toBeGreaterThan(5);
+    for (const text of texts) {
+      expect(text).not.toMatch(/^[\p{L}-]+(?: [\p{L}-]+)?:\s/u);
+      expect(text.toLowerCase()).not.toContain(TEXTS.ruleStatusAuffaellig.toLowerCase());
+    }
+  });
 });
 
 describe('a note found by its wording is shown as the value', () => {

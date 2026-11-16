@@ -638,7 +638,9 @@ export const PFLICHTANGABEN: readonly Pflichtangabe[] = [
             { kind: 'not', of: { kind: 'equals', path: 'BT-3', values: ['389'] } },
           ],
         },
-        text: 'Mögliche Auffälligkeit: In einer Bemerkung steht „Gutschrift“, die Art der Rechnung ist aber nicht 389. Eine Gutschrift im Sinne des § 14 Abs. 2 Satz 2 UStG stellt der Leistungsempfänger aus (Typcode 389). Eine Rechnungskorrektur (z. B. 381) ist keine Gutschrift in diesem Sinne.',
+        // without a label of its own: the row puts „Hinweis:“ before it, as before every hint
+        // (audit R2-U-06)
+        text: 'In einer Bemerkung steht „Gutschrift“, die Art der Rechnung ist aber nicht 389. Eine Gutschrift im Sinne des § 14 Abs. 2 Satz 2 UStG stellt der Leistungsempfänger aus (Typcode 389). Eine Rechnungskorrektur (z. B. 381) ist keine Gutschrift in diesem Sinne.',
       },
     ],
     source: 'KoSIT/FeRD S. 7: BT-3 = 389, BG-1 (F2)',

@@ -60,7 +60,7 @@ function Row({ result }: { result: RowResult }) {
         {result.reason && <div className="muted">{result.reason}</div>}
         {result.hints.map((hint) => (
           <div key={hint} className="row-hint" data-testid="row-hint">
-            {!hint.startsWith(TEXTS.rowHintOwnLabel) && <strong>{TEXTS.rowHintLabel} </strong>}
+            <strong>{TEXTS.rowHintLabel} </strong>
             {hint}
           </div>
         ))}

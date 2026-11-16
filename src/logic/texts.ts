@@ -246,10 +246,9 @@ export const TEXTS = {
   hintBelow: 'Bitte beachten Sie den Hinweis unten.',
   hintsBelow: 'Bitte beachten Sie die {count} Hinweise unten.',
   missingList: 'Es fehlt: {list}.',
-  // QU-05: a row hint is named in words, not by its colour alone — unless its text already starts
-  // with the word of a possible irregularity
+  // QU-05: a row hint is named in words, not by its colour alone — every one with the same word,
+  // the one box and summary use (audit R2-U-06)
   rowHintLabel: 'Hinweis:',
-  rowHintOwnLabel: 'Mögliche Auffälligkeit:',
   // QU-03: what is missing of a partly present row — "nur …" read as "only this is there"
   missingPart: 'davon fehlt:',
   missingParts: 'davon fehlen:',
