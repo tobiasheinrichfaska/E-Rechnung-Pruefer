@@ -31,8 +31,10 @@
     padding-bottom: 4px;
   }
 
-  /* Hidden for the eye only: screen readers keep the column headers (audit 2026-11-14, U-13) */
-  .pflicht-table thead {
+  /* Hidden for the eye only: screen readers keep the column headers (audit 2026-11-14, U-13); the
+     compared values name their attachment instead (audit R3-U-06) */
+  .pflicht-table thead,
+  .comparison thead {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -82,5 +84,9 @@
     grid-column: 1 / span 2;
     grid-row: 2;
     margin-top: 4px;
+  }
+
+  .comparison .part-name {
+    display: inline;
   }
 }

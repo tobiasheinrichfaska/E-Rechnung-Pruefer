@@ -245,7 +245,8 @@ function sumOf(values: readonly (Decimal | null | undefined)[]): Decimal | null 
 const round2 = (value: Decimal) => roundTo(value, 2);
 /** "Gesamtbetrag ohne Umsatzsteuer (BT-109)": the name first, the number for experts */
 const named = (bt: string) => `${termLabel(bt)} (${bt})`;
-const percent = (rate: Decimal) => `${germanNumber(rate)} %`;
+/** With a no-break space, as displayValue in check.ts (audit R3-U-10) */
+const percent = (rate: Decimal) => `${germanNumber(rate)}\u00a0%`;
 const code = (source: Source, path: string) =>
   valuesOf(source, path)[0]?.value.trim().toUpperCase();
 

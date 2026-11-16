@@ -70,3 +70,15 @@ describe('texts shown to clients', () => {
     expect(rows.filter((row) => APPROVAL.test(`${row.label} ${row.value}`))).toEqual([]);
   });
 });
+
+// „Rn.“ and „%“ stay with their number: a no-break space between them (DIN 5008), so a line never
+// ends in „Rn.“ or begins with „%“ (audit R3-U-10). The rates the UI shows are formatted the same
+// way (check.test.ts, rules.test.ts); the codes (BT-112) stay whole by a span (src/ui/Codes.tsx).
+describe('numbers with their sign', () => {
+  it('keep „Rn.“ and „%“ to their number in every sentence', () => {
+    const texts = JSON.stringify(TEXTS);
+    expect(texts).toMatch(/Rn\.\u00a0\d/);
+    expect(texts).not.toMatch(/Rn\.[ \t]\d/);
+    expect(texts).not.toMatch(/\d[ \t]%/);
+  });
+});

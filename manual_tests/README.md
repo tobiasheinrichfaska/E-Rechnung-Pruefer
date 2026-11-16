@@ -12,8 +12,8 @@ echter Lieferanten, echte Mailprogramme, echte Handys. Was eine Maschine prüfen
   - Öffnen Sie dort einen Test. Die Zeit läuft von selbst, solange er offen ist, und endet, wenn Sie
     „Bestanden“ oder „Nicht bestanden“ wählen.
   - Bei „Nicht bestanden“ wählen Sie die Schritte mit Problem, je mit einem Grund aus der Liste.
-    **Es gibt kein Textfeld.** Wo eine Anleitung „Notieren Sie …“ sagt, wählen Sie stattdessen den
-    Schritt und seinen Grund; mehr sagen Sie Tobias direkt.
+    **Es gibt kein Textfeld.** Jeder Test sagt beim Schritt, welchen Grund Sie wählen; Einzelheiten
+    (Lieferant, Programm, Gerät, ein unverständlicher Satz) sagen Sie Tobias direkt.
   - Zum Schluss **Bericht senden**. Die Ergebnisse bleiben in diesem Browser gespeichert, auch wenn
     Sie die Seite neu laden; gesendete Ergebnisse bleiben als „gesendet“ markiert stehen und gehen
     nicht zweimal. „App neu starten“ und „App vollständig zurücksetzen“ fragen vorher nach. (Seit
@@ -24,19 +24,21 @@ echter Lieferanten, echte Mailprogramme, echte Handys. Was eine Maschine prüfen
   sie zeigt“ steht unter der Dateiliste; herunterladen mit „Download raw file“), lokal
   `beispiele/index.html`. Sie werden nicht neben dem Tool hochgeladen (Tobias, 15.11.2026). Alle
   Daten sind erfunden; die Dateien dürfen in E-Mails und auf Geräte.
-- Achtung: Notieren Sie die Versionsnummer unten auf der Seite. Den Stand des Repos zeigt die
+- Achten Sie auf die Versionsnummer unten auf der Seite. Den Stand des Repos zeigt die
   Versionstabelle in `CLAUDE.md`; steht unten eine ältere Nummer, ist der letzte Upload noch nicht
   erfolgt, prüfen Sie dann lokal.
-- Echte Rechnungen bleiben auf dem Rechner. Nie in das Repo legen, nie an Dritte senden. Notieren Sie
-  nur Lieferant, Programm, Ergebnis und Abweichung – keine Beträge oder Namen von Mandanten.
+- Echte Rechnungen bleiben auf dem Rechner. Nie in das Repo legen, nie an Dritte senden. Tobias
+  sagen Sie nur Lieferant, Programm, Ergebnis und Abweichung – keine Beträge oder Namen von
+  Mandanten.
 
 ## Übersicht
 
-| Datei                                                | Tests               | Bereich                                                                                         |
-| ---------------------------------------------------- | ------------------- | ----------------------------------------------------------------------------------------------- |
-| [`01_echte_rechnungen.md`](01_echte_rechnungen.md)   | MT-01               | Echte Rechnungen: Ergebnis, Werte und jedes „fehlt“ gegen das PDF-Bild                          |
-| [`02_geraete.md`](02_geraete.md)                     | MT-02, MT-03, MT-05 | Ziehen aus Mailprogramm und Explorer; echtes Handy oder Tablet; Tester einladen in der Testzone |
-| [`03_verstaendlichkeit.md`](03_verstaendlichkeit.md) | MT-04               | Jedes Ergebnis und jeder Hinweis, gelesen wie von einem Mandanten                               |
+| Datei                                                | Tests        | Bereich                                                                                          |
+| ---------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------ |
+| [`01_echte_rechnungen.md`](01_echte_rechnungen.md)   | MT-01        | Echte Rechnungen: Ergebnis, Werte und jedes „fehlt“ gegen das PDF-Bild                           |
+| [`02_geraete.md`](02_geraete.md)                     | MT-02, MT-03 | Ziehen aus Mailprogramm und Explorer; echtes Handy oder Tablet                                   |
+| [`03_verstaendlichkeit.md`](03_verstaendlichkeit.md) | MT-04        | Jedes Ergebnis und jeder Hinweis, gelesen wie von einem Mandanten                                |
+| [`04_testzone.md`](04_testzone.md)                   | MT-05        | Tester einladen in der Testzone; die öffentliche Fassung ohne Testseite, ohne „App installieren“ |
 
 ## Automatisiert statt von Hand
 

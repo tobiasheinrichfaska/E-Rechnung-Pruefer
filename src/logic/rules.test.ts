@@ -428,7 +428,7 @@ describe('the breakdown rule of every category, per syntax (audit R2-T-02)', () 
   const rateOf = (category: string) => RATE[category] ?? '0';
   /** A second rate of the category, for probe 7 */
   const SECOND: Readonly<Record<string, string>> = { S: '7', L: '3', M: '4' };
-  const occurrence = (category: string, rate: string) => `Kategorie ${category}, ${rate} %`;
+  const occurrence = (category: string, rate: string) => `Kategorie ${category}, ${rate}\u00a0%`;
   /** Two positions of the category (100 + 50 or as given), a breakdown with this base */
   const of = (category: string, base: string, amounts = ['100.00', '50.00']) => ({
     spec: {

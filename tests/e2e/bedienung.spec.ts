@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { encode, official, officialText, withInvoiceNumber } from '../support/fixtures';
 import { miniPdf } from '../../src/build/minipdf';
 import { openApp, sideEffects, upload } from './helpers';
@@ -236,7 +238,7 @@ test('prints and copies the result for the Kanzlei (G-4)', async ({ page }) => {
     expect.stringMatching(/^Geprüfte Datei: „summe\.xml“ – geprüft am \d{2}\.\d{2}\.\d{4} um/),
   ]);
   expect(text).toContain('Ergebnis: E-Rechnung erkannt (XRechnung 3.0)');
-  expect(text).toContain('Pflichtangaben: ');
+  expect(text).toContain('\nPflichtangaben – ');
 
   // QU-07: the copy carries what the page shows besides the box lines
   const copy = async () => {
@@ -252,7 +254,7 @@ test('prints and copies the result for the Kanzlei (G-4)', async ({ page }) => {
     official('kosit/paare/01.02a-INVOICE_ubl.xml'),
     'application/xml',
   );
-  expect(await copy()).toMatch(/\n[^\n]*§ 33 UStDV\.\nPflichtangaben: /);
+  expect(await copy()).toMatch(/\n[^\n]*§ 33 UStDV\.\nPflichtangaben – /);
   // two different invoice XML: what differs, as in the box
   const cii = officialText('cen/CII_example1.xml');
   const xml = (name: string, data: string) => ({ name, bytes: encode(data), mime: 'text/xml' });
@@ -265,6 +267,25 @@ test('prints and copies the result for the Kanzlei (G-4)', async ({ page }) => {
   const differing = await page.getByTestId('differing').innerText();
   expect(differing).toMatch(/^Unterschiedlich: Rechnungsnummer/);
   expect(await copy()).toContain(`\n${differing}\n`);
+
+  // R3-U-08: a mail has no „unten“ and no section to look at — the page's pointers stay out
+  for (const sample of [
+    '30_XRechnung_mit_Rechenfehler.xml',
+    '29_XRechnung_mit_Formatfehler.xml',
+    '07_Anschriften_ohne_Strasse_Fiskalvertreter_unvollstaendig.xml',
+    '05_Leistungszeitraum_nicht_bei_jeder_Position.xml',
+  ]) {
+    const bytes = new Uint8Array(
+      readFileSync(join(import.meta.dirname, '../../beispiele', sample)),
+    );
+    await upload(page, sample, bytes, 'application/xml');
+    const box = await page.getByTestId('verdict').innerText();
+    const text = await copy();
+    expect(text, sample).not.toMatch(/siehe|unten/);
+    expect(text, sample).not.toMatch(/^(Pflichtangaben|Rechnerische Prüfung): /m);
+    // the page itself keeps them where they lead somewhere
+    if (sample.startsWith('30_')) expect(box).toContain('(siehe „Rechnerische Prüfung“)');
+  }
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);
 });

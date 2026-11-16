@@ -214,3 +214,43 @@ export async function sideEffects(
     { given: allowed, access: ACCESS_STORAGE, gone: removable },
   );
 }
+
+/**
+ * Codes (BT-112, BG-23, BR-S-08, BR-FXEXT-CO-10), rates („19 %“) and „Rn. 6a“ inside `root` that the
+ * browser broke across two lines: each match some of whose characters stand below its first
+ * (audit R3-U-10; closed <details> are opened for the count and closed again).
+ */
+export async function brokenCodes(page: Page, root = 'main'): Promise<string[]> {
+  return page.evaluate((selector) => {
+    const closed = [...document.querySelectorAll('details')].filter((details) => !details.open);
+    for (const details of closed) details.open = true;
+    const found = new Set<string>();
+    const pattern = /\bB[GTR]-[A-Z0-9]+(?:-[A-Z0-9]+)*|\d+(?:,\d+)?\s%|Rn\.\s\d+[a-z]?/g;
+    const topOf = (node: Text, at: number) => {
+      const range = document.createRange();
+      range.setStart(node, at);
+      range.setEnd(node, at + 1);
+      const rect = [...range.getClientRects()].find((r) => r.width > 0);
+      return rect ? Math.round(rect.top) : undefined;
+    };
+    for (const element of document.querySelectorAll(selector)) {
+      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        const text = node as Text;
+        for (const match of text.data.matchAll(pattern)) {
+          const first = topOf(text, match.index);
+          if (first === undefined) continue;
+          for (let i = 1; i < match[0].length; i += 1) {
+            const top = topOf(text, match.index + i);
+            if (top !== undefined && top > first + 2) {
+              found.add(match[0]);
+              break;
+            }
+          }
+        }
+      }
+    }
+    for (const details of closed) details.open = false;
+    return [...found];
+  }, root);
+}

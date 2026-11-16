@@ -3,9 +3,12 @@
 import type { FileProblemKind } from './analysis';
 import type { Tone } from './verdict';
 
+// „Rn.“ and its number stay on one line: a no-break space (written as \u00a0) between them, as before
+// „%“ in check.ts and rules.ts (DIN 5008; audit R3-U-10)
+
 /** F24 (Tobias 2026-11-14, replaces the F4 wording) — one constant for every place it is shown */
 const FORMAT_ERROR =
-  'Die Datei hat einen Formatfehler. Sie ist deshalb möglicherweise keine E-Rechnung (BMF-Schreiben vom 15.10.2025, Rn. 6a).';
+  'Die Datei hat einen Formatfehler. Sie ist deshalb möglicherweise keine E-Rechnung (BMF-Schreiben vom 15.10.2025, Rn.\u00a06a).';
 /** F23: the supplier, not the tool, can mend a file (Tobias: a hint, not a demand) */
 const RESEND = 'Sie könnten den Lieferanten bitten, die Datei noch einmal zu schicken.';
 const KANZLEI_JUDGES = 'Ob das eine E-Rechnung ist, kann Ihre Kanzlei beurteilen.';
@@ -39,9 +42,9 @@ export const TEXTS = {
   zugferd1Pdf: 'PDF mit Rechnungsdaten nach ZUGFeRD 1.0: keine E-Rechnung im Sinne des UStG',
   zugferd1Xml: 'Rechnungsdaten nach ZUGFeRD 1.0: keine E-Rechnung im Sinne des UStG',
   minimumReason:
-    'Nach dem BMF-Schreiben vom 15.10.2024 (Rn. 25 und 30) und Abschnitt 14.1 Abs. 14 UStAE gelten ZUGFeRD- und Factur-X-Rechnungen in den Profilen MINIMUM und BASIC WL nicht als E-Rechnung.',
+    'Nach dem BMF-Schreiben vom 15.10.2024 (Rn.\u00a025 und 30) und Abschnitt 14.1 Abs. 14 UStAE gelten ZUGFeRD- und Factur-X-Rechnungen in den Profilen MINIMUM und BASIC WL nicht als E-Rechnung.',
   zugferd1Reason:
-    'Das BMF erkennt ZUGFeRD erst ab Version 2.0.1 als E-Rechnung an; das ursprüngliche ZUGFeRD-Format beruht nicht auf der Normenreihe EN 16931 (BMF-Schreiben vom 15.10.2024, Rn. 30).',
+    'Das BMF erkennt ZUGFeRD erst ab Version 2.0.1 als E-Rechnung an; das ursprüngliche ZUGFeRD-Format beruht nicht auf der Normenreihe EN 16931 (BMF-Schreiben vom 15.10.2024, Rn.\u00a030).',
 
   nichtBeurteilt: 'Rechnungsdaten erkannt, Spezifikation unbekannt: nicht beurteilt',
   specUnknown: 'Spezifikation unbekannt',
@@ -50,7 +53,7 @@ export const TEXTS = {
   shownAnyway: 'Die Angaben aus der XML werden trotzdem angezeigt.',
   kanzleiJudges: KANZLEI_JUDGES,
   zugferd20Hint:
-    'Ob die Datei nach ZUGFeRD 2.0 oder 2.0.1 erstellt ist, lässt sich an ihr nicht erkennen; das BMF erkennt ZUGFeRD erst ab Version 2.0.1 als E-Rechnung an (BMF-Schreiben vom 15.10.2024, Rn. 30).',
+    'Ob die Datei nach ZUGFeRD 2.0 oder 2.0.1 erstellt ist, lässt sich an ihr nicht erkennen; das BMF erkennt ZUGFeRD erst ab Version 2.0.1 als E-Rechnung an (BMF-Schreiben vom 15.10.2024, Rn.\u00a030).',
 
   // F27: the standard allows one invoice XML per PDF (Factur-X 1.09.2, specification p. 28)
   sameSeveral:
@@ -93,7 +96,7 @@ export const TEXTS = {
   // F26: § 27 Abs. 38 UStG by the date of supply and invoice (src/logic/uebergang.ts)
   // F30: supply before 2025, whatever the invoice date (§ 27 Abs. 1 Satz 1 UStG)
   regimeBefore2025:
-    'Für Leistungen vor 2025 ist keine E-Rechnung nötig, auch wenn die Rechnung später ausgestellt wird (BMF-Schreiben vom 15.10.2024, Rn. 50).',
+    'Für Leistungen vor 2025 ist keine E-Rechnung nötig, auch wenn die Rechnung später ausgestellt wird (BMF-Schreiben vom 15.10.2024, Rn.\u00a050).',
   regimeAllowed:
     'Für diese Rechnung ist eine sonstige Rechnung noch zulässig (§ 27 Abs. 38 Nr. 1 UStG).',
   regimeTurnover:
@@ -170,8 +173,9 @@ export const TEXTS = {
     'Kopieren hat nicht geklappt. Bitte markieren Sie den Text und kopieren Sie ihn selbst.',
   copyTitle: 'E-Rechnung prüfen – Ergebnis',
   copyHeadline: 'Ergebnis: {headline}',
-  copyPflicht: 'Pflichtangaben: {summary}',
-  copyRules: 'Rechnerische Prüfung: {summary}',
+  // a dash, not a colon: the summaries have colons of their own („Mögliche Auffälligkeit: …“, R3-U-08)
+  copyPflicht: 'Pflichtangaben – {summary}',
+  copyRules: 'Rechnerische Prüfung – {summary}',
   copyVersion: 'Version {version}',
   // G-5: the drop zone after a result, and on a phone
   anotherFile: 'Andere Datei prüfen',
@@ -188,6 +192,8 @@ export const TEXTS = {
   accessTitle: 'Bitte bestätigen',
   accessRemember: 'Antwort für die Zukunft merken',
   accessRememberNote: 'Gemerkt wird nur in diesem Browser.',
+  // the browser keeps nothing (blocked site data): no offer that does nothing (audit R3-U-12)
+  accessCannotRemember: 'In diesem Browser lässt sich die Antwort nicht merken.',
   accessContinue: 'Weiter',
   // Links at the foot of the page, addresses from the local Kanzlei configuration
   imprint: 'Impressum',
@@ -344,6 +350,18 @@ export const TEXTS = {
     },
   } satisfies Record<FileProblemKind, { tone: Tone; headline: string; explanation: string[] }>,
 };
+
+/**
+ * Pointers to other parts of the page inside the sentences above. The copied text for a mail (G-4,
+ * zusammenfassung.ts) has no „unten“ and no section to point to, so it leaves them out, together
+ * with `hintBelow` / `hintsBelow` (audit R3-U-08); zusammenfassung.test.ts checks that no sentence
+ * of TEXTS keeps one there.
+ */
+export const PAGE_POINTERS: readonly string[] = [
+  ' (siehe unten)',
+  ' (siehe „Pflichtangaben“)',
+  ' (siehe „Rechnerische Prüfung“)',
+];
 
 /** Replaces {name} placeholders. */
 export function fill(text: string, values: Readonly<Record<string, string | number>>): string {

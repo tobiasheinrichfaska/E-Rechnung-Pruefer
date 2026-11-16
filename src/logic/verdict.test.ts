@@ -736,8 +736,8 @@ describe('what differs where the short texts agree (audit R2-L-02)', () => {
   it('names the rule results apart from „passt“ that differ, not „passt, 2 nicht prüfbar“ twice', () => {
     const rules = differingResults([a, b]).find((item) => item.label === TEXTS.differingRules);
     expect(rules?.values).toEqual([
-      'BR-S-08 (Kategorie S, 19 %): nicht prüfbar',
-      'BR-S-08 (Kategorie S, 7 %): nicht prüfbar',
+      'BR-S-08 (Kategorie S, 19\u00a0%): nicht prüfbar',
+      'BR-S-08 (Kategorie S, 7\u00a0%): nicht prüfbar',
     ]);
     // the result shared by both (BR-CO-10) is not repeated
     expect(rules?.values.join(' ')).not.toContain('BR-CO-10');
