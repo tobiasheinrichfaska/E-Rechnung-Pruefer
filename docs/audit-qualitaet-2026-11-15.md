@@ -159,6 +159,12 @@ Steuerfragen: **F31** und **F32** in `docs/offene-fragen.md`.
   galt: „nichts gefunden“ ist ein gültiges Ergebnis.
 - **Testrahmen:** Probleme in der Kopie des Rahmens gingen als Wünsche an `Testumgebung`. Die Kopie
   wird hier nie geändert.
+- **Nach dem Zusammenführen** (Version 0.10.1, `b10009c`), in der Cloud-Sitzung beobachtet:
+  - mit den privaten Dateien: Typprüfung, Lint und Format grün, 587 Unit-Tests, E2E 168 bestanden und
+    9 übersprungen;
+  - ohne sie: 508 Unit-Tests bestanden und 4 übersprungen, E2E 147 bestanden und 30 übersprungen;
+  - der Lauf mit der erfundenen Kanzlei: 30 von 30;
+  - die Prüfung „Tests“ auf GitHub grün (PR #36).
 - **Rechteprüfung:** Ein Widerlegungs-Agent wollte Saxon von Maven Central laden und eine private
   FeRD-Datei kopieren. Beides wurde abgelehnt, und er hat es nicht wiederholt. Zwei Aussagen zum
   Schematron sind deshalb gelesen, nicht vom Validator bestätigt.

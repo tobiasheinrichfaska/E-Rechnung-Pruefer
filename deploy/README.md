@@ -125,12 +125,13 @@ Impressum und Datenschutz. Der Freigabe-Lauf sollte das deshalb vor dem Upload p
 **Welche Fassung in welche Zone** (Qualitätsaudit 16.11.2026, R2-S-04; Anfrage an den Kanzlei-PC):
 Die Prüfung oben besteht auch die Testfassung. Der Freigabe-Lauf sollte deshalb zusätzlich prüfen:
 
-- **öffentliche Zone** (`dist/index.html`): `connect-src 'none'` steht darin, `tr-huelle`,
-  `starteTestrahmen` und `_zugang` fehlen;
+- **öffentliche Zone** (`dist/index.html`): `connect-src 'none'` steht darin, `tr-huelle` und `_zugang`
+  fehlen (der Name `starteTestrahmen` taugt nicht als Marke: der Minifier benennt ihn in beiden
+  Fassungen um, Audit R3-S-05);
 - **Testzone** (`dist-test/index.html`): umgekehrt, `connect-src 'self'` und `tr-huelle` stehen darin;
 - wahlweise: `connect-src 'none'` auch in der CSP-Kopfzeile der Edge Rule der öffentlichen Zone.
 
-Seit 0.10.0 wählt `vite.config.ts` den Ordner nach dem Modus (`npm run build:test` schreibt weiter
+Seit 0.10.1 wählt `vite.config.ts` den Ordner nach dem Modus (`npm run build:test` schreibt weiter
 `dist-test/index.html`); eine Testfassung, die nach `dist/` gebaut werden soll, bricht den Build ab.
 
 ## Nachweis jedes Uploads (für den täglichen Integritätsauftrag)
