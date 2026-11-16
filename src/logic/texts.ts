@@ -28,6 +28,8 @@ export const TEXTS = {
   // G-3: a yellow result says so in its headline (and the announcement)
   eRechnungHints: 'E-Rechnung erkannt ({spec}) – mit Hinweisen',
   hybridSource: 'Das PDF enthält Rechnungsdaten als XML (Anhang „{name}“).',
+  // G-8: the same data in several attachments, each named (audit R3-U-09)
+  hybridSourceSeveral: 'Das PDF enthält Rechnungsdaten als XML (Anhänge {names}).',
   xmlCounts: 'Maßgeblich sind die Daten in der XML, nicht das Bild des PDF.',
   xmlFile: 'Die Datei enthält die Rechnungsdaten als XML.',
 
@@ -138,6 +140,8 @@ export const TEXTS = {
   differingWithHint: 'mit Hinweis',
   differingWithHints: 'mit {count} Hinweisen',
   differingRules: 'Rechnerische Prüfung',
+  // Rows with the same differing values, named together (audit R3-U-03)
+  labelsAnd: ' und ',
   // G-1: rows "nur im Einzelfall nötig" without a value are folded; jump links from the box.
   // A fold-out names what it holds, not "anzeigen", which stays wrong once it is open (QU-11), and
   // with the word of its rows' badges: „in besonderen Fällen“ is the section below (R2-U-07)
@@ -153,6 +157,9 @@ export const TEXTS = {
   invoiceDataHeading: 'Rechnungsdaten',
   // G-8/F27: several invoice XML in one PDF
   sameHeading: 'Rechnungsdaten (gleich in {names})',
+  // G-8: a technical row of one of the parts, where the parts differ in it (audit R3-U-09)
+  attachmentsRow: 'Anhänge',
+  ofPart: '{label}, Anhang „{name}“',
   comparisonHeading: 'Vergleich der Rechnungsdaten',
   comparisonValue: 'Wert',
   // G-4: pass the result on to the Kanzlei
@@ -233,6 +240,10 @@ export const TEXTS = {
   ruleSumAllowances: 'Summe der Nachlässe auf Dokumentebene (BT-92)',
   ruleSumCharges: 'Summe der Zuschläge auf Dokumentebene (BT-99)',
   ruleSumTaxes: 'Summe der Steuerbeträge je Kategorie (BT-117)',
+  // The sums of one VAT breakdown, named apart from the document totals (audit R3-U-07):
+  // „Summe der Positionen mit diesem Satz (BT-131)“, „… dieser Kategorie (BT-131)“
+  ruleOfRate: 'mit diesem Satz',
+  ruleOfCategory: 'dieser Kategorie',
   // What the rule computes from the other values — the client compares it with the invoice
   // (audit Bedienung, V-04)
   ruleExpected: 'Nach der Regel erwartet',
@@ -251,6 +262,8 @@ export const TEXTS = {
   // BR-CO-15 adds BT-110 only where exactly one is given in the document currency (audit R2-L-03)
   ruleTaxTotals: 'Angaben „Summe der Umsatzsteuer“ (BT-110) in Rechnungswährung',
   ruleTaxTotalsCount: '{count} – die Regel verlangt genau eine',
+  // Without the invoice currency BR-CO-14 and BR-CO-15 are not checked (audit R3-L-01)
+  ruleCurrency: 'Rechnungswährung (BT-5)',
   ruleAnd: ' und ',
 
   pflichtHeading: 'Pflichtangaben nach § 14 Abs. 4 UStG',
@@ -270,7 +283,8 @@ export const TEXTS = {
   missingParts: 'davon fehlen:',
   addressCity: 'Ort',
   addressPostcodeOrStreet: 'Postleitzahl oder Straße/Postfach',
-  noGroup: 'keine Angabe „{group}“',
+  // the group itself, so the row reads „davon fehlt: Aufschlüsselung der Umsatzsteuer“ (R3-L-06)
+  noGroup: '{group}',
   statusVorhanden: 'vorhanden',
   statusFehlt: 'fehlt',
   statusEinzelfall: 'nur im Einzelfall nötig',

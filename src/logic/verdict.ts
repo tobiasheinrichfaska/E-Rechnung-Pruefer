@@ -3,7 +3,7 @@
 import type { Analysis, InvoicePart, Problem } from './analysis';
 import { termLabel } from './binding';
 import { germanDate, isoDate } from './dates';
-import { decimalEquals, formatAmount, parseDecimal } from './decimal';
+import { decimalEquals, formatAmount, normalize, parseDecimal } from './decimal';
 import { first } from './model';
 import type { BtId, InvoiceModel } from './model';
 import { checkPflichtangaben } from './check';
@@ -83,7 +83,7 @@ interface Outcome {
   label: string;
   /** Everything the result shows of it, by value and in any order: equal signatures, equal results */
   signature: string;
-  /** Short, for the line "Unterschiedlich: …" and the comparison table */
+  /** Short, for the line "Unterschiedlich: …" and the comparison table (rows: see rowShown) */
   shown: string;
   /** Where the short texts agree, what differs is told from these (audit R2-L-02) */
   row?: RowResult;
@@ -105,13 +105,32 @@ const RULE_STATUS_TEXT: Readonly<Record<RuleStatus, string>> = {
 const shorten = (text: string) =>
   text.length > SHOWN_MAX ? `${text.slice(0, SHOWN_MAX - 1)}…` : text;
 
-function rowShown(row: RowResult): string {
-  const values = row.values.map((v) => v.value).join(', ');
+/** Whitespace collapsed: two spaces are no other value (audit R3-L-03); the case is kept (G-22) */
+const collapse = (text: string) => text.replace(/\s+/g, ' ');
+const tidyValue = (v: ShownValue): ShownValue => ({ label: v.label, value: collapse(v.value) });
+const tidyRow = (row: RowResult): RowResult => ({
+  ...row,
+  values: row.values.map(tidyValue),
+  groups: row.groups.map((g) => ({ ...g, items: g.items.map((item) => item.map(tidyValue)) })),
+});
+
+const valueText = (v: ShownValue) => `${v.label}: ${v.value}`;
+const itemText = (item: readonly ShownValue[]) => item.map(valueText).join(' · ');
+
+/**
+ * A row in short: its values with their names, so the same values in another order or another
+ * amount of the row read apart (audit R3-L-04, R3-U-04), and its status only where the parts differ
+ * in it ("vorhanden – USt-IdNr. des Lieferanten: DE123456789 / fehlt").
+ */
+function rowShown(row: RowResult, withStatus: boolean): string {
+  const values = row.values.map(valueText).join(', ');
+  const status = STATUS_TEXT[row.status];
+  const head = withStatus ? (values ? `${status} – ${values}` : status) : values;
   const hints =
     row.hints.length === 0
       ? ''
-      : ` (${row.hints.length === 1 ? TEXTS.differingWithHint : fill(TEXTS.differingWithHints, { count: row.hints.length })})`;
-  return shorten(`${STATUS_TEXT[row.status]}${values ? `: ${values}` : ''}${hints}`);
+      : `(${row.hints.length === 1 ? TEXTS.differingWithHint : fill(TEXTS.differingWithHints, { count: row.hints.length })})`;
+  return shorten([head, hints].filter((text) => text !== '').join(' '));
 }
 
 function rulesShown(rules: RulesResult): string {
@@ -130,7 +149,7 @@ const multiset = (items: readonly unknown[]): string[] =>
 /**
  * A row as the result shows it, independent of the order of positions, breakdowns and values
  * (audit R2-L-01). The values are already shown by their value (displayValue), so "7" and "7.00"
- * or "1" and "1.0000" agree.
+ * or "1" and "1.0000" agree, and with their whitespace collapsed (tidyRow, audit R3-L-03).
  */
 function rowSignature(row: RowResult): string {
   return JSON.stringify([
@@ -156,13 +175,15 @@ const notPassing = (rules: RulesResult) =>
 function outcomesOf(invoice: InvoiceVerdict): Outcome[] {
   const model = pflichtModel(invoice);
   if (!model) return [];
-  const rows = checkPflichtangaben(model).rows.map((row) => ({
-    key: row.row.id,
-    label: row.row.label,
-    signature: rowSignature(row),
-    shown: rowShown(row),
-    row,
-  }));
+  const rows = checkPflichtangaben(model)
+    .rows.map(tidyRow)
+    .map((row) => ({
+      key: row.row.id,
+      label: row.row.label,
+      signature: rowSignature(row),
+      shown: rowShown(row, false),
+      row,
+    }));
   const rules = rulesOf(invoice);
   return rules
     ? [
@@ -202,9 +223,6 @@ function beyondCommon<T>(lists: readonly (readonly T[])[], key: (item: T) => str
       });
   });
 }
-
-const valueText = (v: ShownValue) => `${v.label}: ${v.value}`;
-const itemText = (item: readonly ShownValue[]) => item.map(valueText).join(' · ');
 
 /**
  * The occurrences (positions, breakdowns) one part has and another has not. Where each part has as
@@ -304,21 +322,50 @@ export function differingResults(
     return map;
   });
   const keys = [...new Set(outcomes.flatMap((map) => [...map.keys()]))];
-  return keys.flatMap((key) => {
-    const each = outcomes.map((map) => map.get(key));
-    if (new Set(each.map((o) => o?.signature ?? '')).size === 1) return [];
-    const label = each.find((o) => o !== undefined)?.label ?? key;
-    const shown = each.map((o) => o?.shown ?? '–');
-    if (new Set(shown).size > 1) return [{ label, values: shown }];
-    const details =
-      key === 'rules'
-        ? rulesDetails(each.map((o) => o?.rules))
-        : rowDetails(each.map((o) => o?.row));
-    return [{ label, values: details.map((text) => (text ? shorten(text) : '–')) }];
-  });
+  return mergeSameValues(
+    keys.flatMap((key) => {
+      const each = outcomes.map((map) => map.get(key));
+      if (new Set(each.map((o) => o?.signature ?? '')).size === 1) return [];
+      const label = each.find((o) => o !== undefined)?.label ?? key;
+      // the status is named only where it differs between the parts (audit R3-U-04)
+      const rows = each.map((o) => o?.row);
+      if (key !== 'rules' && new Set(rows.map((r) => r?.status ?? '')).size > 1) {
+        return [{ label, values: rows.map((r) => (r ? rowShown(r, true) : '–')) }];
+      }
+      const shown = each.map((o) => o?.shown ?? '–');
+      if (new Set(shown).size > 1 && !shown.includes('')) return [{ label, values: shown }];
+      const details = key === 'rules' ? rulesDetails(each.map((o) => o?.rules)) : rowDetails(rows);
+      return [{ label, values: details.map((text) => (text ? shorten(text) : '–')) }];
+    }),
+  );
 }
 
-/** A compared value as the client reads it: German date and amount, "–" when missing. */
+/**
+ * Rows that differ in the same values are named once, all their labels together: three
+ * Pflichtangaben showing one VAT breakdown name one differing rate once (audit R3-U-03).
+ */
+function mergeSameValues(
+  items: readonly { label: string; values: string[] }[],
+): { label: string; values: string[] }[] {
+  const merged = new Map<string, { labels: string[]; values: string[] }>();
+  for (const item of items) {
+    const key = JSON.stringify(item.values);
+    const found = merged.get(key);
+    if (found) found.labels.push(item.label);
+    else merged.set(key, { labels: [item.label], values: item.values });
+  }
+  return [...merged.values()].map(({ labels, values }) => ({ label: labelList(labels), values }));
+}
+
+/** One label as it is; several in quotes, as their own labels hold commas and „und“ */
+const labelList = (labels: readonly string[]): string =>
+  labels.length === 1 ? (labels[0] ?? '') : quotedNames(labels);
+
+/**
+ * A compared value as the client reads it: German date, the amount by its value ("336.900" as
+ * "336,90", audit R3-U-05) and one that is no number marked ("336,90 – keine Zahl", audit
+ * R3-L-04), "–" when missing.
+ */
 function shownValue(part: InvoicePart, bt: BtId): string {
   const value = first(part.header, bt)?.trim() ?? '';
   if (value === '') return '–';
@@ -328,7 +375,7 @@ function shownValue(part: InvoicePart, bt: BtId): string {
   }
   if (bt === 'BT-112') {
     const amount = parseDecimal(value);
-    return amount ? formatAmount(amount) : value;
+    return amount ? formatAmount(normalize(amount)) : `${value} ${TEXTS.ruleNoNumber}`;
   }
   return value;
 }
@@ -554,10 +601,24 @@ function formatErrorLines(
   };
 }
 
-function sourceLines(invoice: InvoiceVerdict, inPdf: boolean): string[] {
-  return inPdf
-    ? [fill(TEXTS.hybridSource, { name: invoice.part.origin }), TEXTS.xmlCounts]
-    : [TEXTS.xmlFile];
+/** „„a.xml“ und „b.xml““ — the names of several attachments, in quotes */
+export function quotedNames(names: readonly string[]): string {
+  const quoted = names.map((name) => `„${name}“`);
+  return quoted.length < 2
+    ? (quoted[0] ?? '')
+    : `${quoted.slice(0, -1).join(', ')}${TEXTS.labelsAnd}${quoted.at(-1) ?? ''}`;
+}
+
+/** Where the data come from: with the same data in several parts, each of them (R3-U-09, G-8) */
+function sourceLines(invoices: readonly InvoiceVerdict[], inPdf: boolean): string[] {
+  if (!inPdf) return [TEXTS.xmlFile];
+  const [only, ...more] = invoices;
+  return [
+    more.length === 0
+      ? fill(TEXTS.hybridSource, { name: only?.part.origin ?? '' })
+      : fill(TEXTS.hybridSourceSeveral, { names: quotedNames(invoices.map((i) => i.part.origin)) }),
+    TEXTS.xmlCounts,
+  ];
 }
 
 /**
@@ -624,7 +685,7 @@ function singleVerdict(
           tone: 'bad',
           headline: fill(TEXTS.schemaErrorHeadline, { spec: failed.specLabel }),
           explanation: [
-            ...sourceLines(invoice, inPdf),
+            ...sourceLines(context.invoices, inPdf),
             ...hint,
             ...same,
             ...format.german,
@@ -644,7 +705,7 @@ function singleVerdict(
         tone: warn ? 'warn' : 'ok',
         headline: fill(warn ? TEXTS.eRechnungHints : TEXTS.eRechnung, { spec: invoice.specLabel }),
         explanation: [
-          ...sourceLines(invoice, inPdf),
+          ...sourceLines(context.invoices, inPdf),
           ...hint,
           ...same,
           ...pflicht,

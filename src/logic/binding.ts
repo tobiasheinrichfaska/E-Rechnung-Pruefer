@@ -622,13 +622,14 @@ export const INVOICE: GroupDef = {
           'ram:TaxBasisTotalAmount',
         ),
         // CII: KoSIT requires the currency attribute; it is optional in the D16B schema, so an
-        // amount without one counts as well.
+        // amount without one counts as well — but only where none carries the invoice currency:
+        // beside one that does, CEN counts that one alone (audit R3-L-02)
         term(
           'BT-110',
           'Summe der Umsatzsteuer',
           'amount',
           '/*/cac:TaxTotal/cbc:TaxAmount[@currencyID = /*/cbc:DocumentCurrencyCode]',
-          'ram:TaxTotalAmount[not(@currencyID) or @currencyID = ../preceding-sibling::ram:InvoiceCurrencyCode]',
+          'ram:TaxTotalAmount[@currencyID = ../preceding-sibling::ram:InvoiceCurrencyCode or (not(@currencyID) and not(../ram:TaxTotalAmount[@currencyID = ../preceding-sibling::ram:InvoiceCurrencyCode]))]',
         ),
         term(
           'BT-112',

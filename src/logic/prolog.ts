@@ -68,16 +68,49 @@ const HTML_ROOT = /^<html(?=[\s/>])/i;
  * internal subset, or another root after `<!DOCTYPE html>`, stays an XML with a DOCTYPE.
  */
 export function looksLikeHtml(bytes: Uint8Array): boolean {
+  const rest = rootAfterProlog(bytes, HTML_DOCTYPE);
+  return rest !== undefined && HTML_ROOT.test(rest);
+}
+
+/**
+ * The text from the root element on: after the prolog and, where there is one, a document type
+ * declaration that `doctype` matches (never one with an internal subset); undefined otherwise.
+ */
+function rootAfterProlog(bytes: Uint8Array, doctype: RegExp): string | undefined {
   const text = textOf(bytes.subarray(0, 64 * 1024));
   const scan = scanProlog(text);
-  if (scan.kind === 'noRoot') return false;
-  let rest = text.slice(scan.at);
-  if (scan.kind === 'doctype') {
-    const doctype = HTML_DOCTYPE.exec(rest);
-    if (!doctype) return false;
-    const after = scanProlog(rest.slice(doctype[0].length));
-    if (after.kind !== 'root') return false;
-    rest = rest.slice(doctype[0].length + after.at);
-  }
-  return HTML_ROOT.test(rest);
+  if (scan.kind === 'noRoot') return undefined;
+  const rest = text.slice(scan.at);
+  if (scan.kind === 'root') return rest;
+  const declaration = doctype.exec(rest);
+  if (!declaration) return undefined;
+  const after = scanProlog(rest.slice(declaration[0].length));
+  return after.kind === 'root' ? rest.slice(declaration[0].length + after.at) : undefined;
+}
+
+/**
+ * Any document type declaration without an internal subset (no „[“): a name, then a public or a
+ * system identifier. The name is not read — the root element decides (audit R3-L-05).
+ */
+const PLAIN_DOCTYPE =
+  /^<!DOCTYPE\s+[^\s[>]+(?:\s+(?:PUBLIC\s+(?:"[^"]*"|'[^']*')|SYSTEM)(?:\s+(?:"[^"]*"|'[^']*'))?)?\s*>/;
+/** The complete start tag of a root `svg` without a prefix: quoted attributes, then > or /> */
+const SVG_START = /^<svg((?:\s+[^\s=/>"']+\s*=\s*(?:"[^"<]*"|'[^'<]*'))*)\s*\/?>/;
+const ATTRIBUTE = /([^\s=/>"']+)\s*=\s*(?:"([^"<]*)"|'([^'<]*)')/g;
+const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
+
+/**
+ * Whether the bytes are an SVG picture: the root element is `svg` in the SVG namespace, after the
+ * prolog and a document type declaration without an internal subset (SVG 1.1 exports carry one).
+ * Such an attachment is no invoice XML and not „nicht gelesen“, like an image (audit R3-L-05) — by
+ * its root, never by the declaration's name or the file name. With an internal subset it stays an
+ * XML with a DOCTYPE.
+ */
+export function looksLikeSvg(bytes: Uint8Array): boolean {
+  const rest = rootAfterProlog(bytes, PLAIN_DOCTYPE);
+  const tag = rest === undefined ? null : SVG_START.exec(rest);
+  if (!tag) return false;
+  return [...(tag[1] ?? '').matchAll(ATTRIBUTE)].some(
+    ([, name, double, single]) => name === 'xmlns' && (double ?? single) === SVG_NAMESPACE,
+  );
 }
