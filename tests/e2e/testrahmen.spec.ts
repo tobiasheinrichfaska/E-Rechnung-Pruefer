@@ -9,7 +9,6 @@ import type { Page } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { loadAppConfig } from '../../src/build/kanzleiConfig';
 import { ACCESS_STORAGE } from '../../src/logic/storageKeys';
 import { TEXTS } from '../../src/logic/texts';
 import { official } from '../support/fixtures';
@@ -17,10 +16,12 @@ import {
   brokenCodes,
   BUILT,
   BUILT_TEST,
+  configuredNotice,
   FRAME_STORAGE,
   HOSTED,
   openApp,
   openHosted,
+  passNotice,
   sideEffects,
   TEST_VERSION_KEYS,
   upload,
@@ -77,19 +78,6 @@ async function receiver(page: Page, status: number, body: string): Promise<unkno
     await route.fulfill({ status, contentType: 'text/plain; charset=utf-8', body });
   });
   return received;
-}
-
-/**
- * With a configured access notice (the private configuration) the hosted test version asks it
- * first; true when it did. `remember` ticks „Antwort für die Zukunft merken“.
- */
-async function passNotice(page: Page, remember = false): Promise<boolean> {
-  const notice = loadAppConfig().config.accessNotice;
-  if (notice === undefined) return false;
-  await page.getByRole('checkbox', { name: notice }).check();
-  if (remember) await page.getByRole('checkbox', { name: TEXTS.accessRemember }).check();
-  await page.getByRole('button', { name: TEXTS.accessContinue, exact: true }).click();
-  return true;
 }
 
 /**
@@ -180,6 +168,19 @@ test('the live build carries nothing of the test frame and keeps connect-src non
   await expect(page.getByRole('button', { name: 'Datei auswählen' })).toBeVisible();
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);
+});
+
+// The branches with a notice run on GitHub only in the step that names the invented Beispielkanzlei
+// (tests.yml, audit R4-T-01): a file named there without a notice must stop the run, never skip them.
+test('a run with KANZLEI_CONFIG stops at a file without an access notice instead of skipping its branches', () => {
+  expect(() => configuredNotice({ KANZLEI_CONFIG: 'config/kanzlei.example.json' })).toThrow(
+    'names config/kanzlei.example.json, which has no access notice',
+  );
+  expect(
+    configuredNotice({ KANZLEI_CONFIG: 'tests/fixtures/config/beispiel-kanzlei.json' }),
+  ).toBeDefined();
+  // without the variable the private configuration or none: no notice is a branch then
+  expect(() => configuredNotice({})).not.toThrow();
 });
 
 test('the test version lists the manual tests beside the working tool', async ({ page }) => {
@@ -316,7 +317,7 @@ test('„App vollständig zurücksetzen“ asks once, forgets the access notice 
   page,
 }) => {
   const problems = await openHosted(page, '/', BUILT_TEST);
-  const notice = loadAppConfig().config.accessNotice !== undefined;
+  const notice = configuredNotice() !== undefined;
   await rememberAccess(page);
   await upload(page, 'x.xml', invoice(), 'application/xml');
   await caseButton(page, 'MT-01').click();
@@ -678,7 +679,7 @@ test('with blocked storage the frame says once that it keeps nothing, not on eve
   expect(await page.evaluate(() => (window as unknown as { __alerts: number }).__alerts)).toBe(0);
   await expect(announcer(page)).toContainText('speichert die Ergebnisse nicht');
   // beside it the tool's access notice offers no answer to remember either (audit R3-U-12)
-  if (loadAppConfig().config.accessNotice !== undefined) {
+  if (configuredNotice() !== undefined) {
     await expect(tool(page).getByTestId('cannot-remember')).toBeVisible();
     await expect(tool(page).getByRole('checkbox', { name: TEXTS.accessRemember })).toHaveCount(0);
   }
