@@ -410,9 +410,11 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
 
   // BR-CO-14: BT-110 = round(Σ BT-117) — where BT-110 is given: the CEN Schematron checks it in the
   // context of BT-110, so without one it does not apply (three official examples without VAT, e.g.
-  // CEN CII_example7, showed it as "nicht prüfbar"); UBL also needs a VAT breakdown, CII does not
+  // CEN CII_example7, showed it as "nicht prüfbar"); UBL also needs a VAT breakdown, CII does not.
+  // Without BT-5 a VAT breakdown is reason enough: its BT-110 may be there, unread (R3-L-01)
   const breakdowns = groupsOf(model, 'BG-23');
-  if ((breakdowns.length > 0 || forms.co14WithoutBreakdown) && (bt110 !== null || !currency)) {
+  const given = bt110 !== null || (!currency && breakdowns.length > 0);
+  if ((breakdowns.length > 0 || forms.co14WithoutBreakdown) && given) {
     const taxes = decimals(model, 'BG-23/BT-117');
     const taxSum = taxes ? sum(taxes) : undefined;
     add_(

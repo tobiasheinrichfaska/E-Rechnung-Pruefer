@@ -672,8 +672,11 @@ describe('BR-CO-14 and BR-CO-15 without the invoice currency (audit R3-L-01)', (
       { label: 'Gesamtbetrag mit Umsatzsteuer (BT-112)', value: '166,60' },
       reason,
     ]);
-    // UBL skips BR-CO-14 without a breakdown, with or without the currency
+    // without a breakdown and without a BT-110 read there is nothing to check, in either syntax
     const noBreakdown = withoutCurrency({ ...BASE, 'BG-23': [], 'BG-22': [withoutVat] });
+    expect(status(checkRules(noBreakdown as InvoiceModel, { syntax: 'cii' }), 'BR-CO-14')).toEqual(
+      [],
+    );
     expect(
       status(checkRules(noBreakdown as InvoiceModel, { syntax: 'ubl-invoice' }), 'BR-CO-14'),
     ).toEqual([]);
