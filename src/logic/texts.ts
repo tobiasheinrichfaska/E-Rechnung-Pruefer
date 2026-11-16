@@ -138,6 +138,8 @@ export const TEXTS = {
   differingWithHint: 'mit Hinweis',
   differingWithHints: 'mit {count} Hinweisen',
   differingRules: 'Rechnerische Prüfung',
+  // Rows with the same differing values, named together (audit R3-U-03)
+  labelsAnd: ' und ',
   // G-1: rows "nur im Einzelfall nötig" without a value are folded; jump links from the box.
   // A fold-out names what it holds, not "anzeigen", which stays wrong once it is open (QU-11), and
   // with the word of its rows' badges: „in besonderen Fällen“ is the section below (R2-U-07)

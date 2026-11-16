@@ -1,7 +1,7 @@
 // The detail rows shown under the result for one invoice XML: label and display value, already
 // formatted for German readers. The raw value stays visible where formatting could hide it.
 import { germanDate, isoDate } from './dates';
-import { formatAmount, parseDecimal } from './decimal';
+import { formatAmount, normalize, parseDecimal } from './decimal';
 import { first } from './model';
 import { TEXTS, TYPE_CODES, fill } from './texts';
 import { schemaFailed } from './verdict';
@@ -50,8 +50,9 @@ export function invoiceDetails(invoice: InvoiceVerdict, inPdf: boolean): DetailR
     { label: 'Lieferant (BT-27)', value: first(h, 'BT-27') ?? MISSING },
     {
       label: 'Gesamtbetrag mit Umsatzsteuer (BT-112)',
+      // by its value, as the Pflichtangaben and rules show it: "336.900" as "336,90" (R3-U-05)
       value: parsed
-        ? `${formatAmount(parsed)}${currency ? ` ${currency}` : ''}`
+        ? `${formatAmount(normalize(parsed))}${currency ? ` ${currency}` : ''}`
         : (amount ?? MISSING),
     },
     { label: 'Syntax', value: invoice.syntaxLabel, technical: true },

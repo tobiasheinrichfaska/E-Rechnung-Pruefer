@@ -596,6 +596,124 @@ describe('two invoice XML of the same invoice, written another way', () => {
     );
   });
 
+  /** In whichever order the parts came: [the value of a.xml, the value of b.xml] */
+  const inOrder = (analysis: { invoices: { origin: string }[] }, a: string, b: string) =>
+    analysis.invoices[0]?.origin === 'a.xml' ? [a, b] : [b, a];
+  // the other session may write the space before "%" as a no-break space (audit R3-U-10)
+  const plain = (text: string) => text.replace(/\u00a0/g, ' ');
+
+  // Audit R3-U-03: one differing rate, shown by three Pflichtangaben, is named once
+  it('names one differing rate once, with every row that shows it', async () => {
+    const other = replaced(
+      cii,
+      /(<ram:BasisAmount>314.86<\/ram:BasisAmount>\s*<ram:CategoryCode>S<\/ram:CategoryCode>\s*<ram:RateApplicablePercent>)7(<\/ram:RateApplicablePercent>)/,
+      '$119$2',
+    );
+    const rows =
+      '„Entgelt, aufgeschlüsselt nach Steuersätzen und Steuerbefreiungen“, „Anzuwendender ' +
+      'Steuersatz“ und „Auf das Entgelt entfallender Steuerbetrag“';
+    for (const { analysis, line } of await both(cii, other)) {
+      const [a, b] = inOrder(analysis, '7', '19');
+      const category = 'Umsatzsteuerkategorie: S – steuerpflichtig';
+      const pair = `${category} · Umsatzsteuersatz: ${a} % / ${category} · Umsatzsteuersatz: ${b} %`;
+      expect(plain(line)).toMatch(/^Unterschiedlich: „Entgelt, /);
+      expect(plain(line)).toContain(`${rows} (${pair}); Rechnerische Prüfung (`);
+      expect(plain(line).split('Umsatzsteuersatz: 19')).toHaveLength(2);
+      const differing = comparisonRows(analysis.invoices).filter((row) => row.differs);
+      expect(differing.map((row) => row.label)).toEqual([rows, TEXTS.differingRules]);
+    }
+  });
+
+  // Audit R3-U-04: the amount of a row with its name, no „vorhanden“ that both parts share
+  it('names the values of a row with their labels, the status only where it differs', async () => {
+    const other = replaced(
+      cii,
+      '<ram:TaxBasisTotalAmount>314.86<',
+      '<ram:TaxBasisTotalAmount>314.96<',
+    );
+    for (const { analysis, line } of await both(cii, other)) {
+      const [a, b] = inOrder(analysis, '314,86', '314,96');
+      expect(line).toContain(
+        'Entgelt, aufgeschlüsselt nach Steuersätzen und Steuerbefreiungen (Gesamtbetrag ohne ' +
+          `Umsatzsteuer: ${a} EUR / Gesamtbetrag ohne Umsatzsteuer: ${b} EUR)`,
+      );
+      expect(line).not.toContain('vorhanden');
+    }
+  });
+
+  // Audit R3-L-03: a doubled space is no other name; another case stays apart (question G-22)
+  it('sees a name with a doubled space as the same, in another case as different', async () => {
+    const name = '<ram:Name>[Seller name]</ram:Name>';
+    expect(cii.split(name)).toHaveLength(2);
+    const spaced = replaced(cii, name, '<ram:Name>[Seller  name]</ram:Name>');
+    for (const { verdict } of await both(cii, spaced)) {
+      expect(verdict.comparison).toEqual({ same: true, differing: [] });
+    }
+    const upper = replaced(cii, name, '<ram:Name>[SELLER NAME]</ram:Name>');
+    for (const { verdict, line } of await both(cii, upper)) {
+      expect(verdict.comparison).toEqual({ same: false, differing: [] });
+      expect(line).toContain('Name des Lieferanten: [SELLER NAME]');
+    }
+  });
+
+  // Audit R3-L-04: the same values in another order — 03.06a swaps postcode and city in UBL
+  it('names the labels where two parts hold the same values in another order', async () => {
+    const ubl = officialText('kosit/paare/03.06a-INVOICE_ubl.xml');
+    const uncefact = officialText('kosit/paare/03.06a-INVOICE_uncefact.xml');
+    const { analysis } = await check(
+      'r.pdf',
+      miniPdf({ attachments: [xml('a.xml', ubl), xml('b.xml', uncefact)] }),
+    );
+    expect(differingLine(analysis.invoices, [])).toBe(
+      'Unterschiedlich: „Anschrift des leistenden Unternehmers“ und „Anschrift des ' +
+        'Leistungsempfängers“ (Straße: Teststraße, Postleitzahl: Testhausen, Ort: 12345, Land: DE / ' +
+        'Straße: Teststraße, Postleitzahl: 12345, Ort: Testhausen, Land: DE).',
+    );
+  });
+
+  // Audit R3-L-04: a total that is no number reads apart from the same total as a number
+  it('marks a total that is no number in the line and the table', async () => {
+    const comma = replaced(cii, '<ram:GrandTotalAmount>336.9<', '<ram:GrandTotalAmount>336,90<');
+    const { analysis, verdict } = await check(
+      'r.pdf',
+      miniPdf({ attachments: [xml('a.xml', cii), xml('b.xml', comma)] }),
+    );
+    expect(verdict.comparison).toEqual({ same: false, differing: ['BT-112'] });
+    expect(differingLine(analysis.invoices, ['BT-112'])).toBe(
+      'Unterschiedlich: Gesamtbetrag mit Umsatzsteuer (336,90 / 336,90 – keine Zahl).',
+    );
+  });
+
+  // Audit R3-T-04: a difference only in a hint, or only in the status of a rule, is F27 too
+  it.each([
+    [
+      'a hint in one XML only (a note „Gutschrift.“)',
+      (t: string) =>
+        replaced(
+          t,
+          '<ram:Content>Es gelten unsere Allgem.',
+          '<ram:Content>Gutschrift. Es gelten unsere Allgem.',
+        ),
+      (t: string) => t,
+    ],
+    [
+      'a rule „auffällig“ in one, „nicht prüfbar“ in the other (BT-106 1.00 against none)',
+      (t: string) =>
+        replaced(
+          t,
+          '<ram:LineTotalAmount>314.86</ram:LineTotalAmount>',
+          '<ram:LineTotalAmount>1.00</ram:LineTotalAmount>',
+        ),
+      (t: string) => replaced(t, '<ram:LineTotalAmount>314.86</ram:LineTotalAmount>', ''),
+    ],
+  ])('keeps apart %s', async (_, first, second) => {
+    for (const { verdict } of await both(first(cii), second(cii))) {
+      expect(verdict.comparison).toEqual({ same: false, differing: [] });
+      expect(verdict.headline).toBe(TEXTS.contradicting);
+      expect(verdict.tone).toBe('bad');
+    }
+  });
+
   // Every KoSIT pair is one invoice in UBL and in CII. Apart stay only those whose files differ in
   // what the result shows (tests/io/extract.test.ts, KNOWN): 01.20a also in BT-113 = 0.00 (a
   // question for Tobias), 03.07a only in BT-29, which no Pflichtangabe shows

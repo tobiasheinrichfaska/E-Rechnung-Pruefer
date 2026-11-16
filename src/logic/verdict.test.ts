@@ -149,6 +149,13 @@ describe('invoiceDetails', () => {
     expect(rows['Anhang']).toBe('a.xml');
     expect(rows['Rechnungsdatum (BT-2)']).toBe('13.11.2026');
     expect(rows['Gesamtbetrag mit Umsatzsteuer (BT-112)']).toBe('119,00 EUR');
+    // by its value, as the Pflichtangaben show it (audit R3-U-05)
+    const zeros = verdictOf(analysis({ invoices: [part({ 'BT-112': ['336.900'] })] })).invoices[0];
+    if (!zeros) throw new Error('no invoice');
+    expect(
+      invoiceDetails(zeros, true).find((r) => r.label === 'Gesamtbetrag mit Umsatzsteuer (BT-112)')
+        ?.value,
+    ).toBe('336,90 EUR');
     expect(rows['Art der Rechnung (BT-3)']).toBe(
       '389 – Gutschrift (vom Leistungsempfänger ausgestellt)',
     );
@@ -457,20 +464,67 @@ describe('the same header but other data in two invoice XML (audit QL-01)', () =
 
   it('names what differs, with the value of each part', () => {
     const line = differingLine([a, b], []);
+    // the values with their names, the status only where it differs (audit R3-U-04)
     expect(line).toBe(
       'Unterschiedlich: Steuernummer oder USt-IdNr. des leistenden Unternehmers ' +
-        '(vorhanden: DE123456789 / fehlt); USt-IdNr. des leistenden Unternehmers und des ' +
-        'Leistungsempfängers (nur im Einzelfall nötig: DE123456789 / nur im Einzelfall nötig).',
+        '(vorhanden – USt-IdNr. des Lieferanten: DE123456789 / fehlt); USt-IdNr. des leistenden ' +
+        'Unternehmers und des Leistungsempfängers (USt-IdNr. des Lieferanten: DE123456789 / –).',
     );
     const rows = comparisonRows([a, b]).filter((row) => row.differs);
     expect(rows[0]).toEqual({
       label: 'Steuernummer oder USt-IdNr. des leistenden Unternehmers',
-      values: ['vorhanden: DE123456789', 'fehlt'],
+      values: ['vorhanden – USt-IdNr. des Lieferanten: DE123456789', 'fehlt'],
       differs: true,
     });
     expect(rows).toHaveLength(2);
     // with a differing header value only that is named, as before (E-04)
     expect(comparisonRows([a, { ...b, header: { ...b.header, 'BT-1': ['R-2'] } }])).toHaveLength(7);
+  });
+
+  // Audit R3-U-03: two rows that show the same differing value are named once, together
+  it('names the same differing values of several rows once', () => {
+    const other = { ...part({}, 'b.xml'), model: withSeller('DE987654321') };
+    const pair = 'USt-IdNr. des Lieferanten: DE123456789 / USt-IdNr. des Lieferanten: DE987654321';
+    expect(differingLine([a, other], [])).toBe(
+      'Unterschiedlich: „Steuernummer oder USt-IdNr. des leistenden Unternehmers“ und ' +
+        `„USt-IdNr. des leistenden Unternehmers und des Leistungsempfängers“ (${pair}).`,
+    );
+    const rows = comparisonRows([a, other]).filter((row) => row.differs);
+    expect(rows).toHaveLength(1);
+  });
+
+  // Audit R3-L-03: a doubled space is no other name; another case stays apart (question G-22)
+  it('collapses whitespace in the values it compares, and keeps their case', () => {
+    const named = (name: string) =>
+      ({
+        ...withSeller('DE123456789'),
+        groups: { 'BG-4': [{ bg: 'BG-4', terms: { 'BT-27': term(name) }, groups: {} }] },
+      }) as unknown as NonNullable<InvoicePart['model']>;
+    const one = { ...part({}, 'a.xml'), model: named('Muster GmbH') };
+    const spaced = { ...part({}, 'b.xml'), model: named('Muster \n  GmbH') };
+    expect(differingResults([one, spaced])).toEqual([]);
+    expect(verdictOf(analysis({ invoices: [one, spaced] })).comparison?.same).toBe(true);
+    const upper = { ...part({}, 'b.xml'), model: named('MUSTER GMBH') };
+    expect(differingResults([one, upper])).toEqual([
+      {
+        label: 'Name des leistenden Unternehmers',
+        values: ['Name des Lieferanten: Muster GmbH', 'Name des Lieferanten: MUSTER GMBH'],
+      },
+    ]);
+  });
+});
+
+// Audit R3-L-04, R3-U-05: the compared total by its value, and marked where it is no number
+describe('the compared total (audit R3-L-04, R3-U-05)', () => {
+  it('shows a total by its value and marks one that is no number', () => {
+    const parts = [part({ 'BT-112': ['336.900'] }), part({ 'BT-112': ['336,90'] }, 'b.xml')];
+    expect(differingLine(parts, differingTerms(parts))).toBe(
+      'Unterschiedlich: Gesamtbetrag mit Umsatzsteuer (336,90 / 336,90 – keine Zahl).',
+    );
+    const total = comparisonRows(parts).find(
+      (row) => row.label === 'Gesamtbetrag mit Umsatzsteuer (BT-112)',
+    );
+    expect(total?.values).toEqual(['336,90', '336,90 – keine Zahl']);
   });
 });
 
