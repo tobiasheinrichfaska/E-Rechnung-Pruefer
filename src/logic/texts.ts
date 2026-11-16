@@ -124,6 +124,8 @@ export const TEXTS = {
   schemaMismatchIn:
     'Der Anhang „{name}“ weicht vom offiziellen Schema {schema} ab (technische Meldungen: {count}).',
   schemaMore: 'Weitere technische Meldungen: {count} (siehe unten).',
+  // Several parts with other messages: each line names its attachment (audit R4-U-02)
+  schemaMoreIn: 'Weitere technische Meldungen im Anhang „{name}“: {count} (siehe unten).',
   // At the end of the list itself nothing follows: these messages are counted, not shown
   schemaMoreNotShown: 'Weitere technische Meldungen, die hier nicht einzeln stehen: {count}.',
   schemaOwnProfile:
@@ -132,9 +134,13 @@ export const TEXTS = {
   schemaDetail: 'Abweichungen vom Schema {schema}: {count}',
   schemaNotChecked: 'nicht geprüft – {reason}',
   schemaProblemsTitle: 'Technische Meldungen der Schemaprüfung ({count})',
+  // one list per part with messages, named where the PDF holds several (audit R4-U-02)
+  schemaProblemsTitleIn: 'Technische Meldungen der Schemaprüfung, Anhang „{name}“ ({count})',
   // The parser's own message (English) marked as such (audit 2026-11-14, U-07)
   problemAtLine: 'Technische Meldung (Zeile {line}): {message}',
   problemMessage: 'Technische Meldung: {message}',
+  problemAtLineIn: 'Technische Meldung, Anhang „{name}“ (Zeile {line}): {message}',
+  problemMessageIn: 'Technische Meldung, Anhang „{name}“: {message}',
 
   // Above the result: which file and when — on paper the Kanzlei sees when it was checked
   // (audit Bedienung, E-02/A-12)
