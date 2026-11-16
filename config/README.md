@@ -46,5 +46,11 @@ Fußzeile und Farben auch ohne die privaten Dateien laufen (`tests/fixtures/conf
 - Andere Einträge, ein leerer Text, einer mit mehr als 2000 Zeichen oder eine ungültige Adresse
   brechen den Build ab.
 - Der Text des Hinweises ist von Tobias freigegeben (15.11.2026); geändert wird er nur mit seinem OK.
-- `tests/static/noBranding.test.ts` prüft, dass der Text, sein erster Satz (mit dem Namen der
-  Kanzlei) und der Host der beiden Adressen in keiner Datei des Repos stehen.
+- `tests/static/noBranding.test.ts` prüft, dass nichts davon in diesem Repo steht: weder der Text
+  noch einer seiner Sätze mit dem Namen der Kanzlei (der erste und jeder mit einem Namen der
+  privaten Namensliste `config/marken.txt` im privaten Repo), weder ein Name dieser Liste noch die
+  Domain der beiden Adressen (ohne Subdomain). Leerzeichen, Zeilenumbrüche, `>`-Zitatzeichen und
+  Groß- und Kleinschreibung zählen nicht. Gesucht wird in jeder Datei des Repos, auch als Bytes
+  (etwa in einer PDF), in den Dateien jedes Commits, den noch kein Remote hat (auch wenn ein
+  späterer Commit sie wieder entfernt), und in allen Commit-Nachrichten mit Autor und Committer.
+  Ohne die privaten Dateien oder ohne git wird die Suche übersprungen und nennt den Grund.

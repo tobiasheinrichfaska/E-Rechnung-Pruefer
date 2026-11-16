@@ -72,8 +72,9 @@ test('applies the reduced list of a Kleinbetragsrechnung', async ({ page }) => {
   expect(await sideEffects(page)).toEqual([]);
 });
 
-// QU-05: a hint that already names a possible irregularity gets no „Hinweis:“ in front of it
-test('keeps „Mögliche Auffälligkeit:“ as the only word in front of such a hint', async ({
+// QU-05/R2-U-06: every row hint starts with „Hinweis:“, the word the box and the summary use —
+// also the credit-note hint, which once brought „Mögliche Auffälligkeit:“ of its own
+test('puts „Hinweis:“ in front of the credit-note hint, as in front of every hint', async ({
   page,
 }) => {
   const problems = await openApp(page);
@@ -85,9 +86,10 @@ test('keeps „Mögliche Auffälligkeit:“ as the only word in front of such a 
       '        <ram:IncludedNote>\n            <ram:Content>Gutschrift zur Rechnung R123456788</ram:Content>\n        </ram:IncludedNote>\n    </rsm:ExchangedDocument>',
     );
   await upload(page, 'korrektur.xml', encode(text), 'application/xml');
-  await expect(page.getByTestId('pflicht-gutschrift').getByTestId('row-hint')).toHaveText(
-    /^Mögliche Auffälligkeit: In einer Bemerkung steht „Gutschrift“/,
-  );
+  const hint = page.getByTestId('pflicht-gutschrift').getByTestId('row-hint');
+  await expect(hint).toHaveText(/^Hinweis: In einer Bemerkung steht „Gutschrift“/);
+  await expect(hint).not.toContainText('Mögliche Auffälligkeit');
+  await expect(hint.locator('strong')).toHaveText('Hinweis:');
 
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);

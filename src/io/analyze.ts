@@ -14,7 +14,7 @@ import type {
 } from '../logic/analysis';
 import { coreValues, first, normalize } from '../logic/model';
 import { profileOf } from '../logic/profiles';
-import { looksLikeXml } from '../logic/prolog';
+import { looksLikeHtml, looksLikeXml } from '../logic/prolog';
 import { syntaxOf } from '../logic/syntax';
 import type { SyntaxEntry } from '../logic/syntax';
 import { TEXTS } from '../logic/texts';
@@ -69,11 +69,14 @@ function problemFile(fileName: string, kind: FileProblemKind): Analysis {
 
 const PDF_MAGIC = '%PDF-';
 
-/** PDF when "%PDF-" appears in the first KB (as viewers accept), XML by its prolog. */
+/**
+ * PDF when "%PDF-" appears in the first KB (as viewers accept), XML by its prolog — but not a web
+ * page, which is no XML the tool reads (audit R2-L-06).
+ */
 export function fileKindOf(bytes: Uint8Array): FileKind {
   const head = new TextDecoder('latin1').decode(bytes.subarray(0, 1024));
   if (head.includes(PDF_MAGIC)) return 'pdf';
-  if (looksLikeXml(bytes)) return 'xml';
+  if (looksLikeXml(bytes) && !looksLikeHtml(bytes)) return 'xml';
   return 'unknown';
 }
 
@@ -204,7 +207,8 @@ export async function analyzeFile(
     const invoices: InvoicePart[] = [];
     const others: OtherPart[] = [];
     for (const attachment of read.attachments) {
-      if (!looksLikeXml(attachment.bytes)) {
+      // a web page (e.g. terms as HTML) is no XML, never "broken XML" (audit R2-L-06)
+      if (!looksLikeXml(attachment.bytes) || looksLikeHtml(attachment.bytes)) {
         others.push({ origin: attachment.name, kind: 'notXml' });
         continue;
       }

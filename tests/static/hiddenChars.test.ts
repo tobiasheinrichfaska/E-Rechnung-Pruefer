@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, sep } from 'node:path';
 
 // Invisible characters in source code are bugs waiting to happen (an editing tool once turned
 // byte-order-mark escapes into the real character). Code must spell them as char codes. Bidi
@@ -11,18 +11,31 @@ const INVISIBLE = [
 const pattern = new RegExp(`[${INVISIBLE.map((c) => String.fromCharCode(c)).join('')}]`);
 
 const ROOT = new URL('../../', import.meta.url);
+const root = new URL('.', ROOT).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+
+// Third-party files, byte-identical to their source (and the link to the private repo): left as
+// they are. Everything else under tests/fixtures/ is ours and scanned — the invented
+// Beispielkanzlei's notice is the label of the tick box in the GitHub check (audit 2026-11-15,
+// R2-T-07).
+const THIRD_PARTY = [
+  'tests/fixtures/offiziell/cen',
+  'tests/fixtures/offiziell/kosit',
+  'tests/fixtures/lokal',
+].map((dir) => join(root, dir));
+
+// .mjs/.mts/.cjs as well: the checker of the test frame's copy is pruefen.mjs (R2-S-03)
+const SCANNED = /\.(ts|tsx|mts|cts|js|mjs|cjs|css|html|md|json|xml|txt|ya?ml)$/;
 
 function files(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
     const path = join(dir, name);
-    if (statSync(path).isDirectory()) return name === 'fixtures' ? [] : files(path);
-    return /\.(ts|tsx|js|css|html|md|json|xml|txt|ya?ml)$/.test(name) ? [path] : [];
+    if (statSync(path).isDirectory()) return THIRD_PARTY.includes(path) ? [] : files(path);
+    return SCANNED.test(name) ? [path] : [];
   });
 }
 
 describe('source files', () => {
   it('contain no invisible characters', () => {
-    const root = new URL('.', ROOT).pathname.replace(/^\/([A-Za-z]:)/, '$1');
     // the root files and the dotfiles (.gitattributes, .gitignore …; not .git, not a local .env)
     const top = readdirSync(root)
       .filter(
@@ -44,11 +57,22 @@ describe('source files', () => {
     );
     expect(scanned).toEqual(
       expect.arrayContaining(
-        ['config/README.md', 'schemas/README.md', '.github/workflows/tests.yml'].map((n) =>
-          join(root, n),
-        ),
+        [
+          'config/README.md',
+          'schemas/README.md',
+          '.github/workflows/tests.yml',
+          'src/testrahmen/pruefen.mjs',
+          'src/testrahmen/pruefen.d.mts',
+          'tests/fixtures/config/README.md',
+          'tests/fixtures/config/beispiel-kanzlei.json',
+          'tests/fixtures/offiziell/README.md',
+        ].map((n) => join(root, n)),
       ),
     );
     expect(found).toEqual([]);
+    // the official files and the private link stay out
+    expect(
+      scanned.filter((path) => THIRD_PARTY.some((dir) => path.startsWith(`${dir}${sep}`))),
+    ).toEqual([]);
   });
 });

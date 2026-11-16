@@ -538,6 +538,21 @@ describe('display', () => {
     expect(displayValue('BT-27', 'Muster', undefined)).toBe('Muster');
   });
 
+  // Audit R2-L-01: the same value written another way reads the same — so two XML of one invoice
+  // compare equal; a text that is no number stays as written
+  it('shows rates, quantities and amounts by their value', () => {
+    expect(displayValue('BT-119', '7.00', undefined)).toBe('7 %');
+    expect(displayValue('BT-119', '19', undefined)).toBe('19 %');
+    expect(displayValue('BT-152', '7.50', undefined)).toBe('7,5 %');
+    expect(displayValue('BT-129', '1.0000', undefined)).toBe('1');
+    expect(displayValue('BT-129', '30.00000000000', undefined)).toBe('30');
+    expect(displayValue('BT-129', '245.11', undefined)).toBe('245,11');
+    expect(displayValue('BT-109', '314.860', 'EUR')).toBe('314,86 EUR');
+    expect(displayValue('BT-109', '100.004', 'EUR')).toBe('100,004 EUR');
+    expect(displayValue('BT-119', '19,00', undefined)).toBe('19,00 %');
+    expect(displayValue('BT-129', 'eins', undefined)).toBe('eins');
+  });
+
   it('shows the values of each VAT breakdown and each position', () => {
     const result = checkPflichtangaben(model());
     const lines = row(result, 'menge-art').groups[0];
@@ -626,6 +641,18 @@ describe('hint on a "Gutschrift" that is no Gutschrift (F11)', () => {
       [],
     );
     expect(row(checkPflichtangaben(model({ 'BT-3': '381' })), 'gutschrift').hints).toEqual([]);
+  });
+
+  // Audit R2-U-06: the page puts „Hinweis:“ before every row hint, the word the box and the summary
+  // use — so no hint brings a label of its own (the credit-note hint once began „Mögliche
+  // Auffälligkeit:“, the word of the calculation rules)
+  it('brings no label of its own, as no hint does', () => {
+    const texts = PFLICHTANGABEN.flatMap((p) => (p.hints ?? []).map((h) => h.text));
+    expect(texts.length).toBeGreaterThan(5);
+    for (const text of texts) {
+      expect(text).not.toMatch(/^[\p{L}-]+(?: [\p{L}-]+)?:\s/u);
+      expect(text.toLowerCase()).not.toContain(TEXTS.ruleStatusAuffaellig.toLowerCase());
+    }
   });
 });
 

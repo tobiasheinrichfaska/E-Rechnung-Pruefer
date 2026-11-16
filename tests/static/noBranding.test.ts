@@ -1,5 +1,7 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { configFile, loadAppConfig } from '../../src/build/kanzleiConfig';
 import type { AppConfig } from '../../src/logic/appConfig';
@@ -10,7 +12,9 @@ import type { AppConfig } from '../../src/logic/appConfig';
 // name form of that list, nor the domain of the Impressum or privacy address. A copy wrapped by an
 // editor or quoted in Markdown counts as well (audit 2026-11-15, QT-04/QS-03): whitespace and `>`
 // quote markers are ignored, case too; every tracked file is also searched as bytes (PDF, ZIP …),
-// and so are the commit messages of HEAD.
+// and so are the commit messages, authors and committers of HEAD's history. So is every file of
+// every commit that no remote has yet (audit 2026-11-15, R2-S-05): a find committed and removed
+// again by a later commit is still published by the push, and only a force-push takes it out.
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
 // Only the real configuration counts, never the invented one KANZLEI_CONFIG may name (QT-01).
@@ -80,7 +84,79 @@ export function leaks(content: Buffer, secrets: readonly string[]): boolean {
   );
 }
 
+type Git = (args: readonly string[], input?: string) => Buffer;
+
+/** git in a folder, its output as bytes (stderr kept out of the test output). */
+const gitIn =
+  (cwd: string): Git =>
+  (args, input) =>
+    execFileSync('git', args, {
+      cwd,
+      input,
+      maxBuffer: 1024 * 1024 * 1024,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+
+/** Whether git can read the folder as a repository (a downloaded copy has no .git). */
+function gitReads(cwd: string): boolean {
+  try {
+    gitIn(cwd)(['rev-parse', '--verify', '--quiet', 'HEAD']);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Every file content (blob) of the commits that no remote has yet, i.e. what the next push would
+ * publish — without a remote every commit of HEAD. Three git processes, whatever the count.
+ */
+export function unpublishedBlobs(git: Git): { path: string; content: Buffer }[] {
+  // "<sha>" for a commit, "<sha> <path>" for a tree or a blob
+  const pathOf = new Map(
+    git(['rev-list', '--objects', 'HEAD', '--not', '--remotes'])
+      .toString('utf8')
+      .split('\n')
+      .filter((line) => line !== '')
+      .map((line): [string, string] => [line.slice(0, 40), line.slice(41)]),
+  );
+  if (pathOf.size === 0) return [];
+  const blobs = git(
+    ['cat-file', '--batch-check=%(objectname) %(objecttype)'],
+    [...pathOf.keys(), ''].join('\n'),
+  )
+    .toString('utf8')
+    .split('\n')
+    .filter((line) => line.endsWith(' blob'))
+    .map((line) => line.slice(0, 40));
+  if (blobs.length === 0) return [];
+  // "<sha> blob <size>\n<content>\n" per blob
+  const out = git(['cat-file', '--batch'], [...blobs, ''].join('\n'));
+  const found: { path: string; content: Buffer }[] = [];
+  for (let at = 0; at < out.length;) {
+    const end = out.indexOf(0x0a, at);
+    const [sha = '', , size = ''] = out.subarray(at, end).toString('latin1').split(' ');
+    const start = end + 1;
+    found.push({
+      path: pathOf.get(sha) ?? sha,
+      content: out.subarray(start, start + Number(size)),
+    });
+    at = start + Number(size) + 1;
+  }
+  expect(found).toHaveLength(blobs.length);
+  return found;
+}
+
 const secrets = secretsOf(config, brands);
+const repoReadable = gitReads(ROOT);
+
+/** Why the scan of this repo cannot run here; undefined when it can. */
+const scanSkipped =
+  secrets.length === 0
+    ? 'nothing to look for: no Kanzlei configuration and no name list (tests/fixtures/lokal is missing)'
+    : !repoReadable
+      ? 'git cannot read this checkout (no git, or no .git)'
+      : undefined;
 
 describe('the Kanzlei configuration stays out of the public repo', () => {
   it('reads the neutral example only when no local configuration is there', () => {
@@ -110,21 +186,56 @@ describe('the Kanzlei configuration stays out of the public repo', () => {
     expect(leak('> Ein Hilfsmittel der [Kanzlei]. Er ist kostenlos.')).toBe(false);
   });
 
-  it.skipIf(secrets.length === 0)(
-    'keeps the notice, its sentences naming the Kanzlei, the private name list and the link domains out of every tracked file and commit message',
-    () => {
-      const files = execFileSync('git', ['ls-files', '-z'], { cwd: ROOT, encoding: 'utf8' })
-        .split('\0')
-        .filter((name) => name !== '');
-      expect(files.length).toBeGreaterThan(100);
-      const leaking = files.filter((name) => leaks(readFileSync(`${ROOT}${name}`), secrets));
-      expect(leaking).toEqual([]);
-      // the history as far as this clone has it (GitHub's checkout fetches one commit)
-      const messages = execFileSync('git', ['log', '--format=%B%n%an%n%ae', 'HEAD'], {
-        cwd: ROOT,
-        maxBuffer: 64 * 1024 * 1024,
-      });
-      expect(leaks(messages, secrets)).toBe(false);
-    },
-  );
+  it('finds an invented name that a later unpublished commit removed again, until a remote has it', (ctx) => {
+    ctx.skip(!repoReadable, 'git cannot read this checkout (no git, or no .git)');
+    const folder = mkdtempSync(join(tmpdir(), 'nobranding-'));
+    try {
+      const git = gitIn(folder);
+      const commit = (file: string, text: string) => {
+        writeFileSync(join(folder, file), text);
+        git(['add', file]);
+        git([
+          ...['-c', 'user.name=Probe', '-c', 'user.email=probe@example.org'],
+          ...['-c', 'commit.gpgsign=false', 'commit', '-q', '--no-verify', '-m', `${file}`],
+        ]);
+      };
+      git(['init', '-q']);
+      commit('a.md', 'Die Kanzlei Erika Probe bietet das Tool an.\n');
+      commit('a.md', 'Die [Kanzlei] bietet das Tool an.\n');
+      commit('b.pdf', 'BT (Erika Probe) Tj\n');
+      const found = secretsOf({ accessNotice: 'Ein Hilfsmittel der Erika Probe.' }, [
+        'Erika Probe',
+      ]);
+      // the working copy no longer has it in a.md, the history does
+      expect(leaks(readFileSync(join(folder, 'a.md')), found)).toBe(false);
+      const blobs = unpublishedBlobs(git);
+      expect(blobs.map((blob) => blob.path).sort()).toEqual(['a.md', 'a.md', 'b.pdf']);
+      expect(blobs.filter((blob) => leaks(blob.content, found))).toHaveLength(2);
+      // what a remote has is published already: the weekly check looks there (S1)
+      git(['update-ref', 'refs/remotes/origin/main', 'HEAD~1']);
+      expect(unpublishedBlobs(git).map((blob) => blob.path)).toEqual(['b.pdf']);
+      git(['update-ref', 'refs/remotes/origin/main', 'HEAD']);
+      expect(unpublishedBlobs(git)).toEqual([]);
+    } finally {
+      rmSync(folder, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps the notice, its sentences naming the Kanzlei, the private name list and the link domains out of every tracked file, every unpublished commit and every commit message', (ctx) => {
+    ctx.skip(scanSkipped !== undefined, scanSkipped);
+    const git = gitIn(ROOT);
+    const files = git(['ls-files', '-z'])
+      .toString('utf8')
+      .split('\0')
+      .filter((name) => name !== '');
+    expect(files.length).toBeGreaterThan(100);
+    const leaking = files.filter((name) => leaks(readFileSync(`${ROOT}${name}`), secrets));
+    expect(leaking).toEqual([]);
+    // the files of the commits a push would publish, also those removed again since
+    const unpublished = unpublishedBlobs(git).filter((blob) => leaks(blob.content, secrets));
+    expect(unpublished.map((blob) => blob.path)).toEqual([]);
+    // the history as far as this clone has it (GitHub's checkout fetches one commit)
+    const messages = git(['log', '--format=%B%n%an%n%ae%n%cn%n%ce', 'HEAD']);
+    expect(leaks(messages, secrets)).toBe(false);
+  });
 });

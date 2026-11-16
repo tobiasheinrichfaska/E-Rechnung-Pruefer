@@ -4,6 +4,7 @@ import { TEXTS, fill } from './texts';
 import {
   comparisonRows,
   differingLine,
+  differingResults,
   differingTerms,
   pflichtModel,
   technicalLine,
@@ -546,5 +547,149 @@ describe('attachments not read next to an invoice XML (audit QL-06)', () => {
     );
     expect(apart.headline).toBe(TEXTS.contradicting);
     expect(apart.explanation).toContain(fill(TEXTS.attachmentTooLarge, { name: 'x.xml' }));
+  });
+});
+
+// Audit R2-U-08: beside an invoice XML the box says what an attachment not read means for it
+describe('what attachments not read mean for the result (audit R2-U-08)', () => {
+  const bare = (origin = 'factur-x.xml'): InvoicePart => {
+    const plain = part({}, origin);
+    delete plain.model;
+    return plain;
+  };
+  const pdf = { pages: 1, unreadable: [] as string[], truncated: false };
+  const doctype = { origin: 'x.xml', kind: 'doctypeXml' as const };
+
+  it('follows the attachments not read with one sentence, after them', () => {
+    const one = verdictOf(analysis({ invoices: [bare()], others: [doctype] }));
+    expect(one.explanation.slice(-2)).toEqual([
+      fill(TEXTS.attachmentDoctype, { name: 'x.xml' }),
+      TEXTS.unreadOne,
+    ]);
+    const several = verdictOf(
+      analysis({ invoices: [bare()], others: [doctype], pdf: { ...pdf, unreadable: ['y.xml'] } }),
+    );
+    expect(several.explanation.at(-1)).toBe(TEXTS.unreadSeveral);
+    expect(several.explanation).not.toContain(TEXTS.unreadOne);
+    const truncated = verdictOf(analysis({ invoices: [bare()], pdf: { ...pdf, truncated: true } }));
+    expect(truncated.explanation.slice(-2)).toEqual([
+      TEXTS.attachmentsTruncated,
+      TEXTS.unreadSeveral,
+    ]);
+    // for "keine E-Rechnung" and for two different invoice XML too
+    const minimum = verdictOf(analysis({ invoices: [part(MINIMUM)], others: [doctype] }));
+    expect(minimum.explanation.at(-1)).toBe(TEXTS.unreadOne);
+    const apart = verdictOf(
+      analysis({
+        invoices: [part({}, 'a.xml'), part({ 'BT-1': ['R-2'] }, 'b.xml')],
+        others: [doctype],
+      }),
+    );
+    expect(apart.explanation).toContain(TEXTS.unreadOne);
+  });
+
+  it('keeps „kann das Tool deshalb nicht sagen“ alone where no invoice XML was read', () => {
+    const verdict = verdictOf(analysis({ others: [doctype] }));
+    expect(verdict.headline).toBe(TEXTS.pdfNotChecked);
+    expect(verdict.explanation).toEqual([
+      fill(TEXTS.attachmentDoctype, { name: 'x.xml' }),
+      TEXTS.notJudged,
+    ]);
+  });
+
+  it('adds nothing where every attachment was read', () => {
+    const verdict = verdictOf(
+      analysis({ invoices: [bare()], others: [{ origin: 'a.txt', kind: 'notXml' }] }),
+    );
+    expect(verdict.explanation).not.toContain(TEXTS.unreadOne);
+    expect(verdict.explanation).not.toContain(TEXTS.unreadSeveral);
+  });
+});
+
+// Audit R2-U-09: the names of the attachments in quotes, as everywhere else
+describe('the names of several invoice XML (audit R2-U-09)', () => {
+  it('puts each name in quotes, for the same and for different data', () => {
+    const same = verdictOf(
+      analysis({ invoices: [part({}, 'factur-x.xml'), part({}, 'zugferd-invoice.xml')] }),
+    );
+    expect(same.explanation).toContain(
+      'Dieselbe Rechnung ist 2-mal eingebettet („factur-x.xml“, „zugferd-invoice.xml“). ' +
+        'Nach dem Standard ist nur eine Rechnungs-XML je PDF zulässig.',
+    );
+    const apart = verdictOf(
+      analysis({
+        invoices: [part({}, 'factur-x.xml'), part({ 'BT-1': ['R-2'] }, 'zugferd-invoice.xml')],
+      }),
+    );
+    expect(apart.explanation[0]).toBe(
+      'Das PDF enthält 2 Rechnungs-XML mit unterschiedlichen Daten („factur-x.xml“, ' +
+        '„zugferd-invoice.xml“). Unklar ist, welche gilt.',
+    );
+  });
+});
+
+// Audit R2-L-02: where the short texts of the parts agree, what differs is shown
+describe('what differs where the short texts agree (audit R2-L-02)', () => {
+  const term = (value: string) => [{ value, raw: value }];
+  const line = (id: string, rate: string, amount?: string) => ({
+    bg: 'BG-25',
+    terms: { 'BT-126': term(id), ...(amount ? { 'BT-131': term(amount) } : {}) },
+    groups: {
+      'BG-30': [{ bg: 'BG-30', terms: { 'BT-151': term('S'), 'BT-152': term(rate) }, groups: {} }],
+    },
+  });
+  /** Two positions at 19 and 7 %; the one without its amount (BT-131) cannot be checked */
+  const withLines = (missing: 1 | 2): NonNullable<InvoicePart['model']> =>
+    ({
+      bg: 'INVOICE',
+      terms: { 'BT-5': term('EUR') },
+      groups: {
+        'BG-22': [
+          {
+            bg: 'BG-22',
+            terms: {
+              'BT-106': term('150.00'),
+              'BT-109': term('150.00'),
+              'BT-110': term('22.50'),
+              'BT-112': term('172.50'),
+              'BT-115': term('172.50'),
+            },
+            groups: {},
+          },
+        ],
+        'BG-23': [
+          ['100.00', '19.00', '19'],
+          ['50.00', '3.50', '7'],
+        ].map(([base = '', tax = '', rate = '']) => ({
+          bg: 'BG-23',
+          terms: {
+            'BT-116': term(base),
+            'BT-117': term(tax),
+            'BT-118': term('S'),
+            'BT-119': term(rate),
+          },
+          groups: {},
+        })),
+        'BG-25': [
+          line('1', '19', missing === 1 ? undefined : '100.00'),
+          line('2', '7', missing === 2 ? undefined : '50.00'),
+        ],
+      },
+    }) as unknown as NonNullable<InvoicePart['model']>;
+  const a = { ...part({}, 'a.xml'), model: withLines(1) };
+  const b = { ...part({}, 'b.xml'), model: withLines(2) };
+
+  it('names the rule results apart from „passt“ that differ, not „passt, 2 nicht prüfbar“ twice', () => {
+    const rules = differingResults([a, b]).find((item) => item.label === TEXTS.differingRules);
+    expect(rules?.values).toEqual([
+      'BR-S-08 (Kategorie S, 19 %): nicht prüfbar',
+      'BR-S-08 (Kategorie S, 7 %): nicht prüfbar',
+    ]);
+    // the result shared by both (BR-CO-10) is not repeated
+    expect(rules?.values.join(' ')).not.toContain('BR-CO-10');
+    expect(verdictOf(analysis({ invoices: [a, b] })).comparison).toEqual({
+      same: false,
+      differing: [],
+    });
   });
 });

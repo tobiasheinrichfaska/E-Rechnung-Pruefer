@@ -143,3 +143,14 @@ Keine Zugangsdaten, keine Zonen-IDs in dieses öffentliche Repo.
 
 Nicht mehr in dieser Anfrage: die alte IONOS-Testkopie (Tobias: „nicht mehr dein Problem“) und die
 Datenschutzerklärung der Kanzlei (Tobias: „machen wir später“).
+
+## 6. Anfrage an den Kanzlei-PC (Cloud-Sitzung, 16.11.2026, Qualitätsaudit Runde 2)
+
+1. **Welche Fassung in welche Zone** (R2-S-04): Nach dem Build prüft der Freigabe-Lauf für die
+   öffentliche Zone in `dist/index.html`, dass `connect-src 'none'` darin steht und `tr-huelle`,
+   `starteTestrahmen` und `_zugang` fehlen; für die Testzone in `dist-test/index.html` umgekehrt
+   `connect-src 'self'` und `tr-huelle`. Einzelheiten: `deploy/README.md`, „Zugangshinweis im
+   Freigabe-Lauf“.
+2. **Wahlweise:** `connect-src 'none'` auch in der CSP-Kopfzeile der Edge Rule der öffentlichen Zone.
+3. **Zur Kenntnis:** `npm run build:test` schreibt weiter nach `dist-test/`, jetzt nach dem Modus
+   (`vite.config.ts`); eine Testfassung nach `dist/` bricht ab.

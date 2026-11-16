@@ -55,6 +55,8 @@ echter Lieferanten, echte Mailprogramme, echte Handys. Was eine Maschine prüfen
     `app`, Version, Stand und allen Handtests, „App neu starten“ und „App vollständig zurücksetzen“
     mit Rückfrage, zwei Reiter am Handy; die öffentliche Fassung hat nichts davon und bleibt bei
     `connect-src 'none'`. Die Uhr, die Gründe und das Senden selbst prüft `Testumgebung`.
+  - Das Tool neben dem Testrahmen: bei 960 px Fensterbreite Blöcke statt einer schmalen Tabelle,
+    Drucken hoch und quer mit dem ganzen Ergebnis, eine Datei neben dem Tool wird abgewiesen.
   - Screenreader: Statuszeile mit kurzem Ergebnissatz, Fokus auf dem Ergebnis, Zeilen- und
     Spaltenköpfe der Pflichtangaben, benannte Tabellen (`zugang.spec.ts`). Wie ein echter
     Screenreader vorliest, prüft das nicht.

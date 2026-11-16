@@ -1,11 +1,52 @@
 import { execFileSync } from 'node:child_process';
-import { readdirSync, readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import {
+  appendFileSync,
+  cpSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { APP_NAME, APP_VERSION } from '../../src/appInfo';
 import { manualTestFiles, TEST_APP, testBinding } from '../../src/logic/testBinding';
 import { pruefeKopie } from '../../src/testrahmen/pruefen.mjs';
 import { bindingProblems, speicherSchluessel } from '../../src/testrahmen/testrahmen.js';
+
+const ROOT = fileURLToPath(new URL('../../', import.meta.url));
+const COPY = join(ROOT, 'src/testrahmen');
+
+/**
+ * The deviations of a copy from its stamp, found here without its own checker (audit 2026-11-15,
+ * R2-S-03, R2-T-05): pruefen.mjs is part of the copy and checks its own hash, and it goes only
+ * through the files the stamp names. ESLint, Prettier and the stub alias of the live build leave
+ * the whole folder out, so a file the stamp does not name would be checked by nothing. The hash is
+ * the one Testumgebung writes: SHA-256 of the text with CRLF read as LF.
+ */
+function copyDeviations(folder: string): string[] {
+  const stamp = JSON.parse(readFileSync(join(folder, 'testrahmen.json'), 'utf8')) as {
+    dateien: Record<string, string>;
+  };
+  const named = Object.keys(stamp.dateien);
+  const present = readdirSync(folder);
+  return [
+    ...present
+      .filter((name) => name !== 'testrahmen.json' && !named.includes(name))
+      .map((name) => `${name}: not in testrahmen.json`),
+    ...named.filter((name) => !present.includes(name)).map((name) => `${name}: missing`),
+    ...named
+      .filter((name) => present.includes(name))
+      .filter((name) => {
+        const text = readFileSync(join(folder, name), 'utf8').replace(/\r\n/g, '\n');
+        return createHash('sha256').update(text).digest('hex') !== stamp.dateien[name];
+      })
+      .map((name) => `${name}: changed`),
+  ];
+}
 
 // The shared test frame of the test version (repo Testumgebung, testrahmen/; its docs/testrahmen.md)
 // is a copy, changed only there and copied again (`npm run rahmen -- <folder of this app> --ziel
@@ -15,9 +56,34 @@ describe('the copy of the shared test frame', () => {
   it('is unchanged and comes from a commit of Testumgebung', () => {
     expect(pruefeKopie()).toEqual([]);
   });
-});
 
-const ROOT = fileURLToPath(new URL('../../', import.meta.url));
+  it('holds exactly the files of its stamp, each with its SHA-256, checker included', () => {
+    expect(copyDeviations(COPY)).toEqual([]);
+    const stamp = JSON.parse(readFileSync(join(COPY, 'testrahmen.json'), 'utf8')) as {
+      dateien: Record<string, string>;
+    };
+    expect(Object.keys(stamp.dateien)).toEqual(
+      expect.arrayContaining(['testrahmen.js', 'testrahmen.css', 'pruefen.mjs', 'pruefen.d.mts']),
+    );
+  });
+
+  it('finds a foreign file, a missing file and an edited checker in a copy of the folder', () => {
+    const folder = mkdtempSync(join(tmpdir(), 'testrahmen-'));
+    try {
+      cpSync(COPY, folder, { recursive: true });
+      writeFileSync(join(folder, 'hilfe.ts'), 'void fetch("/");\n');
+      rmSync(join(folder, 'LIESMICH.md'));
+      appendFileSync(join(folder, 'pruefen.mjs'), '\n');
+      expect(copyDeviations(folder).sort()).toEqual([
+        'LIESMICH.md: missing',
+        'hilfe.ts: not in testrahmen.json',
+        'pruefen.mjs: changed',
+      ]);
+    } finally {
+      rmSync(folder, { recursive: true, force: true });
+    }
+  });
+});
 const MANUAL = join(ROOT, 'manual_tests');
 
 /** manual_tests/0X_*.md as the test version bundles them (src/testArea.tsx, the same pattern). */

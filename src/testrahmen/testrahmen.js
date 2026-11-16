@@ -1,5 +1,5 @@
 // GENERATED from Testumgebung (testrahmen/) by `npm run rahmen` — do not edit here: change it
-// there and copy it again. Stand 1037e8e. Checked by pruefen.mjs against testrahmen.json.
+// there and copy it again. Stand 2645a15. Checked by pruefen.mjs against testrahmen.json.
 // Test reports without free text (Tobias 2026-11-15, docs/testbericht.md). Pure and import-free:
 // the build puts it into every script ahead of logik.ts, which answers the routes
 // (`POST /_zugang/bericht`, `/_zugang/berichte`).
@@ -986,6 +986,8 @@ function decodeRun(raw         )          {
                        
                       
                                                     
+                                                                                                         
+                    
                    
               
  
@@ -1070,9 +1072,13 @@ const STATUS_LABELS                                   = {
   'nicht-bestanden': 'nicht bestanden',
 };
 
+/** Done on the running build: a result given on it. One of an earlier build is to be tested again. */
+const doneHere = (entry                      , running                                    )          =>
+  entry?.result !== undefined && !fromOlderBuild(entry, running);
+
 function header(state           , info          )         {
   const ids = state.catalogue.map((c) => c.id);
-  const totals = totalsOf(state.run, ids);
+  const totals = totalsOf(state.run, ids.filter((id) => !fromOlderBuild(state.run.entries[id], info)));
   const summary = `${totals.tested} von ${ids.length} getestet · ${totals.passed} bestanden · ${totals.failed} nicht bestanden`;
   return [
     '<header class="tr-kopf">',
@@ -1089,6 +1095,9 @@ function header(state           , info          )         {
     '</div>',
     `<p class="tr-stand">${esc(summary)}</p>`,
     ...info.problems.map((problem) => `<p class="tr-meldung tr-fehler" role="alert">${esc(problem)}</p>`),
+    state.unsaved
+      ? '<p class="tr-meldung tr-fehler" role="alert">Dieser Browser speichert die Ergebnisse nicht (z. B. ein privates Fenster oder gesperrter Speicher). Sie gehen verloren, wenn die Seite neu lädt oder schließt: bitte vorher „Bericht senden“.</p>'
+      : '',
     state.message
       ? `<p class="tr-meldung tr-${state.message.kind}" role="status">${esc(state.message.text)}</p>`
       : '',
@@ -1123,7 +1132,7 @@ function overview(state           , info          )         {
   const areas = new Map                         ();
   for (const c of state.catalogue) areas.set(c.area, [...(areas.get(c.area) ?? []), c]);
   const sections = [...areas].map(([area, cases]) => {
-    const shown = cases.filter((c) => !state.hideDone || state.run.entries[c.id]?.result === undefined);
+    const shown = cases.filter((c) => !state.hideDone || !doneHere(state.run.entries[c.id], info));
     if (shown.length === 0) return '';
     const boxes = shown.map((c) => {
       const status = statusOf(state.run, c.id);
@@ -1311,6 +1320,9 @@ function panelHtml(state           , info          )         {
                   
  
 
+/** How much more than the store a tab must have measured before it stores its clock (adoptStored). */
+const AHEAD_SECONDS = 2;
+
 export const BERICHT_ADRESSE = '/_zugang/bericht';
 export const EINLADEN_ADRESSE = '/_zugang/einladen';
 
@@ -1402,6 +1414,7 @@ export function starteTestrahmen(ziel             , anbindung           , option
     tab: 'tests',
     sending: false,
     now: now(),
+    ...(store ? {} : { unsaved: true }),
   };
 
   // The frame: tabs (narrow screens only), the app, the test side.
@@ -1427,10 +1440,13 @@ export function starteTestrahmen(ziel             , anbindung           , option
   ziel.append(huelle);
 
   const save = () => {
+    if (!store) return;
     try {
-      store?.setItem(key, JSON.stringify({ run: state.run, open: state.open, hideDone: state.hideDone }));
+      store.setItem(key, JSON.stringify({ run: state.run, open: state.open, hideDone: state.hideDone }));
+      if (state.unsaved) state = { ...state, unsaved: false };
     } catch {
-      // A full or blocked storage: the page goes on, the results stay for this visit.
+      // A full or blocked storage: the page goes on, the results stay for this visit, and it says so.
+      state = { ...state, unsaved: true };
     }
   };
 
@@ -1531,8 +1547,15 @@ export function starteTestrahmen(ziel             , anbindung           , option
       message = { kind: 'ok', text: plan.reports.length > 1 ? `${outcome.message} (${plan.reports.length} Berichte, je Fassung einer)` : outcome.message };
     }
     // Back to the button only when the tester has not gone on elsewhere (e.g. into the app).
-    const stayed = doc.activeElement === null || doc.activeElement === doc.body || feld.contains(doc.activeElement);
-    change({ sending: false, message }, stayed ? 'frage-senden' : undefined);
+    // Only while the focus is still on the button: anyone who went on (in the app or on the test side)
+    // keeps his place; the message stands on top without being scrolled to.
+    const stayed = doc.activeElement instanceof win.HTMLElement && doc.activeElement.dataset.fokus === 'frage-senden';
+    if (stayed) change({ sending: false, message }, 'frage-senden');
+    else {
+      state = { ...state, sending: false, message };
+      save();
+      render();
+    }
   }
 
   const openCase = (id        ) => {
@@ -1556,7 +1579,7 @@ export function starteTestrahmen(ziel             , anbindung           , option
         break;
       case 'uebersicht':
         // A test hidden as done cannot take the focus: the checkbox above the list does.
-        change({ run: state.open === undefined ? state.run : leaveTest(state.run, state.open, now()), open: undefined }, state.open === undefined ? undefined : state.hideDone && state.run.entries[state.open]?.result !== undefined ? 'erledigte' : `test-${state.open}`, true);
+        change({ run: state.open === undefined ? state.run : leaveTest(state.run, state.open, now()), open: undefined }, state.open === undefined ? undefined : state.hideDone && doneHere(state.run.entries[state.open], anbindung) ? 'erledigte' : `test-${state.open}`, true);
         break;
       case 'ergebnis':
         if (id && (wert === 'bestanden' || wert === 'nicht bestanden')) {
@@ -1615,15 +1638,24 @@ export function starteTestrahmen(ziel             , anbindung           , option
   const adoptStored = () => {
     const saved = readSaved(store, key);
     let run = saved.run;
+    let ahead = false;
     if (state.open !== undefined) {
       const own = state.run.entries[state.open];
       const theirs = saved.run.entries[state.open];
       if (own?.openedAt !== undefined && theirs?.result === undefined) {
         const extra = (theirs?.seconds ?? 0) - (own.seconds + (now() - own.openedAt) / 1000);
         run = { entries: { ...run.entries, [state.open]: extra > 0 ? { ...own, openedAt: own.openedAt - extra * 1000 } : own } };
+        // This tab measured clearly more than the store holds (two windows side by side, neither
+        // hidden): store it, so a result given in the other tab carries it. Above the 1 s the stored
+        // whole seconds may lose, so two tabs never keep answering each other.
+        ahead = extra < -AHEAD_SECONDS;
       } else run = openTest(run, state.open, now());
     }
     state = { ...state, run, hideDone: saved.hideDone };
+    if (ahead && state.open !== undefined) {
+      state = { ...state, run: checkpoint(state.run, state.open, now()) };
+      save();
+    }
   };
   const onStorage = (event              ) => {
     if (event.key !== key) return;

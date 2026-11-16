@@ -169,11 +169,16 @@ test('folds the rows without a value, links to the sections and keeps the notice
   await expect(page.locator('.lead li')).toHaveCount(3);
   await upload(page, 'cen.xml', official('cen/CII_example2.xml'), 'application/xml');
 
-  // G-1: rows "nur im Einzelfall nötig" without a value are closed, one click away
+  // G-1: rows "nur im Einzelfall nötig" without a value are closed, one click away; the fold-out
+  // names them with the word of their badges, not „in besonderen Fällen“, the name of the section
+  // below (audit R2-U-07)
   const folded = page.getByTestId('folded-rows').first();
   await expect(folded.locator('summary')).toHaveText(
-    /^(\d+ Angaben, die nur in besonderen Fällen nötig sind|Eine Angabe, die nur in besonderen Fällen nötig ist)$/,
+    /^(\d+ Angaben „nur im Einzelfall nötig“ \(nicht in der XML\)|Eine Angabe „nur im Einzelfall nötig“ \(nicht in der XML\))$/,
   );
+  const badges = await folded.getByTestId('status').allTextContents();
+  expect(badges.length).toBeGreaterThan(0);
+  for (const badge of badges) await expect(folded.locator('summary')).toContainText(`„${badge}“`);
   await expect(folded.locator('tbody tr').first()).toBeHidden();
   await folded.locator('summary').click();
   await expect(folded.locator('tbody tr').first()).toBeVisible();

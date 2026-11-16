@@ -143,8 +143,16 @@
   .tr-huelle[data-reiter="tests"] .tr-app { display: none; }
 }
 
+/* Printed, the page is the app alone, at its full length. */
+@media print {
+  .tr-huelle { display: block; height: auto; }
+  .tr-reiter, .tr-feld { display: none !important; }
+  .tr-huelle .tr-app { display: block !important; overflow: visible; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .tr-huelle * { scroll-behavior: auto; }
 }
 
-.tr-feld code, .tr-feld a { overflow-wrap: break-word; }
+/* Long paths and names break inside the line instead of widening the side (inherited). */
+.tr-feld { overflow-wrap: break-word; }

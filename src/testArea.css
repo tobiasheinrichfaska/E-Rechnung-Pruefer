@@ -1,0 +1,86 @@
+/* The test version only (src/testArea.tsx imports it after app.css; the live build never sees it).
+   The shared test frame (src/testrahmen/, a copy that is never edited) puts the test page beside the
+   tool from a window of 900 px, which leaves the tool 460–640 px. Its phone layout in app.css asks
+   the window's width, so there it kept the three-column table in too little room: the values column
+   shrank to 54–126 px and words broke inside (audit R2-U-01). Here the same rules follow the tool's
+   own width: the frame's tool container is a query container, and the block below is a copy of the
+   Pflichtangaben block of app.css (tests/static/testAreaStyle.test.ts keeps them equal). The title
+   block ("auswählen" instead of "ziehen") is left out: beside the test page the tool runs on a
+   computer, where files can be dragged. Browsers without container queries keep the table. */
+.tr-app {
+  container: werkzeug / inline-size;
+}
+
+/* A narrow tool: one block per row – label and status side by side, the values below (app.css). */
+@container werkzeug (max-width: 640px) {
+  .details th,
+  .details td {
+    display: block;
+    width: auto;
+    padding: 0;
+    border: 0;
+  }
+
+  .details th {
+    padding-top: 6px;
+  }
+
+  .details tr {
+    display: block;
+    border-bottom: 1px solid var(--panel);
+    padding-bottom: 4px;
+  }
+
+  /* Hidden for the eye only: screen readers keep the column headers (audit 2026-11-14, U-13) */
+  .pflicht-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .pflicht-table,
+  .pflicht-table tbody {
+    display: block;
+  }
+
+  .pflicht-table tr {
+    display: grid;
+    /* minmax(0, …): a long label word must not push the status badge out of the screen;
+       min-content: the badge wraps ("nur im / Einzelfall / nötig"), so the label keeps its width
+       instead of breaking inside words (audit Bedienung, Z-01/A-05) */
+    grid-template-columns: minmax(0, 1fr) min-content;
+    column-gap: 8px;
+    border-bottom: 1px solid var(--line);
+    padding: 8px 0;
+  }
+
+  .pflicht-table td,
+  .pflicht-table tbody th,
+  .pflicht-table td:last-child {
+    width: auto;
+    border: 0;
+    padding: 0;
+  }
+
+  .pflicht-table tbody th {
+    grid-column: 1;
+    grid-row: 1;
+    font-weight: 500;
+  }
+
+  .pflicht-table td:last-child {
+    grid-column: 2;
+    grid-row: 1;
+    white-space: normal;
+    text-align: right;
+  }
+
+  .pflicht-table td:nth-child(2) {
+    grid-column: 1 / span 2;
+    grid-row: 2;
+    margin-top: 4px;
+  }
+}
