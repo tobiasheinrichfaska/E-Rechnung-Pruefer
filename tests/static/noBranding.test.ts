@@ -1,7 +1,18 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readlinkSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+  type Stats,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { configFile, loadAppConfig } from '../../src/build/kanzleiConfig';
 import type { AppConfig } from '../../src/logic/appConfig';
@@ -11,10 +22,13 @@ import type { AppConfig } from '../../src/logic/appConfig';
 // it that names the Kanzlei (the first one, and any with a word of the private name list), nor a
 // name form of that list, nor the domain of the Impressum or privacy address. A copy wrapped by an
 // editor or quoted in Markdown counts as well (audit 2026-11-15, QT-04/QS-03): whitespace and `>`
-// quote markers are ignored, case too; every tracked file is also searched as bytes (PDF, ZIP …),
-// and so are the commit messages, authors and committers of HEAD's history. So is every file of
-// every commit that no remote has yet (audit 2026-11-15, R2-S-05): a find committed and removed
-// again by a later commit is still published by the push, and only a force-push takes it out.
+// quote markers are ignored, case too; every file a commit could take — tracked or new and not
+// ignored (audit 2026-11-16, R3-T-02) — is also searched as bytes (PDF, ZIP …), and so are the
+// commit messages, authors and committers of the history of HEAD and every local branch. So is
+// every file of every commit that no remote has yet (audit 2026-11-15, R2-S-05): a find committed
+// and removed again by a later commit is still published by the push, and only a force-push takes
+// it out. The paths count too (R3-S-04): a file named after the Kanzlei or its domain, in the
+// working copy or in an unpublished commit, compared as letters and digits only.
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
 // Only the real configuration counts, never the invented one KANZLEI_CONFIG may name (QT-01).
@@ -49,18 +63,45 @@ export function secretsOf(settings: AppConfig, names: readonly string[]): string
   const named = sentences.filter(
     (sentence, i) => i === 0 || names.some((name) => sentence.includes(normalized(name))),
   );
-  const domains = [settings.imprintUrl, settings.privacyUrl]
-    .filter((url): url is string => url !== undefined)
-    // the registrable domain (e.g. "kanzlei-beispiel.de"), whatever subdomain a page uses
-    .map((url) => new URL(url).hostname.split('.').slice(-2).join('.'));
   return [
     ...new Set([
       ...(notice === '' ? [] : [notice]),
       ...named,
       ...names.map(normalized),
-      ...domains,
+      ...domainsOf(settings),
     ]),
   ].filter((secret) => secret !== '');
+}
+
+/** The registrable domain of each link (e.g. "kanzlei-beispiel.de"), whatever subdomain it uses. */
+function domainsOf(settings: AppConfig): string[] {
+  return [settings.imprintUrl, settings.privacyUrl]
+    .filter((url): url is string => url !== undefined)
+    .map((url) => new URL(url).hostname.split('.').slice(-2).join('.'));
+}
+
+/**
+ * Letters and digits only, lower case, accents dropped: "Erika_Probe.PDF", "erika-probe" and
+ * "ErikaProbe" all give "erikaprobe" (audit 2026-11-16, R3-S-04). The same form on both sides.
+ */
+export function squashed(text: string): string {
+  return text
+    .normalize('NFKD')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, '');
+}
+
+/** What a path must not hold, squashed: each name of the list and each link domain. */
+export function pathSecretsOf(settings: AppConfig, names: readonly string[]): string[] {
+  return [...new Set([...names, ...domainsOf(settings)].map(squashed))].filter(
+    (secret) => secret !== '',
+  );
+}
+
+/** Whether a path (folders included) names the Kanzlei or its domain. */
+export function pathLeaks(path: string, secrets: readonly string[]): boolean {
+  const form = squashed(path);
+  return secrets.some((secret) => form.includes(secret));
 }
 
 /**
@@ -108,13 +149,59 @@ function gitReads(cwd: string): boolean {
 }
 
 /**
+ * The commits that no remote has yet, on HEAD and on every local branch: HEAD for a detached
+ * checkout, the branches for a push of another one (audit 2026-11-16, R3-S-04).
+ */
+const UNPUBLISHED = ['HEAD', '--branches', '--not', '--remotes'];
+
+/**
+ * The files a commit could take now: every tracked file and every new one that is not ignored
+ * (audit 2026-11-16, R3-T-02), with the content of a regular file and the target of a link — what
+ * git would store — but never a linked folder followed (a linked node_modules or
+ * tests/fixtures/lokal) and nothing for a file deleted since.
+ */
+export function workingFiles(git: Git, root: string): { path: string; content?: Buffer }[] {
+  const paths = git(['ls-files', '-z', '--cached', '--others', '--exclude-standard'])
+    .toString('utf8')
+    .split('\0')
+    .filter((name) => name !== '');
+  return [...new Set(paths)].map((path) => {
+    const full = join(root, path);
+    let stat: Stats;
+    try {
+      stat = lstatSync(full);
+    } catch {
+      return { path };
+    }
+    if (stat.isFile()) return { path, content: readFileSync(full) };
+    if (stat.isSymbolicLink()) return { path, content: readlinkSync(full, 'buffer') };
+    return { path };
+  });
+}
+
+/**
+ * Every path that a commit no remote has yet adds, changes or removes, i.e. what the next push
+ * would publish by name; folders are part of each path. One git process, whatever the count.
+ */
+export function unpublishedPaths(git: Git): string[] {
+  const names = git([
+    ...['log', '-z', '--root', '--no-color', '--format=', '--name-only', '--no-renames'],
+    ...['--diff-merges=first-parent', ...UNPUBLISHED],
+  ])
+    .toString('utf8')
+    .split('\0')
+    .filter((name) => name !== '');
+  return [...new Set(names)];
+}
+
+/**
  * Every file content (blob) of the commits that no remote has yet, i.e. what the next push would
- * publish — without a remote every commit of HEAD. Three git processes, whatever the count.
+ * publish — without a remote every commit. Three git processes, whatever the count.
  */
 export function unpublishedBlobs(git: Git): { path: string; content: Buffer }[] {
   // "<sha>" for a commit, "<sha> <path>" for a tree or a blob
   const pathOf = new Map(
-    git(['rev-list', '--objects', 'HEAD', '--not', '--remotes'])
+    git(['rev-list', '--objects', ...UNPUBLISHED])
       .toString('utf8')
       .split('\n')
       .filter((line) => line !== '')
@@ -148,6 +235,7 @@ export function unpublishedBlobs(git: Git): { path: string; content: Buffer }[] 
 }
 
 const secrets = secretsOf(config, brands);
+const pathSecrets = pathSecretsOf(config, brands);
 const repoReadable = gitReads(ROOT);
 
 /** Why the scan of this repo cannot run here; undefined when it can. */
@@ -186,12 +274,15 @@ describe('the Kanzlei configuration stays out of the public repo', () => {
     expect(leak('> Ein Hilfsmittel der [Kanzlei]. Er ist kostenlos.')).toBe(false);
   });
 
-  it('finds an invented name that a later unpublished commit removed again, until a remote has it', (ctx) => {
-    ctx.skip(!repoReadable, 'git cannot read this checkout (no git, or no .git)');
+  /** A repository of its own in a temporary folder, with a commit helper; removed afterwards. */
+  function inProbeRepo(
+    run: (folder: string, git: Git, commit: (file: string, text: string) => void) => void,
+  ) {
     const folder = mkdtempSync(join(tmpdir(), 'nobranding-'));
     try {
       const git = gitIn(folder);
       const commit = (file: string, text: string) => {
+        mkdirSync(dirname(join(folder, file)), { recursive: true });
         writeFileSync(join(folder, file), text);
         git(['add', file]);
         git([
@@ -200,6 +291,15 @@ describe('the Kanzlei configuration stays out of the public repo', () => {
         ]);
       };
       git(['init', '-q']);
+      run(folder, git, commit);
+    } finally {
+      rmSync(folder, { recursive: true, force: true });
+    }
+  }
+
+  it('finds an invented name that a later unpublished commit removed again, until a remote has it', (ctx) => {
+    ctx.skip(!repoReadable, 'git cannot read this checkout (no git, or no .git)');
+    inProbeRepo((folder, git, commit) => {
       commit('a.md', 'Die Kanzlei Erika Probe bietet das Tool an.\n');
       commit('a.md', 'Die [Kanzlei] bietet das Tool an.\n');
       commit('b.pdf', 'BT (Erika Probe) Tj\n');
@@ -216,26 +316,100 @@ describe('the Kanzlei configuration stays out of the public repo', () => {
       expect(unpublishedBlobs(git).map((blob) => blob.path)).toEqual(['b.pdf']);
       git(['update-ref', 'refs/remotes/origin/main', 'HEAD']);
       expect(unpublishedBlobs(git)).toEqual([]);
-    } finally {
-      rmSync(folder, { recursive: true, force: true });
-    }
+    });
   });
 
-  it('keeps the notice, its sentences naming the Kanzlei, the private name list and the link domains out of every tracked file, every unpublished commit and every commit message', (ctx) => {
+  it('finds an invented name in a new file, in a file name and on another branch or a detached HEAD, never following a link', (ctx) => {
+    ctx.skip(!repoReadable, 'git cannot read this checkout (no git, or no .git)');
+    const settings: AppConfig = { imprintUrl: 'https://www.kanzlei-probe.example/impressum' };
+    const found = secretsOf(settings, ['Erika Probe']);
+    const named = pathSecretsOf(settings, ['Erika Probe']);
+    expect(named).toEqual(['erikaprobe', 'kanzleiprobeexample']);
+    // hyphens, dots, underscores, case, folders and accents do not hide a name; other names pass
+    for (const path of ['docs/erika-probe.pdf', 'Erika_Probe.PNG', 'x/ERIKA/probe.md'])
+      expect(pathLeaks(path, named), path).toBe(true);
+    expect(pathLeaks('bilder/kanzlei-probe.example.png', named)).toBe(true);
+    expect(pathLeaks(`${'Erika Pro'}${String.fromCodePoint(0x0301)}be.md`, named)).toBe(true);
+    expect(pathLeaks('docs/erika-muster.pdf', named)).toBe(false);
+    inProbeRepo((folder, git, commit) => {
+      commit('.gitignore', 'geheim/\n');
+      commit('neutral.md', 'Nichts.\n');
+      // new and not yet added: a file naming the Kanzlei, a file named after it, an ignored one
+      writeFileSync(join(folder, 'neu.md'), 'Die Kanzlei Erika Probe.\n');
+      writeFileSync(join(folder, 'erika-probe.txt'), 'Nichts.\n');
+      mkdirSync(join(folder, 'geheim'));
+      writeFileSync(join(folder, 'geheim', 'x.md'), 'Die Kanzlei Erika Probe.\n');
+      // a linked folder (like node_modules or tests/fixtures/lokal) is listed but never read
+      const outside = mkdtempSync(join(tmpdir(), 'nobranding-ziel-'));
+      try {
+        writeFileSync(join(outside, 'y.md'), 'Die Kanzlei Erika Probe.\n');
+        symlinkSync(outside, join(folder, 'verweis'), 'junction');
+        const files = workingFiles(git, folder);
+        expect(files.map((file) => file.path).sort()).toEqual(
+          ['.gitignore', 'erika-probe.txt', 'neu.md', 'neutral.md', 'verweis'].sort(),
+        );
+        const leaking = files.filter((file) => file.content && leaks(file.content, found));
+        expect(leaking.map((file) => file.path)).toEqual(['neu.md']);
+        expect(files.filter((file) => pathLeaks(file.path, named))).toHaveLength(1);
+        // what git would store for the link: its target, not the folder's files
+        expect(files.find((file) => file.path === 'verweis')?.content?.toString()).toContain(
+          basename(outside),
+        );
+      } finally {
+        rmSync(outside, { recursive: true, force: true });
+      }
+      rmSync(join(folder, 'neu.md'));
+      rmSync(join(folder, 'erika-probe.txt'));
+      rmSync(join(folder, 'verweis'));
+      // a name committed and renamed away again is still in the unpublished commits
+      commit('docs/Erika_Probe.png', 'Bild\n');
+      git(['mv', 'docs/Erika_Probe.png', 'docs/bild.png']);
+      commit('docs/bild.png', 'Bild\n');
+      expect(workingFiles(git, folder).filter((file) => pathLeaks(file.path, named))).toEqual([]);
+      expect(unpublishedPaths(git).filter((path) => pathLeaks(path, named))).toHaveLength(1);
+      git(['update-ref', 'refs/remotes/origin/main', 'HEAD']);
+      expect(unpublishedPaths(git)).toEqual([]);
+      // a commit on another local branch, then one on a detached HEAD
+      git(['checkout', '-q', '-b', 'andere']);
+      commit('erika.probe.md', 'Nichts.\n');
+      commit('andere.md', 'Die Kanzlei Erika Probe.\n');
+      git(['checkout', '-q', 'HEAD~2']);
+      expect(unpublishedPaths(git).sort()).toEqual(['andere.md', 'erika.probe.md']);
+      expect(unpublishedBlobs(git).filter((blob) => leaks(blob.content, found))).toHaveLength(1);
+      git(['branch', '-q', '-D', 'andere']);
+      commit('abgeloest.md', 'Die Kanzlei Erika Probe.\n');
+      expect(unpublishedPaths(git)).toEqual(['abgeloest.md']);
+      expect(unpublishedBlobs(git).filter((blob) => leaks(blob.content, found))).toHaveLength(1);
+    });
+  });
+
+  it('keeps the notice, its sentences naming the Kanzlei, the private name list and the link domains out of every file a commit could take, every unpublished commit and every commit message, and the names and domains out of every path', (ctx) => {
     ctx.skip(scanSkipped !== undefined, scanSkipped);
     const git = gitIn(ROOT);
-    const files = git(['ls-files', '-z'])
-      .toString('utf8')
-      .split('\0')
-      .filter((name) => name !== '');
+    // a path that names the Kanzlei is never printed: it would carry the name into the output
+    const shown = (path: string) =>
+      pathLeaks(path, pathSecrets) ? '(a path that names the Kanzlei)' : path;
+    const files = workingFiles(git, ROOT);
     expect(files.length).toBeGreaterThan(100);
-    const leaking = files.filter((name) => leaks(readFileSync(`${ROOT}${name}`), secrets));
-    expect(leaking).toEqual([]);
+    const leaking = files.filter((file) => file.content && leaks(file.content, secrets));
+    expect(leaking.map((file) => shown(file.path))).toEqual([]);
     // the files of the commits a push would publish, also those removed again since
     const unpublished = unpublishedBlobs(git).filter((blob) => leaks(blob.content, secrets));
-    expect(unpublished.map((blob) => blob.path)).toEqual([]);
+    expect(unpublished.map((blob) => shown(blob.path))).toEqual([]);
+    // the paths of the working copy and of those commits, as a count only
+    const paths = [...files.map((file) => file.path), ...unpublishedPaths(git)];
+    expect(
+      paths.filter((path) => pathLeaks(path, pathSecrets)).length,
+      'paths that name the Kanzlei (not shown)',
+    ).toBe(0);
     // the history as far as this clone has it (GitHub's checkout fetches one commit)
-    const messages = git(['log', '--format=%B%n%an%n%ae%n%cn%n%ce', 'HEAD']);
+    const messages = git([
+      'log',
+      '--no-color',
+      '--format=%B%n%an%n%ae%n%cn%n%ce',
+      'HEAD',
+      '--branches',
+    ]);
     expect(leaks(messages, secrets)).toBe(false);
   });
 });
