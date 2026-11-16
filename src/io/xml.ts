@@ -22,9 +22,14 @@ export const MAX_XML_BYTES = 20 * 1024 * 1024;
  * No network, no external entities, no entity substitution — untrusted input. HUGE lifts libxml2's
  * limit of 10 MB per text node: an XRechnung may embed an attachment (BG-24) of that size as base64
  * (audit 2026-11-14, S-02). The file limit MAX_XML_BYTES and the entity amplification limit stay.
+ * BIG_LINES keeps the real line of an element behind line 65535; without it every schema message
+ * there named line 65535 (audit 2026-11-15, R2-S-02).
  */
 const SAFE_PARSE =
-  ParseOption.XML_PARSE_NONET | ParseOption.XML_PARSE_NO_XXE | ParseOption.XML_PARSE_HUGE;
+  ParseOption.XML_PARSE_NONET |
+  ParseOption.XML_PARSE_NO_XXE |
+  ParseOption.XML_PARSE_HUGE |
+  ParseOption.XML_PARSE_BIG_LINES;
 
 export interface XmlProblem {
   message: string;
