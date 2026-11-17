@@ -205,10 +205,14 @@ function JumpLinks({
 }
 
 /**
- * F27/G-8: two invoice XML with different data — the compared values side by side. On a phone the
- * table becomes blocks and its column headers go out of sight, so each value names its attachment
- * there; screen readers keep the column headers and skip the name (aria-hidden, audit R3-U-06).
- * Below it the schema messages of each part (audit R4-U-02).
+ * F27/G-8: two invoice XML with different data — the compared values side by side. Each Angabe
+ * stands above its values as the header of its row group, so the values share the whole width of
+ * the card: in a column of its own beside them the label took a third, and with a wider font (CI)
+ * „Umsatzsteuerkategorie“ broke inside in the values at 641 px and on paper (audit R4-U-03). On a
+ * phone the table becomes blocks and its column headers go out of sight, so each value names its
+ * attachment there; screen readers keep the column headers and skip the name (aria-hidden, audit
+ * R3-U-06), and `headers` names both headers of each value. Below it the schema messages of each
+ * part (audit R4-U-02).
  */
 function Comparison({
   analysis,
@@ -225,24 +229,23 @@ function Comparison({
       <table className="details comparison" aria-labelledby="vergleich" data-testid="comparison">
         <thead>
           <tr>
-            <th scope="col">
-              <span className="visually-hidden">Angabe</span>
-            </th>
             {analysis.invoices.map((part, index) => (
-              <th scope="col" key={`${part.origin}-${index}`}>
+              <th scope="col" id={`vergleich-teil-${index}`} key={`${part.origin}-${index}`}>
                 {part.origin}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody>
-          {rows.slice(1).map((row) => (
-            <tr key={row.label} className={row.differs ? 'differs' : undefined}>
-              <th scope="row">
+        {rows.slice(1).map((row, rowIndex) => (
+          <tbody key={row.label} className={row.differs ? 'differs' : undefined}>
+            <tr>
+              <th scope="rowgroup" colSpan={names.length} id={`vergleich-angabe-${rowIndex}`}>
                 <Codes text={row.label} />
               </th>
+            </tr>
+            <tr>
               {row.values.map((value, index) => (
-                <td key={index}>
+                <td key={index} headers={`vergleich-angabe-${rowIndex} vergleich-teil-${index}`}>
                   <span className="part-name" aria-hidden="true">
                     {names[index]}:{' '}
                   </span>
@@ -250,8 +253,8 @@ function Comparison({
                 </td>
               ))}
             </tr>
-          ))}
-        </tbody>
+          </tbody>
+        ))}
       </table>
       <SchemaLists invoices={invoices} />
     </div>

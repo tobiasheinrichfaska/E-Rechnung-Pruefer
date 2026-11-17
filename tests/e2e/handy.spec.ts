@@ -105,13 +105,13 @@ test('names the attachment of each compared value on a phone', async ({ page }) 
     'application/pdf',
   );
   const comparison = page.getByRole('table', { name: 'Vergleich der Rechnungsdaten' });
-  const cells = comparison.locator('tr.differs td');
+  const cells = comparison.locator('.differs td');
   await expect(cells).toHaveCount(2);
   await expect(cells.nth(0)).toHaveText(/^erste\.xml: \S/, { useInnerText: true });
   await expect(cells.nth(1)).toHaveText('zweite.xml: X-2', { useInnerText: true });
   // every value of the table, not only the differing one
-  const rows = await comparison.locator('tbody tr').count();
-  await expect(comparison.locator('tbody .part-name:visible')).toHaveCount(rows * 2);
+  const items = await comparison.locator('tbody').count();
+  await expect(comparison.locator('tbody .part-name:visible')).toHaveCount(items * 2);
   // the names on top are out of sight, but screen readers keep the column headers and skip the
   // names in the cells
   expect((await comparison.locator('thead').boundingBox())?.height ?? 0).toBeLessThanOrEqual(1);
@@ -178,7 +178,7 @@ test('keeps codes, rates and margin numbers on one line, also on a phone', async
 function brokenWords(page: Page, root = 'main'): Promise<string[]> {
   return page.evaluate((selector) => {
     const found = new Set<string>();
-    for (const row of document.querySelectorAll(`${selector} .comparison tbody tr`)) {
+    for (const row of document.querySelectorAll(`${selector} .comparison tbody`)) {
       if (row.querySelector('th')?.textContent?.includes('(BT-24)')) continue;
       const walker = document.createTreeWalker(row, NodeFilter.SHOW_TEXT);
       for (let node = walker.nextNode(); node; node = walker.nextNode()) {
