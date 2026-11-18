@@ -12,7 +12,12 @@ import { checkPflichtangaben } from '../../src/logic/check';
 import { syntaxOf } from '../../src/logic/syntax';
 import type { PdfJsLike } from '../../src/io/pdf';
 import { TEXTS, fill } from '../../src/logic/texts';
-import { comparisonRows, differingLine, verdictOf } from '../../src/logic/verdict';
+import {
+  comparisonRows,
+  differingLine,
+  differingResults,
+  verdictOf,
+} from '../../src/logic/verdict';
 import { encode, official, officialText, withInvoiceNumber, withSpecId } from '../support/fixtures';
 import { compressedPdf } from '../../src/build/compressedPdf';
 import { miniPdf } from '../../src/build/minipdf';
@@ -718,9 +723,14 @@ describe('two invoice XML of the same invoice, written another way', () => {
       miniPdf({ attachments: [xml('a.xml', cii), xml('b.xml', comma)] }),
     );
     expect(verdict.comparison).toEqual({ same: false, differing: ['BT-112'] });
+    // the rules that cannot use it differ too: counted beside the total (audit R5-U-02)
     expect(differingLine(analysis.invoices, ['BT-112'])).toBe(
-      'Unterschiedlich: Gesamtbetrag mit Umsatzsteuer (336,90 / 336,90 – keine Zahl).',
+      'Unterschiedlich: Gesamtbetrag mit Umsatzsteuer (336,90 / 336,90 – keine Zahl). ' +
+        TEXTS.differingMoreOne,
     );
+    expect(differingResults(analysis.invoices, ['BT-112']).map((item) => item.label)).toEqual([
+      TEXTS.differingRules,
+    ]);
   });
 
   // Audit R4-U-01 (P6): a due amount that is no number read „336,90 EUR / 336,90“, only „EUR“

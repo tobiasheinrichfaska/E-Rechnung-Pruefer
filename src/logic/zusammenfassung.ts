@@ -48,7 +48,7 @@ export function resultText(input: ResultTextInput): string {
     '',
     fill(TEXTS.copyHeadline, { headline: input.verdict.headline }),
     ...(first !== undefined ? [first] : []),
-    ...(input.differing ? [input.differing] : []),
+    ...(input.differing ? [withoutPointers(input.differing)] : []),
     ...rest,
     ...(input.pflicht
       ? [
