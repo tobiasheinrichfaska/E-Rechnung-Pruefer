@@ -402,6 +402,18 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 
 ## Status / next step
 
+**2026-11-18 — quality audit, round 5 (version 0.10.4):** 11 findings, two medium, none refuted.
+Report: `docs/audit-qualitaet-2026-11-15.md`, section „Runde 5“.
+
+- **Logik:** BR-DEX-09 in place of BR-CO-16 for XRechnung UBL with Extension (R5-L-01); rates and
+  quantities that are no number marked (R5-L-02).
+- **Handling:** the jump link opens every schema list; other differences counted beside a differing
+  header value.
+- **Tests:** e2e with GitHub's font (`tests/e2e/fonts.conf`); the Kanzlei-data test shows no example
+  content and ignores other worktrees; tests for non-numbers and `headers`.
+- **For Tobias:** G-26; a wish to `Testumgebung` (R5-U-03). Before: PR #38 merged (0.10.3).
+- **Next:** round 6, then pause (Tobias 2026-11-17).
+
 **2026-11-16 — quality audit, round 4 (version 0.10.3):** 14 findings, all low.
 Report: `docs/audit-qualitaet-2026-11-15.md`, section „Runde 4“.
 

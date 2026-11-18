@@ -410,3 +410,56 @@ Vergleich: Runde 1 hatte 46, Runde 2 34, Runde 3 35 Befunde.
     Commits) wird gemeldet, mit dem Pfad und nie dem Text, und per PR entfernt.
   - **Dann:** Ein Treffer in der veröffentlichten Geschichte wird nur an Tobias gemeldet.
 - **F34** in `docs/offene-fragen.md`.
+
+## Runde 5 (18.11.2026)
+
+### Vorgehen
+
+- **Stand:** `dc93bc3`, nach der Unterbrechung durch das Wochenlimit fortgesetzt auf `main` `2a5dd51`
+  (0.10.3).
+- **Ablauf:** vier Prüf-Agenten, zwei Widerlegungs-Agenten, drei Behebungs-Agenten. Die Schwelle wie in
+  Runde 4.
+- **Messung mit der Schrift von GitHub:** Die Layout-Tests liefen hier mit DejaVu Sans, der Schrift der
+  GitHub-Runner (`tests/e2e/fonts.conf`).
+
+### Ergebnis
+
+11 Befunde, **zwei „mittel“**, sonst „niedrig“, keiner widerlegt. Einer ist ein Wunsch an
+`Testumgebung`.
+
+| Bereich           | Befunde | bestätigt | teilweise |
+| ----------------- | ------- | --------- | --------- |
+| Logik (R5-L)      | 2       | 2         | 0         |
+| Sicherheit (R5-S) | 2       | 2         | 0         |
+| Bedienung (R5-U)  | 3       | 3         | 0         |
+| Tests/Doku (R5-T) | 4       | 3         | 1         |
+
+### Behoben
+
+- **Logik:**
+  - XRechnung 3.0 mit Extension (UBL): Statt BR-CO-16 rechnet das Tool BR-DEX-09 mit den Zahlungen
+    Dritter (BG-DEX-09), wie das KoSIT-Schematron 3.0.2. Die amtliche Positiv-Instanz `05.01a` wurde
+    vorher gelb mit einer falschen Auffälligkeit bei den Beträgen (R5-L-01, mittel). Die Datei liegt
+    jetzt unter den amtlichen Testdateien.
+  - Ein Steuersatz oder eine Menge, die keine Zahl ist, steht wie geschrieben mit „– keine Zahl“ da,
+    ohne „%“ (R5-L-02).
+- **Bedienung:**
+  - Der Sprunglink „Technische Meldungen“ öffnet alle Listen der Schemameldungen (R5-U-01).
+  - Weicht ein Kopfwert ab, zählen Box und kopierter Text die übrigen Unterschiede in einem Satz; die
+    Vergleichstabelle zeigt sie (R5-U-02).
+- **Sicherheit und Tests:**
+  - Der Kanzleidaten-Test zeigt den Inhalt der Beispielkonfiguration nie (R5-S-01) und rechnet andere
+    Git-Arbeitskopien nicht zur veröffentlichten Geschichte (R5-S-02).
+  - Die E2E-Tests rendern lokal mit der Schrift von GitHub (R5-T-01, mittel). Ein Lauf mit dem alten
+    Layout von `dc93bc3` wird damit auch hier rot.
+  - Tests für die Werte, die keine Zahl sind (R5-T-03), und für `headers` der Vergleichstabelle
+    (R5-T-04); der Abschnitt „Runde 4“ nennt die Lage nach dem Zusammenführen (R5-T-02).
+- **Beobachtet nach dem Zusammenführen hier:** Typecheck, Lint, Format grün; Vitest 680 von 680; E2E
+  201 bestanden, 9 übersprungen.
+
+### Neue Fragen an Tobias
+
+- **G-26 (R5-U-02):** Wie viel soll ein Mandant über weitere Unterschiede lesen? Heute zählt die Box
+  sie nur, die Tabelle zeigt alle. Bei zwei ganz verschiedenen Rechnungen sind das 11 bis 15 Zeilen.
+- **Wunsch an `Testumgebung` (R5-U-03):** Links in den Handtests öffnen einen neuen Tab, ohne das für
+  Screenreader zu sagen (`testrahmen/src/ansicht.ts`). Die Kopie hier bleibt unverändert.
