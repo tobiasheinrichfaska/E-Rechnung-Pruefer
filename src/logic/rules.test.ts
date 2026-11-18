@@ -88,6 +88,29 @@ describe('calculation rules (step 3a)', () => {
     ).toEqual(['passt']);
   });
 
+  // Audit R6-T-01: BR-DEX-09 (XRechnung with Extension) with a rounding amount, and both sides
+  // rounded to cents as round(x * 100) div 100 in XRechnung-UBL-validation.xsl 3.0.2
+  it('BR-DEX-09 takes the rounding amount into account and rounds both sides', () => {
+    const dex = (totals: Spec, payments: string[]) => {
+      const result = rules({}, totals, { syntax: 'ubl-invoice', thirdPartyPayments: payments });
+      expect(status(result, 'BR-CO-16')).toEqual([]);
+      return result.results.find((r) => r.id === 'BR-DEX-09');
+    };
+    // 166.60 − 66.60 + (10.00 + 5.00) + 0.40 = 115.40
+    const rounded = { 'BT-113': '66.60', 'BT-114': '0.40' };
+    const fits = dex({ ...rounded, 'BT-115': '115.40' }, ['10.00', '5.00']);
+    expect(fits?.status).toBe('passt');
+    expect(fits?.values.at(-1)).toEqual({ label: TEXTS.ruleExpected, value: '115,40 EUR' });
+    // the amount due without the rounding amount
+    const without = dex({ ...rounded, 'BT-115': '115.00' }, ['10.00', '5.00']);
+    expect(without?.status).toBe('auffaellig');
+    expect(without?.values.at(-1)).toEqual({ label: TEXTS.ruleExpected, value: '115,40 EUR' });
+    // round(166.605 − 66.60 + 10.00) = round(110.005) = 110.01: fits only with the rounding
+    const third = { 'BT-112': '166.605', 'BT-113': '66.60' };
+    expect(dex({ ...third, 'BT-115': '110.01' }, ['10.00'])?.status).toBe('passt');
+    expect(dex({ ...third, 'BT-115': '110.00' }, ['10.00'])?.status).toBe('auffaellig');
+  });
+
   it('BR-CO-17 and BR-S-08 allow a difference below 1 (as the CEN Schematron does)', () => {
     const near = {
       'BG-23': [{ 'BT-116': '140.99', 'BT-117': '27.59', 'BT-118': 'S', 'BT-119': '19' }],
