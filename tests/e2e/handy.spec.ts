@@ -117,6 +117,34 @@ test('names the attachment of each compared value on a phone', async ({ page }) 
   expect((await comparison.locator('thead').boundingBox())?.height ?? 0).toBeLessThanOrEqual(1);
   await expect(comparison.getByRole('columnheader', { name: 'zweite.xml' })).toHaveCount(1);
   await expect(comparison.locator('.part-name').first()).toHaveAttribute('aria-hidden', 'true');
+  // there the pairing hangs on `headers` alone: the Angabe of its own row group, then the column
+  // header that names its attachment, each id once in the page (audit R5-T-04)
+  const pairing = await comparison.locator('td').evaluateAll((all) =>
+    all.flatMap((cell) => {
+      const ids = (cell.getAttribute('headers') ?? '').split(' ');
+      const [angabe, teil] = ids.map((id) => document.querySelectorAll(`[id="${id}"]`));
+      const column = (cell as HTMLTableCellElement).cellIndex;
+      const fault = [
+        ids.length !== 2 && 'not two ids',
+        angabe?.length !== 1 && 'Angabe not once',
+        teil?.length !== 1 && 'attachment not once',
+        !(
+          angabe?.[0]?.matches('th[scope="rowgroup"]') &&
+          angabe[0].closest('tbody') === cell.closest('tbody')
+        ) && 'not the header of its row group',
+        !(
+          teil?.[0]?.matches('thead th[scope="col"]') &&
+          (teil[0] as HTMLTableCellElement).cellIndex === column &&
+          (cell.querySelector('.part-name')?.textContent ?? '').startsWith(
+            teil[0].textContent ?? '?',
+          )
+        ) && 'not the header of its attachment',
+      ].filter(Boolean);
+      return fault.length > 0 ? [`${cell.getAttribute('headers')}: ${fault.join(', ')}`] : [];
+    }),
+  );
+  expect(pairing).toEqual([]);
+  expect(await comparison.locator('td').count()).toBe(items * 2);
   const sideways = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
