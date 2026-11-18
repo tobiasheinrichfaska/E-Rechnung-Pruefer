@@ -439,9 +439,9 @@ export const FUNCTIONS: { layer: string; signature: string; purpose: string }[] 
   },
   {
     layer: 'logic',
-    signature: 'differingResults(parts): { label; values }[]',
+    signature: 'differingResults(parts, header?): { label; values }[]',
     purpose:
-      'Bei gleichem Kopf: Pflichtangaben (fehlende Teile, Hinweise, Werte) und Rechenregeln, die sich zwischen den Rechnungs-XML unterscheiden — nach Wert und in beliebiger Reihenfolge, bei den Regeln nur Ergebnisse außer „passt“; nur ohne Unterschied gilt „dieselbe Rechnung“ (F27). Stimmen die Kurztexte überein, zeigt es die abweichenden Positionen, Aufschlüsselungen und Regeln',
+      'Bei gleichem Kopf: Pflichtangaben (fehlende Teile, Hinweise, Werte) und Rechenregeln, die sich zwischen den Rechnungs-XML unterscheiden — nach Wert und in beliebiger Reihenfolge, bei den Regeln nur Ergebnisse außer „passt“; nur ohne Unterschied gilt „dieselbe Rechnung“ (F27). Stimmen die Kurztexte überein, zeigt es die abweichenden Positionen, Aufschlüsselungen und Regeln. Mit `header` (abweichende Kopfwerte) ohne die Pflichtangaben, die nur diese Kopfwerte zeigen (R5-U-02)',
   },
   {
     layer: 'logic',

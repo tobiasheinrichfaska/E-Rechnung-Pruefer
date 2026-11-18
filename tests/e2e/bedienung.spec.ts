@@ -268,6 +268,34 @@ test('prints and copies the result for the Kanzlei (G-4)', async ({ page }) => {
   expect(differing).toMatch(/^Unterschiedlich: Rechnungsnummer/);
   expect(await copy()).toContain(`\n${differing}\n`);
 
+  // R5-U-02: another number and another rate — the rate was nowhere on the page; the box counts
+  // it, the table names it, the copy keeps the count without the pointer to the table
+  const pair = officialText('kosit/paare/01.01a-INVOICE_uncefact.xml');
+  const rate19 = withInvoiceNumber(pair, 'X-2').replace(
+    /(<ram:BasisAmount>314\.86<\/ram:BasisAmount>\s*<ram:CategoryCode>S<\/ram:CategoryCode>\s*<ram:RateApplicablePercent>)7(<\/ram:RateApplicablePercent>)/,
+    '$119$2',
+  );
+  expect(rate19).toContain('<ram:RateApplicablePercent>19</ram:RateApplicablePercent>');
+  await upload(
+    page,
+    'nummer-und-satz.pdf',
+    miniPdf({ attachments: [xml('a.xml', pair), xml('b.xml', rate19)] }),
+    'application/pdf',
+  );
+  const box = page.getByTestId('differing');
+  await expect(box).toHaveText(
+    /^Unterschiedlich: Rechnungsnummer \(.+ \/ X-2\)\. Außerdem weichen \d+ weitere Angaben oder Regeln ab \(siehe „Vergleich der Rechnungsdaten“\)\.$/,
+  );
+  const table = page.getByRole('table', { name: 'Vergleich der Rechnungsdaten' });
+  await expect(
+    table.locator('tbody.differs', { hasText: 'Anzuwendender Steuersatz' }),
+  ).toContainText('19\u00a0%');
+  // the Pflichtangabe „Rechnungsnummer“ only repeats BT-1: no second row for it
+  await expect(table.locator('tbody.differs th', { hasText: /^Rechnungsnummer/ })).toHaveCount(1);
+  const counted = await copy();
+  expect(counted).toMatch(/Außerdem weichen \d+ weitere Angaben oder Regeln ab\.\n/);
+  expect(counted).not.toContain('Vergleich der Rechnungsdaten');
+
   // R3-U-08: a mail has no „unten“ and no section to look at — the page's pointers stay out
   for (const sample of [
     '30_XRechnung_mit_Rechenfehler.xml',

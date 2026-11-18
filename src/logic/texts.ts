@@ -147,6 +147,11 @@ export const TEXTS = {
   checkedFile: 'Geprüfte Datei: „{name}“ – geprüft am {date} um {time} Uhr',
   differingLine: 'Unterschiedlich: {items}.',
   differingItem: '{label} ({values})',
+  /** R5-U-02: beside a differing header value, what else differs is only counted */
+  differingMoreOne:
+    'Außerdem weicht eine weitere Angabe oder Regel ab (siehe „Vergleich der Rechnungsdaten“).',
+  differingMore:
+    'Außerdem weichen {count} weitere Angaben oder Regeln ab (siehe „Vergleich der Rechnungsdaten“).',
   // QL-01: with the same header the Pflichtangaben or the rules of the parts may still differ
   differingWithHint: 'mit Hinweis',
   differingWithHints: 'mit {count} Hinweisen',
@@ -376,6 +381,7 @@ export const PAGE_POINTERS: readonly string[] = [
   ' (siehe unten)',
   ' (siehe „Pflichtangaben“)',
   ' (siehe „Rechnerische Prüfung“)',
+  ' (siehe „Vergleich der Rechnungsdaten“)',
 ];
 
 /** Replaces {name} placeholders. */

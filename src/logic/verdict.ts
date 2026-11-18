@@ -88,6 +88,8 @@ interface Outcome {
   /** Where the short texts agree, what differs is told from these (audit R2-L-02) */
   row?: RowResult;
   rules?: RulesResult;
+  /** The terms a Pflichtangabe shows ("BT-1" for „Rechnungsnummer“), none for the rules */
+  terms?: readonly string[];
 }
 
 const SHOWN_MAX = 120;
@@ -187,6 +189,7 @@ function outcomesOf(invoice: InvoiceVerdict): Outcome[] {
       signature: rowSignature(row),
       shown: rowShown(row, false),
       row,
+      terms: row.row.show.map((path) => path.split('/').pop() ?? path),
     }));
   const rules = rulesOf(invoice);
   return rules
@@ -319,7 +322,14 @@ function rulesDetails(results: readonly (RulesResult | undefined)[]): string[] {
  */
 export function differingResults(
   parts: readonly InvoicePart[],
+  header: readonly BtId[] = [],
 ): { label: string; values: string[] }[] {
+  // a Pflichtangabe that only shows a header value already named apart says nothing new
+  // („Rechnungsnummer“ beside BT-1, audit R5-U-02)
+  const mirrors = (o: Outcome | undefined) =>
+    o?.terms !== undefined &&
+    o.terms.length > 0 &&
+    o.terms.every((term) => (header as readonly string[]).includes(term));
   const outcomes = parts.map((part) => {
     const map = new Map<string, Outcome>();
     for (const outcome of outcomesOf(judgeInvoice(part))) map.set(outcome.key, outcome);
@@ -330,6 +340,7 @@ export function differingResults(
     keys.flatMap((key) => {
       const each = outcomes.map((map) => map.get(key));
       if (new Set(each.map((o) => o?.signature ?? '')).size === 1) return [];
+      if (each.some(mirrors)) return [];
       const label = each.find((o) => o !== undefined)?.label ?? key;
       // the status is named only where it differs between the parts (audit R3-U-04)
       const rows = each.map((o) => o?.row);
@@ -387,7 +398,9 @@ function shownValue(part: InvoicePart, bt: BtId): string {
 /**
  * "Unterschiedlich: Rechnungsnummer (PRG1502112 / PRG1502113)." — with the values of every part,
  * so the client sees what differs without scrolling to each part (audit Bedienung, E-04). With
- * the same header the differing Pflichtangaben and rules are named instead (audit QL-01).
+ * the same header the differing Pflichtangaben and rules are named instead (audit QL-01). Beside a
+ * differing header value they are only counted, in one sentence that points to the comparison
+ * table, where they stand (audit R5-U-02): two different invoices differ in a dozen rows.
  */
 export function differingLine(parts: readonly InvoicePart[], differing: readonly BtId[]): string {
   const items =
@@ -397,13 +410,17 @@ export function differingLine(parts: readonly InvoicePart[], differing: readonly
           values: parts.map((part) => shownValue(part, bt)),
         }))
       : differingResults(parts);
-  return fill(TEXTS.differingLine, {
+  const line = fill(TEXTS.differingLine, {
     items: items
       .map((item) =>
         fill(TEXTS.differingItem, { label: item.label, values: item.values.join(' / ') }),
       )
       .join('; '),
   });
+  if (differing.length === 0) return line;
+  const more = differingResults(parts, differing).length;
+  if (more === 0) return line;
+  return `${line} ${more === 1 ? TEXTS.differingMoreOne : fill(TEXTS.differingMore, { count: more })}`;
 }
 
 export interface ComparisonRow {
@@ -426,10 +443,9 @@ export function comparisonRows(parts: readonly InvoicePart[]): ComparisonRow[] {
       values: parts.map((part) => shownValue(part, bt)),
       differs: differing.has(bt),
     })),
-    // the same header: what differs beside it (audit QL-01)
-    ...(differing.size === 0
-      ? differingResults(parts).map((item) => ({ ...item, differs: true }))
-      : []),
+    // what differs beside the header (audit QL-01), also beside a differing header value, without
+    // the Pflichtangaben that only repeat it (audit R5-U-02)
+    ...differingResults(parts, [...differing]).map((item) => ({ ...item, differs: true })),
   ];
 }
 
