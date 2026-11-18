@@ -1,5 +1,5 @@
 // GENERATED from Testumgebung (testrahmen/) by `npm run rahmen` — do not edit here: change it
-// there and copy it again. Stand 288cc85. Checked by pruefen.mjs against testrahmen.json.
+// there and copy it again. Stand b102560. Checked by pruefen.mjs against testrahmen.json.
 // Test reports without free text (Tobias 2026-11-15, docs/testbericht.md). Pure and import-free:
 // the build puts it into every script ahead of logik.ts, which answers the routes
 // (`POST /_zugang/bericht`, `/_zugang/berichte`).
@@ -1053,7 +1053,8 @@ function inline(text        , ids                     )         {
         case 'kbd':
           return `<kbd>${esc(token.text)}</kbd>`;
         case 'link':
-          return `<a${attrs({ href: token.href, target: '_blank', rel: 'noopener noreferrer' })}>${esc(token.text)}</a>`;
+          // A new tab is said too (screen readers do not tell it otherwise), hidden from the eye.
+          return `<a${attrs({ href: token.href, target: '_blank', rel: 'noopener noreferrer' })}>${esc(token.text)}<span class="tr-unsichtbar"> (öffnet in neuem Tab)</span></a>`;
         case 'ref':
           return ids.has(token.id)
             ? `<button type="button" class="tr-verweis"${attrs({ 'data-aktion': 'oeffnen', 'data-id': token.id })}>${esc(token.text)}</button>`

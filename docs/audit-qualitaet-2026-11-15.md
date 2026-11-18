@@ -509,5 +509,6 @@ Vergleich: Runde 1 hatte 46, Runde 2 34, Runde 3 35 Befunde.
 
 - **G-26 (Tobias 2026-11-18, „G26 klingt doch gut“):** Es bleibt, wie es ist. Die Box und der kopierte
   Text zählen die weiteren Unterschiede, die Vergleichstabelle zeigt sie alle.
-- **R5-U-03:** Der Wunsch ging am 2026-11-18 an die Sitzung `Testumgebung`. Die Kopie hier wird erst
-  erneuert, wenn er dort auf `main` ist.
+- **R5-U-03:** Der Wunsch ging am 2026-11-18 an die Sitzung `Testumgebung`; dort ist er auf `main`
+  (`b102560`, PR #17). Die Kopie hier ist auf diesen Stand erneuert: Links in den Handtests sagen
+  Screenreadern „(öffnet in neuem Tab)“.
