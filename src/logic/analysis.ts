@@ -57,6 +57,12 @@ export interface InvoicePart {
   schema?: SchemaResult;
   /** Factur-X EXTENDED only: what its own calculation rules need beyond EN 16931 (F29) */
   extended?: ExtendedAmounts;
+  /**
+   * XRechnung 3.0 with Extension, UBL Invoice only: the payments of third parties (BG-DEX-09,
+   * BT-DEX-002 `cac:PrepaidPayment/cbc:PaidAmount`) as written, for BR-DEX-09 (audit R5-L-01);
+   * empty where the invoice has none
+   */
+  thirdPartyPayments?: string[];
 }
 
 export type OtherPartKind = 'otherXml' | 'brokenXml' | 'doctypeXml' | 'tooLargeXml' | 'notXml';

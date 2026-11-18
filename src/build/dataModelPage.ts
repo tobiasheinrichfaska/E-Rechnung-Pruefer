@@ -100,6 +100,13 @@ export const ENTITIES: EntityDoc[] = [
         required: false,
         meaning: 'Nur Factur-X EXTENDED: Zusatzbeträge für die Rechenregeln von FeRD (F29)',
       },
+      {
+        name: 'thirdPartyPayments',
+        type: 'string[]',
+        required: false,
+        meaning:
+          'Nur XRechnung 3.0 mit Extension in UBL Invoice: Zahlungen Dritter (BG-DEX-09, cac:PrepaidPayment/cbc:PaidAmount) wie geschrieben, für BR-DEX-09 (R5-L-01)',
+      },
     ],
   },
   {
@@ -460,9 +467,9 @@ export const FUNCTIONS: { layer: string; signature: string; purpose: string }[] 
   },
   {
     layer: 'logic',
-    signature: 'checkRules(model, { ownRules, extended, syntax }): RulesResult',
+    signature: 'checkRules(model, { ownRules, extended, syntax, thirdPartyPayments }): RulesResult',
     purpose:
-      'Rechenregeln der EN 16931 (BR-CO-10 bis -17, Aufschlüsselung je Kategorie und Satz) wie im CEN-Schematron der Syntax (RULE_FORMS: UBL oder CII — Vergleich, Toleranz, gerundete Teilsummen, BR-CO-15-Alternative und genau ein BT-110, Ids von L und M); für Factur-X EXTENDED die Regeln von FeRD (BR-FXEXT-…, checkExtendedRules) und BR-CO-14; ZUGFeRD 2.0 EXTENDED nur BR-CO-14',
+      'Rechenregeln der EN 16931 (BR-CO-10 bis -17, Aufschlüsselung je Kategorie und Satz) wie im CEN-Schematron der Syntax (RULE_FORMS: UBL oder CII — Vergleich, Toleranz, gerundete Teilsummen, BR-CO-15-Alternative und genau ein BT-110, Ids von L und M); für Factur-X EXTENDED die Regeln von FeRD (BR-FXEXT-…, checkExtendedRules) und BR-CO-14; ZUGFeRD 2.0 EXTENDED nur BR-CO-14; XRechnung 3.0 mit Extension in UBL Invoice BR-DEX-09 (mit den Zahlungen Dritter) statt BR-CO-16',
   },
   {
     layer: 'logic',

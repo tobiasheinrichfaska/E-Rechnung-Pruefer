@@ -254,6 +254,8 @@ export const TEXTS = {
   ruleSumAllowances: 'Summe der Nachlässe auf Dokumentebene (BT-92)',
   ruleSumCharges: 'Summe der Zuschläge auf Dokumentebene (BT-99)',
   ruleSumTaxes: 'Summe der Steuerbeträge je Kategorie (BT-117)',
+  // XRechnung Extension, BR-DEX-09 (audit R5-L-01)
+  ruleThirdParty: 'Zahlungen Dritter (BG-DEX-09)',
   // The sums of one VAT breakdown, named apart from the document totals (audit R3-U-07):
   // „Summe der Positionen mit diesem Satz (BT-131)“, „… dieser Kategorie (BT-131)“
   ruleOfRate: 'mit diesem Satz',

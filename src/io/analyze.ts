@@ -149,6 +149,15 @@ function readInvoiceXml(origin: string, bytes: Uint8Array): XmlOutcome {
       profileOf(first(header, 'BT-24')).entry?.ownSchema?.entry === 'facturxExtended'
         ? extendedAmounts(doc, syntax.namespaces)
         : undefined;
+    // R5-L-01: BR-DEX-09 of XRechnung 3.0 with Extension (UBL Invoice) adds the payments of third
+    // parties to the amount due, as XRechnung-UBL-validation.xsl 3.0.2 sums
+    // ../cac:PrepaidPayment/cbc:PaidAmount from cac:LegalMonetaryTotal
+    const thirdPartyPayments =
+      syntax.id === 'ubl-invoice' && profileOf(first(header, 'BT-24')).entry?.thirdPartyPayments
+        ? valuesAt(doc, '/*/cac:PrepaidPayment/cbc:PaidAmount', syntax.namespaces).map((v) =>
+            v.trim(),
+          )
+        : undefined;
     return {
       kind: 'invoice',
       part: {
@@ -158,6 +167,7 @@ function readInvoiceXml(origin: string, bytes: Uint8Array): XmlOutcome {
         model,
         ...(schema ? { schema } : {}),
         ...(extended ? { extended } : {}),
+        ...(thirdPartyPayments ? { thirdPartyPayments } : {}),
       },
     };
   } finally {

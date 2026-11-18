@@ -6,7 +6,7 @@ import { checkPflichtangaben } from '../../src/logic/check';
 import { checkRules } from '../../src/logic/rules';
 import { TEXTS, fill } from '../../src/logic/texts';
 import { rulesOf, verdictOf } from '../../src/logic/verdict';
-import { encode, official, officialText } from '../support/fixtures';
+import { encode, official, officialText, withSpecId } from '../support/fixtures';
 
 // Step 3a against real files: every official example is valid under the EN 16931 rules (CEN, KoSIT
 // check them), so the tool must not report a single possible irregularity on any of them.
@@ -26,7 +26,11 @@ describe('calculation rules on the official files', () => {
       for (const part of analysis.invoices) {
         if (!part.model) continue;
         // each syntax in the forms of its own CEN Schematron (audit QL-03)
-        const rules = checkRules(part.model, { syntax: part.syntax });
+        // XRechnung UBL with Extension: BR-DEX-09 in place of BR-CO-16 (audit R5-L-01)
+        const rules = checkRules(part.model, {
+          syntax: part.syntax,
+          thirdPartyPayments: part.thirdPartyPayments,
+        });
         checked += rules.results.filter((r) => r.status === 'passt').length;
         for (const r of rules.results.filter((x) => x.status === 'auffaellig')) {
           found.push(
@@ -235,5 +239,87 @@ describe('a CII VAT total without currencyID (audit R3-L-02)', () => {
     expect(co15(invoice)?.status).toBe('passt');
     // two without the attribute are two VAT totals
     expect(co15(await read(`${WITHOUT}${WITHOUT}`))?.status).toBe('auffaellig');
+  });
+});
+
+// Audit R5-L-01: XRechnung 3.0 with Extension (UBL Invoice) adds the payments of third parties
+// (BG-DEX-09) to the amount due. KoSIT lowers BR-CO-16 to „information“ there and checks BR-DEX-09
+// (XRechnung-UBL-validation.xsl 3.0.2); its positive instance 05.01a has two such payments.
+describe('payments of third parties in XRechnung with Extension (audit R5-L-01)', () => {
+  const EXT_0501 = 'kosit/05.01a-INVOICE_ubl.xml';
+  const EXTENSION =
+    'urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0#conformant#urn:xeinkauf.de:kosit:extension:xrechnung_3.0';
+  const rulesFor = async (text: string) => {
+    const verdict = verdictOf(await analyzeFile('r.xml', encode(text), load));
+    const [invoice] = verdict.invoices;
+    if (!invoice) throw new Error('no invoice');
+    return { verdict, invoice, rules: rulesOf(invoice) };
+  };
+  const ids = (rules: ReturnType<typeof rulesOf>) => rules?.results.map((r) => r.id) ?? [];
+
+  it('05.01a: BR-DEX-09 passes with both payments, no BR-CO-16', async () => {
+    const { invoice, rules } = await rulesFor(officialText(EXT_0501));
+    expect(invoice.part.thirdPartyPayments).toEqual(['19.96', '10.00']);
+    expect(invoice.part.schema?.count).toBe(0);
+    expect(rules?.auffaellig).toEqual([]);
+    expect(ids(rules)).not.toContain('BR-CO-16');
+    const dex = rules?.results.find((r) => r.id === 'BR-DEX-09');
+    expect(dex?.status).toBe('passt');
+    expect(dex?.values).toEqual([
+      { label: 'Gesamtbetrag mit Umsatzsteuer (BT-112)', value: '336,90 EUR' },
+      { label: 'Vorausgezahlter Betrag (BT-113)', value: '– nicht angegeben' },
+      { label: 'Zahlungen Dritter (BG-DEX-09)', value: '29,96 EUR' },
+      { label: 'Rundungsbetrag (BT-114)', value: '– nicht angegeben' },
+      { label: 'Fälliger Betrag (BT-115)', value: '366,86 EUR' },
+      { label: 'Nach der Regel erwartet', value: '366,86 EUR' },
+    ]);
+  });
+
+  it('04.01a: without payments BR-DEX-09 is BR-CO-16, every other rule unchanged', async () => {
+    const { invoice, rules } = await rulesFor(officialText('kosit/04.01a-INVOICE_ubl.xml'));
+    expect(invoice.part.thirdPartyPayments).toEqual([]);
+    expect(rules?.auffaellig).toEqual([]);
+    const model = invoice.part.model;
+    if (!model) throw new Error('no model');
+    const plain = checkRules(model, { syntax: 'ubl-invoice' });
+    expect(ids(rules)).toEqual(ids(plain).map((id) => (id === 'BR-CO-16' ? 'BR-DEX-09' : id)));
+    expect(rules?.results.map((r) => r.status)).toEqual(plain.results.map((r) => r.status));
+  });
+
+  it('a wrong sum of the payments is a possible irregularity before payment', async () => {
+    const text = officialText(EXT_0501);
+    const paid = '<cbc:PaidAmount currencyID="EUR">10.00</cbc:PaidAmount>';
+    expect(text.split(paid).length - 1).toBe(1);
+    const { verdict, rules } = await rulesFor(
+      text.replace(paid, '<cbc:PaidAmount currencyID="EUR">11.00</cbc:PaidAmount>'),
+    );
+    expect(rules?.auffaellig).toEqual(['BR-DEX-09']);
+    expect(rules?.results.find((r) => r.id === 'BR-DEX-09')?.values.at(-1)).toEqual({
+      label: 'Nach der Regel erwartet',
+      value: '367,86 EUR',
+    });
+    expect(rules?.advice).toEqual([TEXTS.adviceAmountBeforePayment]);
+    expect(verdict.tone).toBe('warn');
+    expect(verdict.explanation.join(' ')).toContain('BR-DEX-09');
+  });
+
+  it('CII and other profiles keep BR-CO-16', async () => {
+    // the KoSIT CII scenario keeps BR-CO-16 and knows no BR-DEX-09
+    const cii = await rulesFor(
+      withSpecId(officialText('kosit/01.01a-INVOICE_uncefact.xml'), EXTENSION),
+    );
+    expect(cii.invoice.profile.entry?.label).toBe('XRechnung 3.0 mit Extension');
+    expect(cii.invoice.part.thirdPartyPayments).toBeUndefined();
+    expect(ids(cii.rules)).toContain('BR-CO-16');
+    expect(ids(cii.rules)).not.toContain('BR-DEX-09');
+    // 05.01a as plain XRechnung: its payments are not added, BR-CO-16 reports them
+    const plain = await rulesFor(
+      withSpecId(
+        officialText(EXT_0501),
+        'urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0',
+      ),
+    );
+    expect(plain.invoice.part.thirdPartyPayments).toBeUndefined();
+    expect(plain.rules?.auffaellig).toEqual(['BR-CO-16']);
   });
 });

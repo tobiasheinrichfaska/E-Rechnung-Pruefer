@@ -489,7 +489,8 @@ export function schemaFailed(invoice: InvoiceVerdict): boolean {
 
 /**
  * Step 3a in the forms of the CEN Schematron of the part's syntax (audit QL-03); FeRD EXTENDED has
- * its own forms of the rules (Profile.ownRules).
+ * its own forms of the rules (Profile.ownRules), XRechnung UBL with Extension BR-DEX-09 in place of
+ * BR-CO-16 (Profile.thirdPartyPayments, audit R5-L-01).
  */
 export function rulesOf(invoice: InvoiceVerdict): RulesResult | undefined {
   const model = pflichtModel(invoice);
@@ -497,6 +498,7 @@ export function rulesOf(invoice: InvoiceVerdict): RulesResult | undefined {
     ? checkRules(model, {
         ownRules: invoice.profile.entry?.ownRules ?? false,
         extended: invoice.part.extended,
+        thirdPartyPayments: invoice.part.thirdPartyPayments,
         syntax: invoice.part.syntax,
       })
     : undefined;

@@ -44,6 +44,17 @@ Die 20 XSD in `schemas/ubl-2.1/` und `schemas/cii-d16b/` sind bytegleich mit `re
 | `ubl-2.1/maindoc/UBL-CreditNote-2.1.xsd`                                                | `1e117b6c1ab713604b29b0d685442a81a0c78a82575445ee8c43e6050cda7454` |
 | `ubl-2.1/maindoc/UBL-Invoice-2.1.xsd`                                                   | `3a5aacd823f0e5b8f25ae7b5191c2002d5333ba351d87de9371ed62dca2b2b0c` |
 
+### BR-DEX-09 aus der KoSIT-Konfiguration (Audit R5-L-01, 18.11.2026)
+
+Für XRechnung 3.0 mit Extension (UBL Invoice) setzt `scenarios.xml` der Validator-Konfiguration
+oben BR-CO-16 auf `information` („to enable Third Party Payment calculations (BR-DEX-09)“); das
+Szenario für CII tut das nicht. BR-DEX-09 steht in `resources/xrechnung/3.0.2/xsl/XRechnung-UBL-validation.xsl`
+(Kontext `cac:LegalMonetaryTotal[$isExtension]`): `round((BT-115 − BT-114) · 100) div 100 =
+round((BT-112 − BT-113 + Σ ../cac:PrepaidPayment/cbc:PaidAmount) · 100) div 100`. Nachgebaut in
+`src/logic/rules.ts`; die Testdatei `tests/fixtures/offiziell/kosit/05.01a-INVOICE_ubl.xml` ist
+`instances/extension/05.01a-INVOICE_ubl.xml` der Testsuite oben, unverändert, SHA-256
+`bd61ec6dcb33b29b7a3a450106bf399bd41bd211aebcd96637458d59acc59127`.
+
 ## FeRD-Infopaket (von Tobias geladen)
 
 | Artefakt                                                                                                                                                                                                                     | Quelle                                                                                                                               | Stand                                                                        | Lizenz laut Nutzungsbedingungen                                                                                                                                                                                                                                                                                                                              | Ablage                                                                                                                                          | SHA-256                                                            |

@@ -70,6 +70,9 @@ export const RULE_LABELS: Readonly<Record<string, string>> = {
   'BR-CO-14': 'Summe der Umsatzsteuer (BT-110) = Steuerbeträge je Kategorie (BT-117)',
   'BR-CO-15': 'Gesamtbetrag mit Umsatzsteuer (BT-112) = BT-109 + BT-110',
   'BR-CO-16': 'Fälliger Betrag (BT-115) = BT-112 − Vorauszahlung (BT-113) + Rundung (BT-114)',
+  // R5-L-01: XRechnung 3.0 with Extension (UBL Invoice), in place of BR-CO-16
+  'BR-DEX-09':
+    'Fälliger Betrag (BT-115) = BT-112 − Vorauszahlung (BT-113) + Rundung (BT-114) + Zahlungen Dritter (BG-DEX-09)',
   // the tolerance of BR-CO-17 and of the breakdown follows its form (TOLERANCE_LABEL)
   'BR-CO-17': 'Steuerbetrag (BT-117) = Bemessungsgrundlage (BT-116) × Steuersatz (BT-119)',
   BREAKDOWN:
@@ -264,6 +267,12 @@ export interface RulesOptions {
   extended?: ExtendedAmounts | undefined;
   /** The syntax of the invoice XML: CII is computed after the CII Schematron (RULE_FORMS) */
   syntax?: SyntaxId | undefined;
+  /**
+   * XRechnung 3.0 with Extension, UBL Invoice (Profile.thirdPartyPayments; InvoicePart): the
+   * payments of third parties as written (BT-DEX-002). Given — also empty —, BR-DEX-09 replaces
+   * BR-CO-16 (audit R5-L-01)
+   */
+  thirdPartyPayments?: readonly string[] | undefined;
 }
 
 /**
@@ -290,6 +299,7 @@ const TAX_RULES: ReadonlySet<string> = new Set(['BR-CO-14', 'BR-CO-17', 'BR-FXEX
 const GROSS_RULES: ReadonlySet<string> = new Set([
   'BR-CO-15',
   'BR-CO-16',
+  'BR-DEX-09',
   'BR-FXEXT-CO-15',
   'BR-FXEXT-CO-16',
 ]);
@@ -494,9 +504,32 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
     ]);
   }
 
-  // BR-CO-16: BT-115 (minus rounding BT-114) = BT-112 minus prepaid BT-113 (UBL rounds both
-  // differences, CII computes BT-115 = BT-112 − BT-113 + BT-114 exactly)
-  {
+  if (options.thirdPartyPayments) {
+    // BR-DEX-09 (XRechnung-UBL-validation.xsl 3.0.2, context cac:LegalMonetaryTotal of an
+    // Extension invoice): round(BT-115 − BT-114) = round(BT-112 − BT-113 + Σ BT-DEX-002), both
+    // sides always rounded to cents (XPath round(x * 100) div 100); KoSIT lowers BR-CO-16 to
+    // „information“ in this scenario (scenarios.xml v2026-08-31), so it replaces BR-CO-16 here
+    // (audit R5-L-01)
+    const payments = options.thirdPartyPayments;
+    const paid = payments.length === 0 ? null : sumOf(payments.map((p) => parseDecimal(p)));
+    const inputs = bt112 && known(bt113, bt114) && paid !== undefined;
+    const expected = inputs ? round2(add(subtract(bt112, bt113 ?? ZERO), paid ?? ZERO)) : undefined;
+    const ok =
+      bt115 && expected
+        ? decimalEquals(round2(subtract(bt115, bt114 ?? ZERO)), expected)
+        : undefined;
+    add_('BR-DEX-09', ok, [
+      { label: named('BT-112'), value: totalShown('BT-112') },
+      { label: named('BT-113'), value: totalShown('BT-113') },
+      { label: TEXTS.ruleThirdParty, value: money(paid) },
+      { label: named('BT-114'), value: totalShown('BT-114') },
+      { label: named('BT-115'), value: totalShown('BT-115') },
+      // shown as the amount due the rule expects: round(BT-112 − BT-113 + Σ) + BT-114
+      ...expectedValue(expected && add(expected, bt114 ?? ZERO)),
+    ]);
+  } else {
+    // BR-CO-16: BT-115 (minus rounding BT-114) = BT-112 minus prepaid BT-113 (UBL rounds both
+    // differences, CII computes BT-115 = BT-112 − BT-113 + BT-114 exactly)
     let ok: boolean | undefined;
     const exactDue =
       bt112 && known(bt113, bt114) ? add(subtract(bt112, bt113 ?? ZERO), bt114 ?? ZERO) : undefined;
