@@ -163,6 +163,25 @@ describe('the binding of the test version', () => {
     expect(all).toContain('sagen Sie Tobias direkt');
   });
 
+  // The test page shows only these files. MT-05 sent the tester to the public address, which is
+  // in no file and on no page (audit R4-U-05); MT-03 asked for no word broken on two lines, which
+  // the tool does on purpose with long file names, its technical messages and the identifier
+  // (app.css, U-12), so a tester reporting that would report what is meant (audit R4-U-04)
+  it('says where the public address comes from, and what may break inside a word', () => {
+    const text = (name: string) =>
+      binding.handtests.find((file) => file.datei === name)?.text ?? '';
+    const zone = text('04_testzone.md');
+    expect(zone).toContain('Die öffentliche Adresse des Tools haben Sie von Tobias.');
+    expect(zone).toContain('4. Öffnen Sie die öffentliche Adresse des Tools (Adresse von Tobias).');
+    // never the address itself
+    expect(zone).not.toMatch(/https?:|www\.|\.de\b|b-cdn/i);
+    const devices = text('02_geraete.md');
+    expect(devices).not.toContain('Kein Wort steht');
+    expect(devices).toMatch(
+      /Lange Dateinamen, technische Meldungen und die Kennung der Spezifikation\s+\(„urn:…“\) dürfen\s+mitten im Wort umbrechen\./,
+    );
+  });
+
   it('takes the file name from a bundled path', () => {
     expect(
       manualTestFiles({ '../manual_tests/02_b.md': 'b', '../manual_tests/01_a.md': 'a' }),

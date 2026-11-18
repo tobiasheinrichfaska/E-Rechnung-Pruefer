@@ -556,6 +556,8 @@ describe('display', () => {
     expect(displayValue('BT-109', '100.004', 'EUR')).toBe('100,004 EUR');
     expect(displayValue('BT-119', '19,00', undefined)).toBe('19,00\u00a0%');
     expect(displayValue('BT-129', 'eins', undefined)).toBe('eins');
+    // an amount that is no number marked as in the rules (audit R4-U-01)
+    expect(displayValue('BT-115', '336,90', 'EUR')).toBe(`336,90 ${TEXTS.ruleNoNumber}`);
   });
 
   it('shows the values of each VAT breakdown and each position', () => {

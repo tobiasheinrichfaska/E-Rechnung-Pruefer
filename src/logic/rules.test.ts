@@ -721,6 +721,43 @@ describe('missing values and the names of the values (audit R2-L-07, R2-L-08)', 
     });
   });
 
+  // Audit R4-U-01: „Fälliger Betrag (BT-115): – keine Zahl“ beside „Nach der Regel erwartet:
+  // 336,90 EUR“ and „336,90“ in the Pflichtangaben did not say that this writing is meant
+  it('shows a single value that is no number as written, a sum without one text', () => {
+    const due = find(rules({}, { 'BT-115': '166,60' }), 'BR-CO-16');
+    expect(due?.status).toBe('nichtPruefbar');
+    expect(due?.values).toContainEqual({
+      label: 'Fälliger Betrag (BT-115)',
+      value: `166,60 ${TEXTS.ruleNoNumber}`,
+    });
+    const taxes = find(rules({}, { 'BT-110': '26,60' }), 'BR-CO-15');
+    expect(taxes?.values).toContainEqual({
+      label: 'Summe der Umsatzsteuer (BT-110)',
+      value: `26,60 ${TEXTS.ruleNoNumber}`,
+    });
+    // the terms of a VAT breakdown, the rate with them
+    const breakdown = rules({
+      'BG-23': [{ 'BT-116': '140,00', 'BT-117': '26.60', 'BT-118': 'S', 'BT-119': '19%' }],
+    });
+    expect(find(breakdown, 'BR-CO-17')?.values).toEqual(
+      expect.arrayContaining([
+        { label: 'Steuerbemessungsgrundlage (BT-116)', value: `140,00 ${TEXTS.ruleNoNumber}` },
+        { label: 'Umsatzsteuersatz (BT-119)', value: `19% ${TEXTS.ruleNoNumber}` },
+      ]),
+    );
+    // a sum of several values names no one of them
+    const lineSum = rules({
+      'BG-25': [
+        lines[0] ?? {},
+        { 'BT-131': '50,00', 'BG-30': [{ 'BT-151': 'S', 'BT-152': '19' }] },
+      ],
+    });
+    expect(find(lineSum, 'BR-CO-10')?.values[0]).toEqual({
+      label: TEXTS.ruleLineSum,
+      value: TEXTS.ruleNoNumber,
+    });
+  });
+
   it('names the sums of a breakdown apart from the document totals (R3-U-07)', () => {
     const result = rules({
       'BG-23': [

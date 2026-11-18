@@ -13,7 +13,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { configFile, loadAppConfig } from '../../src/build/kanzleiConfig';
 import type { AppConfig } from '../../src/logic/appConfig';
 
@@ -22,13 +22,19 @@ import type { AppConfig } from '../../src/logic/appConfig';
 // it that names the Kanzlei (the first one, and any with a word of the private name list), nor a
 // name form of that list, nor the domain of the Impressum or privacy address. A copy wrapped by an
 // editor or quoted in Markdown counts as well (audit 2026-11-15, QT-04/QS-03): whitespace and `>`
-// quote markers are ignored, case too; every file a commit could take — tracked or new and not
-// ignored (audit 2026-11-16, R3-T-02) — is also searched as bytes (PDF, ZIP …), and so are the
-// commit messages, authors and committers of the history of HEAD and every local branch. So is
-// every file of every commit that no remote has yet (audit 2026-11-15, R2-S-05): a find committed
-// and removed again by a later commit is still published by the push, and only a force-push takes
-// it out. The paths count too (R3-S-04): a file named after the Kanzlei or its domain, in the
-// working copy or in an unpublished commit, compared as letters and digits only.
+// quote markers are ignored, case too. Two cases search the repo, also as bytes (PDF, ZIP …):
+// - what the next commit and push would publish: every file a commit could take — tracked or new
+//   and not ignored (audit 2026-11-16, R3-T-02), and what the index holds where it differs from the
+//   working copy (R4-S-02: added, then changed or deleted only in the working copy) — and every
+//   file, path and message (author and committer too) of every commit that no remote has yet, on
+//   HEAD and every local branch (R2-S-05): a find committed and removed again by a later commit is
+//   still published by the push;
+// - what is published already (R4-S-01): every file, path and message of every commit a remote
+//   has. A later commit does not take a find there out of the history; only a force-push does, and
+//   the refs GitHub keeps for its pull requests only GitHub Support removes. So its failure asks
+//   Tobias, and a shallow clone fails it, since it would read that history only in part.
+// The paths count too (R3-S-04): a file named after the Kanzlei or its domain, compared as letters
+// and digits only. A failure shows only paths (hidden where they name the Kanzlei), counts or yes/no.
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
 // Only the real configuration counts, never the invented one KANZLEI_CONFIG may name (QT-01).
@@ -152,7 +158,24 @@ function gitReads(cwd: string): boolean {
  * The commits that no remote has yet, on HEAD and on every local branch: HEAD for a detached
  * checkout, the branches for a push of another one (audit 2026-11-16, R3-S-04).
  */
-const UNPUBLISHED = ['HEAD', '--branches', '--not', '--remotes'];
+export const UNPUBLISHED = ['HEAD', '--branches', '--not', '--remotes'];
+
+/**
+ * The commits a remote has already: every ref of `--all` but HEAD, the local branches and the
+ * stash, whose own commits UNPUBLISHED reads — the remote branches, the tags and any pull request
+ * refs the clone fetched (audit 2026-11-16, R4-S-01). Both together: every commit but the stash's.
+ */
+export const PUBLISHED = [
+  '--exclude=HEAD',
+  '--exclude=refs/heads/*',
+  '--exclude=refs/stash',
+  '--all',
+];
+
+/** Whether the clone holds only part of the history (`git clone --depth`, GitHub's checkout). */
+export function isShallow(git: Git): boolean {
+  return git(['rev-parse', '--is-shallow-repository']).toString('utf8').trim() === 'true';
+}
 
 /**
  * The files a commit could take now: every tracked file and every new one that is not ignored
@@ -180,13 +203,79 @@ export function workingFiles(git: Git, root: string): { path: string; content?: 
 }
 
 /**
- * Every path that a commit no remote has yet adds, changes or removes, i.e. what the next push
- * would publish by name; folders are part of each path. One git process, whatever the count.
+ * The contents of the named objects, in order, from one `git cat-file --batch`: object ids, or
+ * `:<path>` for what the index holds (NUL-separated then, since a path may hold a line break).
  */
-export function unpublishedPaths(git: Git): string[] {
+function contentsOf(git: Git, names: readonly string[], nul = false): Buffer[] {
+  if (names.length === 0) return [];
+  const out = git(
+    ['cat-file', '--batch', ...(nul ? ['-z'] : [])],
+    [...names, ''].join(nul ? '\0' : '\n'),
+  );
+  const found: Buffer[] = [];
+  // "<sha> <type> <size>\n<content>\n" per object
+  for (let at = 0; at < out.length;) {
+    const end = out.indexOf(0x0a, at);
+    const header = out.subarray(at, end < 0 ? undefined : end).toString('latin1');
+    const size = Number(/^[0-9a-f]{40,64} \S+ (\d+)$/.exec(header)?.[1] ?? Number.NaN);
+    // what git cannot read is counted, never named: the name may be a path that names the Kanzlei
+    if (Number.isNaN(size)) {
+      throw new Error(`git cat-file could not read object ${found.length + 1} of ${names.length}`);
+    }
+    const start = end + 1;
+    found.push(out.subarray(start, start + size));
+    at = start + size + 1;
+  }
+  // the counts only: a failing match would print the contents
+  expect(found.length).toBe(names.length);
+  return found;
+}
+
+/**
+ * What the index holds where it differs from the working copy: a file added and then cleaned or
+ * deleted only in the working copy still goes into the next `git commit` as it was added (audit
+ * 2026-11-16, R4-S-02). Unmerged entries are left out (a commit needs them added again). Two git
+ * processes, reading only the entries that differ.
+ */
+export function stagedFiles(git: Git): { path: string; content: Buffer }[] {
+  const paths = git([
+    'diff',
+    '-z',
+    '--name-only',
+    '--no-renames',
+    '--no-ext-diff',
+    '--diff-filter=u',
+  ])
+    .toString('utf8')
+    .split('\0')
+    .filter((name) => name !== '');
+  const contents = contentsOf(
+    git,
+    paths.map((path) => `:${path}`),
+    true,
+  );
+  return paths.map((path, i) => ({ path, content: contents[i] ?? Buffer.alloc(0) }));
+}
+
+/** Every file a commit could take: the working copy and, where it differs, the index. */
+export function committable(
+  git: Git,
+  root: string,
+): { path: string; content?: Buffer; staged?: true }[] {
+  return [
+    ...workingFiles(git, root),
+    ...stagedFiles(git).map((file) => ({ ...file, staged: true as const })),
+  ];
+}
+
+/**
+ * Every path that a commit of `revs` adds, changes or removes; for UNPUBLISHED what the next push
+ * would publish by name. Folders are part of each path. One git process, whatever the count.
+ */
+export function commitPaths(git: Git, revs: readonly string[]): string[] {
   const names = git([
     ...['log', '-z', '--root', '--no-color', '--format=', '--name-only', '--no-renames'],
-    ...['--diff-merges=first-parent', ...UNPUBLISHED],
+    ...['--diff-merges=first-parent', ...revs],
   ])
     .toString('utf8')
     .split('\0')
@@ -195,13 +284,16 @@ export function unpublishedPaths(git: Git): string[] {
 }
 
 /**
- * Every file content (blob) of the commits that no remote has yet, i.e. what the next push would
+ * Every file content (blob) of the commits of `revs`; for UNPUBLISHED what the next push would
  * publish — without a remote every commit. Three git processes, whatever the count.
  */
-export function unpublishedBlobs(git: Git): { path: string; content: Buffer }[] {
+export function commitBlobs(
+  git: Git,
+  revs: readonly string[],
+): { path: string; content: Buffer }[] {
   // "<sha>" for a commit, "<sha> <path>" for a tree or a blob
   const pathOf = new Map(
-    git(['rev-list', '--objects', ...UNPUBLISHED])
+    git(['rev-list', '--objects', ...revs])
       .toString('utf8')
       .split('\n')
       .filter((line) => line !== '')
@@ -216,22 +308,16 @@ export function unpublishedBlobs(git: Git): { path: string; content: Buffer }[] 
     .split('\n')
     .filter((line) => line.endsWith(' blob'))
     .map((line) => line.slice(0, 40));
-  if (blobs.length === 0) return [];
-  // "<sha> blob <size>\n<content>\n" per blob
-  const out = git(['cat-file', '--batch'], [...blobs, ''].join('\n'));
-  const found: { path: string; content: Buffer }[] = [];
-  for (let at = 0; at < out.length;) {
-    const end = out.indexOf(0x0a, at);
-    const [sha = '', , size = ''] = out.subarray(at, end).toString('latin1').split(' ');
-    const start = end + 1;
-    found.push({
-      path: pathOf.get(sha) ?? sha,
-      content: out.subarray(start, start + Number(size)),
-    });
-    at = start + Number(size) + 1;
-  }
-  expect(found).toHaveLength(blobs.length);
-  return found;
+  const contents = contentsOf(git, blobs);
+  return blobs.map((sha, i) => ({
+    path: pathOf.get(sha) ?? sha,
+    content: contents[i] ?? Buffer.alloc(0),
+  }));
+}
+
+/** The messages, authors and committers of the commits of `revs`. */
+export function messagesOf(git: Git, revs: readonly string[]): Buffer {
+  return git(['log', '--no-color', '--format=%B%n%an%n%ae%n%cn%n%ce', ...revs]);
 }
 
 const secrets = secretsOf(config, brands);
@@ -245,6 +331,14 @@ const scanSkipped =
     : !repoReadable
       ? 'git cannot read this checkout (no git, or no .git)'
       : undefined;
+
+/** A path as a failure shows it: one that names the Kanzlei would carry the name into the output. */
+const shown = (path: string) =>
+  pathLeaks(path, pathSecrets) ? '(a path that names the Kanzlei)' : path;
+
+/** The failure of a find in the published history: only Tobias can take it out (R4-S-01). */
+const ASK_TOBIAS =
+  'published already (a remote has it): ask Tobias. A new commit does not take it out of the history, only a force-push does, and the refs GitHub keeps for pull requests only GitHub Support removes';
 
 describe('the Kanzlei configuration stays out of the public repo', () => {
   it('reads the neutral example only when no local configuration is there', () => {
@@ -276,18 +370,22 @@ describe('the Kanzlei configuration stays out of the public repo', () => {
 
   /** A repository of its own in a temporary folder, with a commit helper; removed afterwards. */
   function inProbeRepo(
-    run: (folder: string, git: Git, commit: (file: string, text: string) => void) => void,
+    run: (
+      folder: string,
+      git: Git,
+      commit: (file: string, text: string, message?: string) => void,
+    ) => void,
   ) {
     const folder = mkdtempSync(join(tmpdir(), 'nobranding-'));
     try {
       const git = gitIn(folder);
-      const commit = (file: string, text: string) => {
+      const commit = (file: string, text: string, message = file) => {
         mkdirSync(dirname(join(folder, file)), { recursive: true });
         writeFileSync(join(folder, file), text);
         git(['add', file]);
         git([
           ...['-c', 'user.name=Probe', '-c', 'user.email=probe@example.org'],
-          ...['-c', 'commit.gpgsign=false', 'commit', '-q', '--no-verify', '-m', `${file}`],
+          ...['-c', 'commit.gpgsign=false', 'commit', '-q', '--no-verify', '-m', message],
         ]);
       };
       git(['init', '-q']);
@@ -297,7 +395,7 @@ describe('the Kanzlei configuration stays out of the public repo', () => {
     }
   }
 
-  it('finds an invented name that a later unpublished commit removed again, until a remote has it', (ctx) => {
+  it('finds an invented name that a later commit removed again: unpublished until a remote has it, published from then on', (ctx) => {
     ctx.skip(!repoReadable, 'git cannot read this checkout (no git, or no .git)');
     inProbeRepo((folder, git, commit) => {
       commit('a.md', 'Die Kanzlei Erika Probe bietet das Tool an.\n');
@@ -306,16 +404,107 @@ describe('the Kanzlei configuration stays out of the public repo', () => {
       const found = secretsOf({ accessNotice: 'Ein Hilfsmittel der Erika Probe.' }, [
         'Erika Probe',
       ]);
+      const leaking = (revs: readonly string[]) =>
+        commitBlobs(git, revs)
+          .filter((blob) => leaks(blob.content, found))
+          .map((blob) => blob.path)
+          .sort();
       // the working copy no longer has it in a.md, the history does
       expect(leaks(readFileSync(join(folder, 'a.md')), found)).toBe(false);
-      const blobs = unpublishedBlobs(git);
+      const blobs = commitBlobs(git, UNPUBLISHED);
       expect(blobs.map((blob) => blob.path).sort()).toEqual(['a.md', 'a.md', 'b.pdf']);
-      expect(blobs.filter((blob) => leaks(blob.content, found))).toHaveLength(2);
-      // what a remote has is published already: the weekly check looks there (S1)
+      expect(leaking(UNPUBLISHED)).toEqual(['a.md', 'b.pdf']);
+      expect(commitBlobs(git, PUBLISHED)).toEqual([]);
+      // what a remote has is published: the case of its own reads it (R4-S-01)
       git(['update-ref', 'refs/remotes/origin/main', 'HEAD~1']);
-      expect(unpublishedBlobs(git).map((blob) => blob.path)).toEqual(['b.pdf']);
+      expect(leaking(UNPUBLISHED)).toEqual(['b.pdf']);
+      expect(leaking(PUBLISHED)).toEqual(['a.md']);
       git(['update-ref', 'refs/remotes/origin/main', 'HEAD']);
-      expect(unpublishedBlobs(git)).toEqual([]);
+      expect(commitBlobs(git, UNPUBLISHED)).toEqual([]);
+      expect(leaking(PUBLISHED)).toEqual(['a.md', 'b.pdf']);
+      expect(commitPaths(git, PUBLISHED).sort()).toEqual(['a.md', 'b.pdf']);
+    });
+  });
+
+  it('reads as published every commit a remote, a tag or a pull request ref has, and neither HEAD, a local branch nor the stash; a shallow clone says so', (ctx) => {
+    ctx.skip(!repoReadable, 'git cannot read this checkout (no git, or no .git)');
+    inProbeRepo((folder, git, commit) => {
+      const found = secretsOf({}, ['Erika Probe']);
+      const named = pathSecretsOf({}, ['Erika Probe']);
+      commit('neutral.md', 'Nichts.\n', 'Ein Gruß von Erika Probe');
+      git(['update-ref', 'refs/remotes/origin/main', 'HEAD']);
+      expect(leaks(messagesOf(git, PUBLISHED), found)).toBe(true);
+      expect(leaks(messagesOf(git, UNPUBLISHED), found)).toBe(false);
+      // a local branch, a detached HEAD and a stash: not published, UNPUBLISHED reads the commits
+      git(['checkout', '-q', '-b', 'lokal']);
+      commit('erika-probe.md', 'Nichts.\n');
+      git(['checkout', '-q', '--detach']);
+      commit('lose.md', 'Die Kanzlei Erika Probe.\n');
+      writeFileSync(join(folder, 'neutral.md'), 'Die Kanzlei Erika Probe.\n');
+      git(['-c', 'user.name=Probe', '-c', 'user.email=probe@example.org', 'stash', '-q']);
+      expect(commitPaths(git, PUBLISHED)).toEqual(['neutral.md']);
+      expect(commitBlobs(git, PUBLISHED).filter((blob) => leaks(blob.content, found))).toEqual([]);
+      expect(commitPaths(git, UNPUBLISHED).sort()).toEqual(['erika-probe.md', 'lose.md']);
+      // a pull request ref GitHub keeps, and a tag: published
+      git(['update-ref', 'refs/pull/1/head', 'HEAD']);
+      git(['tag', 'v1', 'lokal']);
+      expect(commitPaths(git, PUBLISHED).sort()).toEqual([
+        'erika-probe.md',
+        'lose.md',
+        'neutral.md',
+      ]);
+      expect(commitPaths(git, PUBLISHED).filter((path) => pathLeaks(path, named))).toHaveLength(1);
+      expect(commitBlobs(git, PUBLISHED).filter((blob) => leaks(blob.content, found))).toHaveLength(
+        1,
+      );
+      // a clone with part of the history only
+      expect(isShallow(git)).toBe(false);
+      const shallow = `${folder}-flach`;
+      try {
+        execFileSync('git', ['clone', '-q', '--depth', '1', pathToFileURL(folder).href, shallow], {
+          stdio: 'pipe',
+        });
+        expect(isShallow(gitIn(shallow))).toBe(true);
+      } finally {
+        rmSync(shallow, { recursive: true, force: true });
+      }
+    });
+  });
+
+  it('finds an invented name that only the index still holds: added, then cleaned or deleted in the working copy', (ctx) => {
+    ctx.skip(!repoReadable, 'git cannot read this checkout (no git, or no .git)');
+    inProbeRepo((folder, git, commit) => {
+      const found = secretsOf({}, ['Erika Probe']);
+      commit('neutral.md', 'Nichts.\n');
+      // added, then cleaned only in the working copy
+      writeFileSync(join(folder, 'a.md'), 'Die Kanzlei Erika Probe.\n');
+      git(['add', 'a.md']);
+      writeFileSync(join(folder, 'a.md'), 'Die [Kanzlei].\n');
+      // added, then deleted
+      writeFileSync(join(folder, 'b.md'), 'Ein Gruß von Erika Probe.\n');
+      git(['add', 'b.md']);
+      rmSync(join(folder, 'b.md'));
+      // a tracked file changed in the working copy only: the index holds the commit's clean text
+      writeFileSync(join(folder, 'neutral.md'), 'Noch nichts.\n');
+      const files = workingFiles(git, folder);
+      expect(files.filter((file) => file.content && leaks(file.content, found))).toEqual([]);
+      expect(stagedFiles(git).map((file) => file.path)).toEqual(['a.md', 'b.md', 'neutral.md']);
+      const leaking = committable(git, folder).filter(
+        (file) => file.content && leaks(file.content, found),
+      );
+      expect(leaking.map((file) => [file.path, file.staged])).toEqual([
+        ['a.md', true],
+        ['b.md', true],
+      ]);
+      // what a commit without -a takes
+      git([
+        ...['-c', 'user.name=Probe', '-c', 'user.email=probe@example.org'],
+        ...['-c', 'commit.gpgsign=false', 'commit', '-q', '--no-verify', '-m', 'ohne -a'],
+      ]);
+      expect(leaks(git(['show', 'HEAD:a.md']), found)).toBe(true);
+      // once index and working copy agree, the index is not read twice
+      git(['add', '-A']);
+      expect(stagedFiles(git)).toEqual([]);
     });
   });
 
@@ -366,50 +555,78 @@ describe('the Kanzlei configuration stays out of the public repo', () => {
       git(['mv', 'docs/Erika_Probe.png', 'docs/bild.png']);
       commit('docs/bild.png', 'Bild\n');
       expect(workingFiles(git, folder).filter((file) => pathLeaks(file.path, named))).toEqual([]);
-      expect(unpublishedPaths(git).filter((path) => pathLeaks(path, named))).toHaveLength(1);
+      expect(commitPaths(git, UNPUBLISHED).filter((path) => pathLeaks(path, named))).toHaveLength(
+        1,
+      );
       git(['update-ref', 'refs/remotes/origin/main', 'HEAD']);
-      expect(unpublishedPaths(git)).toEqual([]);
+      expect(commitPaths(git, UNPUBLISHED)).toEqual([]);
       // a commit on another local branch, then one on a detached HEAD
       git(['checkout', '-q', '-b', 'andere']);
       commit('erika.probe.md', 'Nichts.\n');
       commit('andere.md', 'Die Kanzlei Erika Probe.\n');
       git(['checkout', '-q', 'HEAD~2']);
-      expect(unpublishedPaths(git).sort()).toEqual(['andere.md', 'erika.probe.md']);
-      expect(unpublishedBlobs(git).filter((blob) => leaks(blob.content, found))).toHaveLength(1);
+      expect(commitPaths(git, UNPUBLISHED).sort()).toEqual(['andere.md', 'erika.probe.md']);
+      expect(
+        commitBlobs(git, UNPUBLISHED).filter((blob) => leaks(blob.content, found)),
+      ).toHaveLength(1);
       git(['branch', '-q', '-D', 'andere']);
       commit('abgeloest.md', 'Die Kanzlei Erika Probe.\n');
-      expect(unpublishedPaths(git)).toEqual(['abgeloest.md']);
-      expect(unpublishedBlobs(git).filter((blob) => leaks(blob.content, found))).toHaveLength(1);
+      expect(commitPaths(git, UNPUBLISHED)).toEqual(['abgeloest.md']);
+      expect(
+        commitBlobs(git, UNPUBLISHED).filter((blob) => leaks(blob.content, found)),
+      ).toHaveLength(1);
     });
   });
 
-  it('keeps the notice, its sentences naming the Kanzlei, the private name list and the link domains out of every file a commit could take, every unpublished commit and every commit message, and the names and domains out of every path', (ctx) => {
+  it('keeps the notice, its sentences naming the Kanzlei, the private name list and the link domains out of every file a commit could take (working copy and index), every unpublished commit and its message, and the names and domains out of every path', (ctx) => {
     ctx.skip(scanSkipped !== undefined, scanSkipped);
     const git = gitIn(ROOT);
-    // a path that names the Kanzlei is never printed: it would carry the name into the output
-    const shown = (path: string) =>
-      pathLeaks(path, pathSecrets) ? '(a path that names the Kanzlei)' : path;
-    const files = workingFiles(git, ROOT);
+    const files = committable(git, ROOT);
     expect(files.length).toBeGreaterThan(100);
     const leaking = files.filter((file) => file.content && leaks(file.content, secrets));
-    expect(leaking.map((file) => shown(file.path))).toEqual([]);
+    expect(
+      leaking.map((file) => `${shown(file.path)}${file.staged ? ' (in the index)' : ''}`),
+    ).toEqual([]);
     // the files of the commits a push would publish, also those removed again since
-    const unpublished = unpublishedBlobs(git).filter((blob) => leaks(blob.content, secrets));
+    const unpublished = commitBlobs(git, UNPUBLISHED).filter((blob) =>
+      leaks(blob.content, secrets),
+    );
     expect(unpublished.map((blob) => shown(blob.path))).toEqual([]);
     // the paths of the working copy and of those commits, as a count only
-    const paths = [...files.map((file) => file.path), ...unpublishedPaths(git)];
+    const paths = [...files.map((file) => file.path), ...commitPaths(git, UNPUBLISHED)];
     expect(
       paths.filter((path) => pathLeaks(path, pathSecrets)).length,
       'paths that name the Kanzlei (not shown)',
     ).toBe(0);
-    // the history as far as this clone has it (GitHub's checkout fetches one commit)
-    const messages = git([
-      'log',
-      '--no-color',
-      '--format=%B%n%an%n%ae%n%cn%n%ce',
-      'HEAD',
-      '--branches',
-    ]);
-    expect(leaks(messages, secrets)).toBe(false);
+    // the messages, authors and committers of those commits
+    expect(
+      leaks(messagesOf(git, UNPUBLISHED), secrets),
+      'a message, author or committer of an unpublished commit',
+    ).toBe(false);
   });
+
+  it('keeps them out of the published history too: every file, path and message of every commit a remote has; a find there goes to Tobias', (ctx) => {
+    ctx.skip(scanSkipped !== undefined, scanSkipped);
+    const git = gitIn(ROOT);
+    expect(
+      isShallow(git),
+      'this clone is shallow and would read the published history only in part: run `git fetch --unshallow` first',
+    ).toBe(false);
+    const remote = git(['for-each-ref', '--count=1', '--format=%(refname)', 'refs/remotes']);
+    ctx.skip(remote.length === 0, 'this clone has no remote branch: it has published nothing');
+    const blobs = commitBlobs(git, PUBLISHED);
+    expect(blobs.length).toBeGreaterThan(100);
+    expect(
+      blobs.filter((blob) => leaks(blob.content, secrets)).map((blob) => shown(blob.path)),
+      `${ASK_TOBIAS} (files)`,
+    ).toEqual([]);
+    expect(
+      commitPaths(git, PUBLISHED).filter((path) => pathLeaks(path, pathSecrets)).length,
+      `${ASK_TOBIAS} (paths that name the Kanzlei, not shown)`,
+    ).toBe(0);
+    expect(
+      leaks(messagesOf(git, PUBLISHED), secrets),
+      `${ASK_TOBIAS} (a message, author or committer)`,
+    ).toBe(false);
+  }, 30_000);
 });

@@ -63,7 +63,8 @@ const has = (group: ModelGroup, path: string) => valuesOf(group, path).length > 
 /**
  * A value as the client reads it. Numbers by their value, not as written: "7" and "7.00", "1" and
  * "1.0000", "314.86" and "314.860" give the same text, so the same invoice in two XML reads the same
- * (audit R2-L-01); a text that is no number stays as written.
+ * (audit R2-L-01); a text that is no number stays as written, an amount marked „– keine Zahl“ as in
+ * the rules (audit R4-U-01): „336,90“ beside „336,90 EUR“ differed only in „EUR“.
  */
 export function displayValue(bt: string, value: string, currency: string | undefined): string {
   const kind = KIND.get(bt);
@@ -73,7 +74,9 @@ export function displayValue(bt: string, value: string, currency: string | undef
   }
   if (kind === 'amount') {
     const amount = parseDecimal(value);
-    return amount ? `${formatAmount(normalize(amount))}${currency ? ` ${currency}` : ''}` : value;
+    return amount
+      ? `${formatAmount(normalize(amount))}${currency ? ` ${currency}` : ''}`
+      : `${value} ${TEXTS.ruleNoNumber}`;
   }
   if (kind === 'percent' || kind === 'quantity') {
     const number = parseDecimal(value);
@@ -207,6 +210,16 @@ function matchesFilter(group: ModelGroup, filter: OccurrenceFilter | undefined):
   return valuesOf(group, filter.path).some((v) => filter.values.includes(v.value.toUpperCase()));
 }
 
+/**
+ * A missing term as a row names it. BT-110 is read only in the invoice currency (binding), so
+ * without BT-5 the amount may be in the XML: then the gap is named as it is, the currency, not the
+ * amount (audit R4-L-01). The status stays until F33 decides whether BT-5 is a Pflichtangabe.
+ */
+function gapName(model: InvoiceModel, path: string): string {
+  const bt = lastSegment(path);
+  return bt === 'BT-110' && !has(model, 'BT-5') ? TEXTS.taxTotalNoCurrency : termLabel(bt);
+}
+
 interface PresenceResult {
   ok: boolean;
   missing: string[];
@@ -295,7 +308,7 @@ export function present(model: InvoiceModel, presence: Presence): PresenceResult
         if (r.ok) return [];
         if (r.missing.length > 0) return r.missing;
         if (part?.kind === 'any' && part.paths.length === 1 && part.paths[0]) {
-          return [termLabel(lastSegment(part.paths[0]))];
+          return [gapName(model, part.paths[0])];
         }
         if (part?.kind === 'address')
           return [GROUP_LABEL.get(lastSegment(part.group)) ?? part.group];

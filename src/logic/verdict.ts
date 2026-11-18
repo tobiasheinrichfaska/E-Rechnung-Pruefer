@@ -1,6 +1,6 @@
 // The result of step 1 "Erkennen": is it an e-invoice, in which syntax and profile. Always hints,
 // never an approval. Texts are data (texts.ts); this file only decides which apply.
-import type { Analysis, InvoicePart, Problem } from './analysis';
+import type { Analysis, InvoicePart, Problem, SchemaResult } from './analysis';
 import { termLabel } from './binding';
 import { germanDate, isoDate } from './dates';
 import { decimalEquals, formatAmount, normalize, parseDecimal } from './decimal';
@@ -105,8 +105,12 @@ const RULE_STATUS_TEXT: Readonly<Record<RuleStatus, string>> = {
 const shorten = (text: string) =>
   text.length > SHOWN_MAX ? `${text.slice(0, SHOWN_MAX - 1)}…` : text;
 
-/** Whitespace collapsed: two spaces are no other value (audit R3-L-03); the case is kept (G-22) */
-const collapse = (text: string) => text.replace(/\s+/g, ' ');
+/**
+ * Whitespace collapsed: two spaces are no other value (audit R3-L-03); the case is kept (G-22).
+ * `\s` takes the no-break space too, so the one before „%“ (R3-U-10) is set again after — on every
+ * part alike, so what compares equal stays the same (audit R4-L-02).
+ */
+const collapse = (text: string) => text.replace(/\s+/g, ' ').replace(/(\d) %/g, '$1\u00a0%');
 const tidyValue = (v: ShownValue): ShownValue => ({ label: v.label, value: collapse(v.value) });
 const tidyRow = (row: RowResult): RowResult => ({
   ...row,
@@ -429,17 +433,33 @@ export function comparisonRows(parts: readonly InvoicePart[]): ComparisonRow[] {
   ];
 }
 
-/** "Technische Meldung (Zeile 4): …" — the parser's or the schema's own (English) message. */
-export function technicalLine(problem: Problem): string {
+/**
+ * "Technische Meldung (Zeile 4): …" — the parser's or the schema's own (English) message; with
+ * `name` the attachment it belongs to, where several parts have other messages (audit R4-U-02).
+ */
+export function technicalLine(problem: Problem, name?: string): string {
+  if (name !== undefined) {
+    return problem.line
+      ? fill(TEXTS.problemAtLineIn, { name, line: problem.line, message: problem.message })
+      : fill(TEXTS.problemMessageIn, { name, message: problem.message });
+  }
   return problem.line
     ? fill(TEXTS.problemAtLine, { line: problem.line, message: problem.message })
     : fill(TEXTS.problemMessage, { message: problem.message });
 }
 
 /** The German prefix of a technical line, as a pattern ("Technische Meldung (Zeile 4): "). */
-const TECHNICAL = [TEXTS.problemAtLine, TEXTS.problemMessage].map((template) => {
+const TECHNICAL = [
+  TEXTS.problemAtLineIn,
+  TEXTS.problemMessageIn,
+  TEXTS.problemAtLine,
+  TEXTS.problemMessage,
+].map((template) => {
   const [prefix = ''] = template.split('{message}');
-  const pattern = prefix.replace(/[.*+?^$()|[\]\\{}]/g, '\\$&').replace('\\{line\\}', '\\d+');
+  const pattern = prefix
+    .replace(/[.*+?^$()|[\]\\{}]/g, '\\$&')
+    .replace('\\{line\\}', '\\d+')
+    .replace('\\{name\\}', '.+?');
   return new RegExp(`^(${pattern})([\\s\\S]+)$`);
 });
 
@@ -559,16 +579,41 @@ function transitionLines(transition: Transition, mendFile: boolean): string[] {
 /** How many technical schema messages the result itself shows (all are listed below it). */
 const SCHEMA_LINES = 3;
 
+/** The engine's messages of one part as the result box shows them: the first three, then a count */
+function technicalLines(schema: SchemaResult, name?: string): string[] {
+  const shown = schema.problems.slice(0, SCHEMA_LINES);
+  const more = schema.count - shown.length;
+  return [
+    ...shown.map((problem) => technicalLine(problem, name)),
+    ...(more > 0
+      ? [
+          name === undefined
+            ? fill(TEXTS.schemaMore, { count: more })
+            : fill(TEXTS.schemaMoreIn, { name, count: more }),
+        ]
+      : []),
+  ];
+}
+
 /** The German sentence of a schema mismatch, and the engine's messages (G-10: shown last). */
 function schemaParts(
   invoices: readonly InvoiceVerdict[],
   inPdf: boolean,
 ): { german: string[]; technical: string[] } {
+  const failed = invoices.filter((invoice) => invoice.part.schema && schemaFailed(invoice));
+  // Parts with other messages: each line names its attachment, else „Zeile 8“ belongs to none
+  // (audit R4-U-02); the same messages of two parts are shown once (audit QL-07)
+  const named =
+    new Set(
+      failed.map((invoice) =>
+        JSON.stringify(invoice.part.schema ? technicalLines(invoice.part.schema) : []),
+      ),
+    ).size > 1;
   const german: string[] = [];
   const technical: string[] = [];
-  for (const invoice of invoices) {
+  for (const invoice of failed) {
     const schema = invoice.part.schema;
-    if (!schema || !schemaFailed(invoice)) continue;
+    if (!schema) continue;
     german.push(
       fill(inPdf ? TEXTS.schemaMismatchIn : TEXTS.schemaMismatch, {
         name: invoice.part.origin,
@@ -576,15 +621,8 @@ function schemaParts(
         count: schema.count,
       }),
     );
-    const shown = schema.problems.slice(0, SCHEMA_LINES);
-    technical.push(
-      ...shown.map(technicalLine),
-      ...(schema.count > shown.length
-        ? [fill(TEXTS.schemaMore, { count: schema.count - shown.length })]
-        : []),
-    );
+    technical.push(...technicalLines(schema, named ? invoice.part.origin : undefined));
   }
-  // the same message of two parts is shown once (audit QL-07)
   return { german, technical: [...new Set(technical)] };
 }
 

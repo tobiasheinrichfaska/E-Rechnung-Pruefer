@@ -4,9 +4,10 @@
 # the unit tests and the e2e tests in Chromium, Firefox and WebKit (live build and test version).
 # Tests that need the private files (tests/fixtures/lokal: the FeRD samples, the real Kanzlei
 # configuration) skip here — a skip is not a pass; they run in the cloud sessions, where the private
-# repo is attached. The e2e branches that need a Kanzlei configuration run a second time against an
-# invented one (tests/fixtures/config/). Failed e2e runs keep their files as an artifact (official
-# sample files only).
+# repo is attached. The e2e branches that need a Kanzlei configuration run once more against an
+# invented one (tests/fixtures/config/): those of zugangshinweis, fusszeile and farben, and the whole
+# testrahmen.spec.ts on the test version. Failed e2e runs keep their files as an artifact (official
+# sample files and the invented configuration only).
 name: Tests
 
 on:
@@ -87,6 +88,17 @@ jobs:
             console.table(counts);
             if (files.length === 0 || counts.some((c) => c.expected === 0 || c.other > 0)) process.exit(1);
           " $KANZLEI_SPECS
+      # The test version with the invented notice (audit 2026-11-16, R4-T-01): beside the test frame
+      # the tool asks the notice only where one is configured, so in the run of every spec above
+      # those branches of testrahmen.spec.ts never ran, though the test zone is built with a notice.
+      # The whole spec runs here; passNotice throws where KANZLEI_CONFIG names a file without a
+      # notice, so the branches cannot skip unnoticed (tests/static/workflow.test.ts).
+      - name: E2E der Testfassung mit der erfundenen Beispielkanzlei (Testrahmen)
+        env:
+          KANZLEI_CONFIG: tests/fixtures/config/beispiel-kanzlei.json
+        run: |
+          npm run build:test
+          npx playwright test tests/e2e/testrahmen.spec.ts
       - if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:

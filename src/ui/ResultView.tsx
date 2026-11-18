@@ -36,7 +36,10 @@ const OTHER_KIND: Readonly<Record<string, string>> = {
   unreadable: 'nicht lesbar',
 };
 
-/** Targets of the jump links from the result box (G-1); one invoice card at most has them. */
+/**
+ * Targets of the jump links from the result box (G-1); one invoice card at most has them. The
+ * schema messages of a second part take a suffix (`technische-meldungen-2`), so no id is doubled.
+ */
 const ANCHOR = {
   pflicht: 'pflichtangaben',
   rules: 'rechnerische-pruefung',
@@ -81,13 +84,28 @@ function hasSchemaProblems(invoice: InvoiceVerdict): boolean {
   return Boolean(schema && schema.count > 0 && invoice.einordnung !== 'keineERechnung');
 }
 
-/** The technical messages of the schema check, on demand (step 2b). */
-function SchemaProblems({ invoice }: { invoice: InvoiceVerdict }) {
+/**
+ * The technical messages of the schema check, on demand (step 2b); `name`: the attachment, where the
+ * PDF holds several invoice XML (audit R4-U-02).
+ */
+function SchemaProblems({
+  invoice,
+  id,
+  name,
+}: {
+  invoice: InvoiceVerdict;
+  id: string;
+  name?: string | undefined;
+}) {
   const schema = invoice.part.schema;
   if (!schema || !hasSchemaProblems(invoice)) return null;
   return (
-    <details className="schema-problems" data-testid="schema-problems" id={ANCHOR.schema}>
-      <summary>{fill(TEXTS.schemaProblemsTitle, { count: schema.count })}</summary>
+    <details className="schema-problems" data-testid="schema-problems" id={id}>
+      <summary>
+        {name === undefined
+          ? fill(TEXTS.schemaProblemsTitle, { count: schema.count })
+          : fill(TEXTS.schemaProblemsTitleIn, { name, count: schema.count })}
+      </summary>
       <ol>
         {schema.problems.map((problem, index) => (
           <li key={index}>
@@ -102,6 +120,26 @@ function SchemaProblems({ invoice }: { invoice: InvoiceVerdict }) {
       )}
     </details>
   );
+}
+
+/**
+ * One list for every part with schema messages, each named by its attachment where there are several
+ * parts: the box counts the messages of every part beyond the third „below“, so each of them stands
+ * here, whichever part has them and whether the data agree or not (audit R4-U-02). The first list
+ * is the target of the jump link.
+ */
+function SchemaLists({ invoices }: { invoices: readonly InvoiceVerdict[] }) {
+  const named = invoices.length > 1;
+  return invoices
+    .filter(hasSchemaProblems)
+    .map((invoice, index) => (
+      <SchemaProblems
+        key={`${invoice.part.origin}-${index}`}
+        invoice={invoice}
+        id={index === 0 ? ANCHOR.schema : `${ANCHOR.schema}-${index + 1}`}
+        name={named ? invoice.part.origin : undefined}
+      />
+    ));
 }
 
 function DetailTable({ rows, labelledBy }: { rows: DetailRow[]; labelledBy?: string }) {
@@ -132,13 +170,23 @@ function openTarget(id: string) {
   if (target instanceof HTMLDetailsElement) target.open = true;
 }
 
-/** G-1: links from the result box to the sections of the (one) invoice shown below */
-function JumpLinks({ invoice }: { invoice: InvoiceVerdict | undefined }) {
-  if (!invoice) return null;
+/**
+ * G-1: links from the result box to the sections of the (one) invoice shown below, and to the
+ * schema messages whenever any part has them (audit R4-U-02)
+ */
+function JumpLinks({
+  invoice,
+  invoices,
+}: {
+  invoice: InvoiceVerdict | undefined;
+  invoices: readonly InvoiceVerdict[];
+}) {
   const links = [
-    ...(pflichtModel(invoice) ? [{ href: ANCHOR.pflicht, text: TEXTS.jumpPflicht }] : []),
-    ...(rulesOf(invoice) ? [{ href: ANCHOR.rules, text: TEXTS.jumpRules }] : []),
-    ...(hasSchemaProblems(invoice) ? [{ href: ANCHOR.schema, text: TEXTS.jumpSchema }] : []),
+    ...(invoice && pflichtModel(invoice)
+      ? [{ href: ANCHOR.pflicht, text: TEXTS.jumpPflicht }]
+      : []),
+    ...(invoice && rulesOf(invoice) ? [{ href: ANCHOR.rules, text: TEXTS.jumpRules }] : []),
+    ...(invoices.some(hasSchemaProblems) ? [{ href: ANCHOR.schema, text: TEXTS.jumpSchema }] : []),
   ];
   if (links.length === 0) return null;
   return (
@@ -157,11 +205,22 @@ function JumpLinks({ invoice }: { invoice: InvoiceVerdict | undefined }) {
 }
 
 /**
- * F27/G-8: two invoice XML with different data — the compared values side by side. On a phone the
- * table becomes blocks and its column headers go out of sight, so each value names its attachment
- * there; screen readers keep the column headers and skip the name (aria-hidden, audit R3-U-06).
+ * F27/G-8: two invoice XML with different data — the compared values side by side. Each Angabe
+ * stands above its values as the header of its row group, so the values share the whole width of
+ * the card: in a column of its own beside them the label took a third, and with a wider font (CI)
+ * „Umsatzsteuerkategorie“ broke inside in the values at 641 px and on paper (audit R4-U-03). On a
+ * phone the table becomes blocks and its column headers go out of sight, so each value names its
+ * attachment there; screen readers keep the column headers and skip the name (aria-hidden, audit
+ * R3-U-06), and `headers` names both headers of each value. Below it the schema messages of each
+ * part (audit R4-U-02).
  */
-function Comparison({ analysis }: { analysis: Analysis }) {
+function Comparison({
+  analysis,
+  invoices,
+}: {
+  analysis: Analysis;
+  invoices: readonly InvoiceVerdict[];
+}) {
   const rows = comparisonRows(analysis.invoices);
   const names = analysis.invoices.map((part) => part.origin);
   return (
@@ -170,24 +229,23 @@ function Comparison({ analysis }: { analysis: Analysis }) {
       <table className="details comparison" aria-labelledby="vergleich" data-testid="comparison">
         <thead>
           <tr>
-            <th scope="col">
-              <span className="visually-hidden">Angabe</span>
-            </th>
             {analysis.invoices.map((part, index) => (
-              <th scope="col" key={`${part.origin}-${index}`}>
+              <th scope="col" id={`vergleich-teil-${index}`} key={`${part.origin}-${index}`}>
                 {part.origin}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody>
-          {rows.slice(1).map((row) => (
-            <tr key={row.label} className={row.differs ? 'differs' : undefined}>
-              <th scope="row">
+        {rows.slice(1).map((row, rowIndex) => (
+          <tbody key={row.label} className={row.differs ? 'differs' : undefined}>
+            <tr>
+              <th scope="rowgroup" colSpan={names.length} id={`vergleich-angabe-${rowIndex}`}>
                 <Codes text={row.label} />
               </th>
+            </tr>
+            <tr>
               {row.values.map((value, index) => (
-                <td key={index}>
+                <td key={index} headers={`vergleich-angabe-${rowIndex} vergleich-teil-${index}`}>
                   <span className="part-name" aria-hidden="true">
                     {names[index]}:{' '}
                   </span>
@@ -195,9 +253,10 @@ function Comparison({ analysis }: { analysis: Analysis }) {
                 </td>
               ))}
             </tr>
-          ))}
-        </tbody>
+          </tbody>
+        ))}
       </table>
+      <SchemaLists invoices={invoices} />
     </div>
   );
 }
@@ -231,7 +290,7 @@ function InvoiceCard({
           <DetailTable rows={technical} />
         </details>
       )}
-      <SchemaProblems invoice={invoice} />
+      <SchemaLists invoices={same ?? [invoice]} />
       <Pflichtangaben invoice={invoice} />
     </div>
   );
@@ -288,11 +347,13 @@ export function ResultView({ analysis, verdict, notice, actions }: Props) {
           </Fragment>
         ))}
       </div>
-      <JumpLinks invoice={shown[0]} />
+      <JumpLinks invoice={shown[0]} invoices={verdict.invoices} />
       {notice}
       {actions}
 
-      {comparison && !comparison.same && <Comparison analysis={analysis} />}
+      {comparison && !comparison.same && (
+        <Comparison analysis={analysis} invoices={verdict.invoices} />
+      )}
 
       {shown.map((invoice, index) => (
         <InvoiceCard

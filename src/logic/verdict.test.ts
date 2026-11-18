@@ -191,7 +191,8 @@ describe('invoiceDetails', () => {
     const rows = Object.fromEntries(invoiceDetails(invoice, false).map((r) => [r.label, r.value]));
     expect(rows['Rechnungsnummer (BT-1)']).toBe('– (fehlt)');
     expect(rows['Rechnungsdatum (BT-2)']).toBe('13.11.2026');
-    expect(rows['Gesamtbetrag mit Umsatzsteuer (BT-112)']).toBe('1.000,00');
+    // as written, marked as in the Pflichtangaben and the rules (audit R4-U-01)
+    expect(rows['Gesamtbetrag mit Umsatzsteuer (BT-112)']).toBe(`1.000,00 ${TEXTS.ruleNoNumber}`);
   });
 });
 
@@ -265,6 +266,17 @@ describe('technicalParts (audit Bedienung, Z-04)', () => {
     expect(technicalParts(technicalLine({ message: 'Invalid PDF structure.' }))).toEqual({
       prefix: 'Technische Meldung: ',
       message: 'Invalid PDF structure.',
+    });
+    // with the attachment it belongs to (audit R4-U-02)
+    expect(
+      technicalParts(technicalLine({ line: 8, message: 'Not expected.' }, 'a (1).xml')),
+    ).toEqual({
+      prefix: 'Technische Meldung, Anhang „a (1).xml“ (Zeile 8): ',
+      message: 'Not expected.',
+    });
+    expect(technicalParts(technicalLine({ message: 'Not expected.' }, 'b.xml'))).toEqual({
+      prefix: 'Technische Meldung, Anhang „b.xml“: ',
+      message: 'Not expected.',
     });
   });
 
@@ -427,6 +439,55 @@ describe('the same invoice XML twice (audit 2026-11-15)', () => {
   });
 });
 
+// Audit R4-U-02: with several parts the box counted the messages beyond the third „below“ for each
+// part, and „Zeile 8“ belonged to no attachment where two parts had other messages
+describe('schema messages of several invoice XML (audit R4-U-02)', () => {
+  const problems = (count: number, from: number) =>
+    Array.from({ length: count }, (_, i) => ({ message: `Problem ${from + i}.`, line: from + i }));
+  const schemaOf = (count: number, from: number) => ({
+    schema: 'UN/CEFACT CII D16B',
+    checked: true,
+    problems: problems(count, from),
+    count,
+  });
+  const parts = (a: number, b: number, other: Partial<InvoicePart['header']> = {}) =>
+    [
+      { ...part({}, 'a.xml'), ...(a > 0 ? { schema: schemaOf(a, 1) } : {}) },
+      { ...part(other, 'b.xml'), ...(b > 0 ? { schema: schemaOf(b, 101) } : {}) },
+    ] satisfies InvoicePart[];
+  const technical = (verdict: ReturnType<typeof verdictOf>) =>
+    verdict.explanation.filter(
+      (line) => line.startsWith('Technische Meldung') || line.startsWith('Weitere'),
+    );
+
+  it('names the attachment of each line where two parts have other messages', () => {
+    for (const other of [{}, { 'BT-1': ['R-2'] }]) {
+      const verdict = verdictOf(analysis({ invoices: parts(5, 4, other) }));
+      expect(technical(verdict)).toEqual([
+        'Technische Meldung, Anhang „a.xml“ (Zeile 1): Problem 1.',
+        'Technische Meldung, Anhang „a.xml“ (Zeile 2): Problem 2.',
+        'Technische Meldung, Anhang „a.xml“ (Zeile 3): Problem 3.',
+        fill(TEXTS.schemaMoreIn, { name: 'a.xml', count: 2 }),
+        'Technische Meldung, Anhang „b.xml“ (Zeile 101): Problem 101.',
+        'Technische Meldung, Anhang „b.xml“ (Zeile 102): Problem 102.',
+        'Technische Meldung, Anhang „b.xml“ (Zeile 103): Problem 103.',
+        fill(TEXTS.schemaMoreIn, { name: 'b.xml', count: 1 }),
+      ]);
+    }
+  });
+
+  it('keeps the short lines where only one part has messages', () => {
+    const verdict = verdictOf(analysis({ invoices: parts(0, 4) }));
+    expect(verdict.comparison?.same).toBe(true);
+    expect(technical(verdict)).toEqual([
+      'Technische Meldung (Zeile 101): Problem 101.',
+      'Technische Meldung (Zeile 102): Problem 102.',
+      'Technische Meldung (Zeile 103): Problem 103.',
+      fill(TEXTS.schemaMore, { count: 1 }),
+    ]);
+  });
+});
+
 describe('the same header but other data in two invoice XML (audit QL-01)', () => {
   const term = (value: string) => [{ value, raw: value }];
   /** The header of `part()` as a model, with or without the seller's VAT id (BT-31). */
@@ -511,6 +572,49 @@ describe('the same header but other data in two invoice XML (audit QL-01)', () =
         values: ['Name des Lieferanten: Muster GmbH', 'Name des Lieferanten: MUSTER GMBH'],
       },
     ]);
+    // a no-break space in one copy only is no other name either (audit R4-L-02)
+    const unbroken = { ...part({}, 'b.xml'), model: named('Muster\u00a0GmbH') };
+    expect(differingResults([one, unbroken])).toEqual([]);
+    expect(verdictOf(analysis({ invoices: [one, unbroken] })).comparison?.same).toBe(true);
+  });
+
+  // Audit R4-L-02: collapsing the whitespace (R3-L-03) took the no-break space before „%“
+  // (R3-U-10), so „7“ and „%“ could stand on two lines in the comparison
+  it('keeps the no-break space before „%“ in the values it shows', () => {
+    const rated = (rate: string) => {
+      const seller = withSeller('DE123456789');
+      return {
+        ...seller,
+        groups: {
+          ...seller.groups,
+          'BG-23': [
+            {
+              bg: 'BG-23',
+              terms: {
+                'BT-116': term('100.00'),
+                'BT-117': term('7.00'),
+                'BT-118': term('S'),
+                'BT-119': term(rate),
+              },
+              groups: {},
+            },
+          ],
+        },
+      } as unknown as NonNullable<InvoicePart['model']>;
+    };
+    const parts = [
+      { ...part({}, 'a.xml'), model: rated('7') },
+      { ...part({}, 'b.xml'), model: rated('7.5') },
+    ];
+    const line = differingLine(parts, []);
+    expect(line).toContain('Umsatzsteuersatz: 7\u00a0%');
+    expect(line).toContain('Umsatzsteuersatz: 7,5\u00a0%');
+    expect(line).not.toMatch(/\d %/);
+    const shown = comparisonRows(parts)
+      .filter((row) => row.differs)
+      .flatMap((row) => row.values);
+    expect(shown.join(' / ')).toContain('Umsatzsteuersatz: 7,5\u00a0%');
+    expect(shown.filter((value) => / %/.test(value))).toEqual([]);
   });
 });
 

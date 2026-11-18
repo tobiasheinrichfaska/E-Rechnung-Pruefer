@@ -232,6 +232,9 @@ function one(source: Source, path: string): Decimal | null | undefined {
   return parseDecimal(first.value);
 }
 
+/** The value at a path as written: shown beside „keine Zahl“ where it is none (audit R4-U-01) */
+const textAt = (source: Source, path: string) => valuesOf(source, path)[0]?.value;
+
 /**
  * The sum of part amounts: undefined when one is no number, null when one is missing — shown as
  * „keine Zahl“ and „nicht angegeben“, so the client looks for the right thing (audit R2-L-07).
@@ -310,12 +313,19 @@ export function adviceFor(ids: readonly string[]): string[] {
 export function checkRules(model: InvoiceModel, options: RulesOptions = {}): RulesResult {
   const forms = ruleFormsOf(options.syntax);
   const currency = valuesOf(model, 'BT-5')[0]?.value;
-  const money = (value: Decimal | null | undefined) =>
+  // A value that is no number with its text, as the comparison shows it: „336,90 – keine Zahl“
+  // beside „336,90“ in the Pflichtangaben (audit R4-U-01); a sum has no one text and stays
+  // „– keine Zahl“
+  const money = (value: Decimal | null | undefined, text?: string) =>
     value === null
       ? TEXTS.ruleMissing
       : value === undefined
-        ? TEXTS.ruleNoNumber
+        ? text
+          ? `${text} ${TEXTS.ruleNoNumber}`
+          : TEXTS.ruleNoNumber
         : `${formatAmount(normalize(value))}${currency ? ` ${currency}` : ''}`;
+  /** One value of the rule as shown: a document total, or a term of a VAT breakdown */
+  const shownAt = (source: Source, path: string) => money(one(source, path), textAt(source, path));
   const results: RuleResult[] = [];
   const add_ = (
     id: string,
@@ -333,6 +343,7 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
     });
 
   const total = (bt: string) => one(model, `BG-22/${bt}`);
+  const totalShown = (bt: string) => shownAt(model, `BG-22/${bt}`);
   const bt106 = total('BT-106');
   const bt107 = total('BT-107');
   const bt108 = total('BT-108');
@@ -354,7 +365,7 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
     lines.length > 0 && lineSum && bt106 ? decimalEquals(bt106, round2(lineSum)) : undefined,
     [
       { label: TEXTS.ruleLineSum, value: money(lineSum) },
-      { label: named('BT-106'), value: money(bt106) },
+      { label: named('BT-106'), value: totalShown('BT-106') },
     ],
   );
 
@@ -374,7 +385,7 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
       [
         { label: sumLabel, value: money(partSum) },
         // named like every other value (audit R2-L-08)
-        { label: named(bt), value: money(value) },
+        { label: named(bt), value: totalShown(bt) },
       ],
     );
   }
@@ -391,23 +402,26 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
         : undefined;
     const ok = bt109 && expected ? decimalEquals(bt109, expected) : undefined;
     add_('BR-CO-13', ok, [
-      { label: named('BT-106'), value: money(bt106) },
-      { label: named('BT-107'), value: money(bt107) },
-      { label: named('BT-108'), value: money(bt108) },
-      { label: named('BT-109'), value: money(bt109) },
+      { label: named('BT-106'), value: totalShown('BT-106') },
+      { label: named('BT-107'), value: totalShown('BT-107') },
+      { label: named('BT-108'), value: totalShown('BT-108') },
+      { label: named('BT-109'), value: totalShown('BT-109') },
       ...expectedValue(expected),
     ]);
   }
 
-  // Without the invoice currency (BT-5) the tool cannot tell which amount is BT-110: both CEN
-  // Schematrons count it in the invoice currency and then report only BR-05 (`every $Currency in
-  // <BT-5> satisfies …` holds over nothing). BR-CO-14 and BR-CO-15 are not checked and say why,
-  // a BT-110 not read is not shown (audit R3-L-01)
+  // Without the invoice currency (BT-5) the tool cannot tell which amount is BT-110 (it reads it
+  // only in BT-5). The CEN Schematrons differ there: BR-CO-15 holds over nothing in both (`every
+  // $Currency in <BT-5> satisfies …`), and so does BR-CO-14 in CII (context `TaxTotalAmount` with
+  // `@currencyID` = BT-5) — they report only BR-05. UBL computes BR-CO-14 without BT-5 too, in the
+  // context `$Tax_Total` (every `cac:TaxTotal`, EN16931-UBL-model.sch), and reports a wrong sum.
+  // The tool checks neither BR-CO-14 nor BR-CO-15 there and says why: less than CEN for UBL
+  // BR-CO-14, never a false hint. A BT-110 not read is not shown (audit R3-L-01, R4-L-01)
   const noCurrency: RuleValue[] = currency
     ? []
     : [{ label: TEXTS.ruleCurrency, value: TEXTS.ruleMissing }];
   const taxTotal: RuleValue[] =
-    currency || bt110 !== null ? [{ label: named('BT-110'), value: money(bt110) }] : [];
+    currency || bt110 !== null ? [{ label: named('BT-110'), value: totalShown('BT-110') }] : [];
 
   // BR-CO-14: BT-110 = round(Σ BT-117) — where BT-110 is given: the CEN Schematron checks it in the
   // context of BT-110, so without one it does not apply (three official examples without VAT, e.g.
@@ -435,7 +449,8 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
   // amount without `currencyID` counts as well, where none carries the invoice currency (binding of
   // BT-110, D16B allows it): then BR-CO-15 can pass where CEN reports it for the missing attribute
   {
-    const taxes = valuesOf(model, 'BG-22/BT-110').map((v) => parseDecimal(v.value));
+    const taxValues = valuesOf(model, 'BG-22/BT-110');
+    const taxes = taxValues.map((v) => parseDecimal(v.value));
     const notOneTax = forms.co15ExactlyOneTax && taxes.length !== 1;
     const netAlone = Boolean(forms.co15NetAlone && bt109 && bt112 && decimalEquals(bt112, bt109));
     let sumFits: boolean | undefined;
@@ -453,11 +468,18 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
     }
     const ok = currency ? netAlone || sumFits : undefined;
     add_('BR-CO-15', ok, [
-      { label: named('BT-109'), value: money(bt109) },
+      { label: named('BT-109'), value: totalShown('BT-109') },
       ...(taxes.length > 1
-        ? [{ label: named('BT-110'), value: taxes.map(money).join(TEXTS.ruleAnd) }]
+        ? [
+            {
+              label: named('BT-110'),
+              value: taxValues
+                .map((v) => money(parseDecimal(v.value), v.value))
+                .join(TEXTS.ruleAnd),
+            },
+          ]
         : taxTotal),
-      { label: named('BT-112'), value: money(bt112) },
+      { label: named('BT-112'), value: totalShown('BT-112') },
       ...expectedValue(expected),
       // why the sum cannot fit: none (UBL) or more than one VAT total
       ...(currency && notOneTax && ok !== true && (taxes.length > 1 || !forms.co15NetAlone)
@@ -495,10 +517,10 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
           : exactDue
         : undefined;
     add_('BR-CO-16', ok, [
-      { label: named('BT-112'), value: money(bt112) },
-      { label: named('BT-113'), value: money(bt113) },
-      { label: named('BT-114'), value: money(bt114) },
-      { label: named('BT-115'), value: money(bt115) },
+      { label: named('BT-112'), value: totalShown('BT-112') },
+      { label: named('BT-113'), value: totalShown('BT-113') },
+      { label: named('BT-114'), value: totalShown('BT-114') },
+      { label: named('BT-115'), value: totalShown('BT-115') },
       ...expectedValue(expectedDue),
     ]);
   }
@@ -534,9 +556,9 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
       'BR-CO-17',
       co17,
       [
-        { label: named('BT-116'), value: money(base) },
-        { label: named('BT-119'), value: rate ? percent(rate) : money(rate) },
-        { label: named('BT-117'), value: money(tax) },
+        { label: named('BT-116'), value: shownAt(breakdown, 'BT-116') },
+        { label: named('BT-119'), value: rate ? percent(rate) : shownAt(breakdown, 'BT-119') },
+        { label: named('BT-117'), value: shownAt(breakdown, 'BT-117') },
         ...expectedValue(expectedTax),
       ],
       occurrence,
@@ -602,8 +624,8 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
       // without a rate of the breakdown there are no sums per rate: the rate is shown instead
       rateUnknown
         ? [
-            { label: named('BT-116'), value: money(base) },
-            { label: named('BT-119'), value: money(rate) },
+            { label: named('BT-116'), value: shownAt(breakdown, 'BT-116') },
+            { label: named('BT-119'), value: shownAt(breakdown, 'BT-119') },
           ]
         : [
             partShown(
@@ -624,7 +646,7 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
               TEXTS.ruleAllowanceRate,
               allowancesPart,
             ),
-            { label: named('BT-116'), value: money(base) },
+            { label: named('BT-116'), value: shownAt(breakdown, 'BT-116') },
             ...expectedValue(expected),
             ...noOwnPart,
           ],
@@ -661,7 +683,16 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
                 ? ofBreakdown(sumLabel, c.breakdown.perRate)
                 : sumLabel
               : named(key),
-            value: key === 'BT-119' && value ? percent(value) : money(value),
+            // a term as written where it is no number: of its breakdown, else a document total
+            value:
+              key === 'BT-119' && value
+                ? percent(value)
+                : sumLabel
+                  ? money(value)
+                  : money(
+                      value,
+                      textAt(c.breakdown?.group ?? model, c.breakdown ? key : `BG-22/${key}`),
+                    ),
           };
         }),
         ...(c.expected ? [{ label: TEXTS.ruleExpected, value: money(c.expected) }] : []),

@@ -262,6 +262,15 @@ Steuerfragen: **F31** und **F32** in `docs/offene-fragen.md`.
 - **Testrahmen:** Die Kopie wurde auf `Testumgebung` `61c19c6` erneuert. Er bringt eine dauerhafte
   Ansage-Region und den Kontrastmodus mit, und `pruefeKopie()` meldet fremde Dateien.
 
+- **Nach dem Zusammenführen** (0.10.2, `2dc8284`), beobachtet in dieser Sitzung:
+  - die Prüfung „Tests“ auf GitHub grün für `2dc8284` (PR #37) und den Merge `4e25659`;
+  - der Prüf-Agent für Tests/Doku in Runde 4, auf `2dc8284`:
+    - mit den privaten Dateien 648 von 648 Unit-Tests, E2E 189 bestanden und 9 übersprungen;
+    - ohne sie 569 bestanden und 4 übersprungen, E2E 165 bestanden und 33 übersprungen;
+    - der Lauf mit der erfundenen Kanzlei 33 von 33.
+  - Der letzte volle Lauf der Sitzung vor `2dc8284` hatte einen Firefox-Fehler (Liste zu früh gelesen),
+    behoben mit `2dc8284` und 24 von 24 Wiederholungen.
+
 ### Ergebnis
 
 35 Befunde, **keiner „hoch“**, einer widerlegt (R3-S-06).
@@ -276,8 +285,10 @@ Steuerfragen: **F31** und **F32** in `docs/offene-fragen.md`.
 ### Behoben
 
 - **Logik:**
-  - Ohne Rechnungswährung (BT-5) sind BR-CO-14 und BR-CO-15 „nicht prüfbar“, statt den Steuerbetrag als
-    fehlend zu melden (R3-L-01; ob BT-5 selbst eine Pflichtangabe ist, fragt **F33**).
+  - Ohne Rechnungswährung (BT-5) sind BR-CO-14 und BR-CO-15 „nicht prüfbar“ (R3-L-01; ob BT-5 selbst
+    eine Pflichtangabe ist, fragt **F33**). **Berichtigt in Runde 4:** Die Pflichtangabe „Steuerbetrag“
+    meldet dann weiter „fehlt“, weil BT-110 nur in Rechnungswährung gelesen wird. Das war gewollt, bis
+    F33 entschieden ist; hier stand zuerst das Gegenteil.
   - Ein CII-Steuerbetrag ohne Währungsangabe zählt nur, wo keiner die Rechnungswährung trägt (R3-L-02).
   - Leerzeichen zählen im Vergleich nicht (R3-L-03; Groß- und Kleinschreibung: **G-22**).
   - Die Zeile „Unterschiedlich“ nennt die Bezeichnungen und den Status nur, wo er abweicht. Sie fasst
@@ -325,3 +336,68 @@ Steuerfragen: **F31** und **F32** in `docs/offene-fragen.md`.
 - **G-24 (R3-U-01):** Ein fester Grund „Text unverständlich“ beim „Nicht bestanden“ ändert das
   Berichtsformat aller Apps (`Testumgebung`). Soll er kommen?
 - **F33** in `docs/offene-fragen.md`: Ist eine fehlende Rechnungswährung eine fehlende Pflichtangabe?
+
+## Runde 4 (16.11.2026)
+
+### Vorgehen
+
+- **Stand:** `2dc8284`, Version 0.10.2.
+- **Ablauf:** vier Prüf-Agenten, vier Widerlegungs-Agenten, zwei Behebungs-Agenten.
+- **Neu: eine klare Schwelle.** Gemeldet wurde nur noch, was zählt:
+  - ein falsches oder irreführendes Ergebnis für eine realistische Rechnung;
+  - eine Lücke, die ein Versehen öffnen kann;
+  - ein Test, der nachweislich nichts prüft oder wackelt;
+  - falsche Doku;
+  - eine unvollständige Behebung.
+
+  Geschmacksfragen und theoretische Fälle zählen nicht.
+
+- **Testrahmen:** Die Kopie wurde auf `Testumgebung` `288cc85` erneuert, den Endstand nach dessen eigener
+  Qualitätsprüfung (Runde 11 ohne Fehler).
+
+### Ergebnis
+
+14 Befunde, **alle „niedrig“**, keiner „hoch“ oder „mittel“. Einer ist eine Steuerfrage (F34). Zum
+Vergleich: Runde 1 hatte 46, Runde 2 34, Runde 3 35 Befunde.
+
+| Bereich           | Befunde | bestätigt | teilweise |
+| ----------------- | ------- | --------- | --------- |
+| Logik (R4-L)      | 3       | 2         | 1         |
+| Sicherheit (R4-S) | 2       | 2         | 0         |
+| Bedienung (R4-U)  | 5       | 3         | 2         |
+| Tests/Doku (R4-T) | 4       | 3         | 1         |
+
+### Behoben
+
+- **Logik:**
+  - Ohne Rechnungswährung nennt die Zeile „Steuerbetrag“ den wahren Grund: „… die Rechnung nennt keine
+    Rechnungswährung (BT-5)“. Status und Ton bleiben, bis F33 entschieden ist (R4-L-01).
+  - Die eigene Doku zu Runde 3 hatte das Gegenteil behauptet; Bericht, `CLAUDE.md` und F33 sind
+    berichtigt.
+  - Das geschützte Leerzeichen vor „%“ bleibt auch im Vergleich (R4-L-02, R4-U-03).
+  - BT-111 (Steuer in Euro) ist neue Frage **F34** (R4-L-03).
+- **Bedienung:**
+  - Ein Regelwert, der keine Zahl ist, zeigt seinen Text („336,90 – keine Zahl“, R4-U-01).
+  - Jede Rechnungs-XML eines PDF hat ihre eigene Liste der Schemameldungen, mit Sprunglink und dem
+    Anhang in der Box (R4-U-02).
+  - Die Vergleichstabelle bleibt in ihrer Karte, ohne getrennte Wörter (R4-U-03).
+  - MT-03 und MT-05 passen zum Verhalten (R4-U-04, R4-U-05).
+- **Sicherheit und Tests:**
+  - Der Kanzleidaten-Test liest auch den Git-Index (R4-S-02).
+  - Er liest auch die schon veröffentlichte Geschichte, mit eigener Meldung an Tobias (R4-S-01).
+  - Ein dritter CI-Schritt prüft die Testfassung mit der erfundenen Kanzlei (R4-T-01).
+  - Nur bekannte `@media`-Köpfe in `app.css` (R4-T-02).
+  - Doku (R4-T-03, R4-T-04).
+
+### Neue Fragen an Tobias
+
+- **G-25 (R4-S-01):** Ein Fund in der schon veröffentlichten Geschichte hält heute jeden Testlauf mit
+  den privaten Dateien rot, bis er entfernt ist. Entfernen lässt er sich nur mit einem Force-Push und
+  über den GitHub-Support (für die Refs der Pull Requests). Soll das so bleiben?
+- **Vorschlag für S1 in `docs/wochenpruefung.md`** (nur Sie führen diese Datei zusammen):
+  - **Prüfen:** `npx vitest run tests/static/noBranding.test.ts` mit dem privaten Repo in einem
+    vollständigen Klon. Einen flachen Klon zuerst mit `git fetch --unshallow` holen.
+  - **Dann:** Ein Treffer im Fall für den nächsten Push (Arbeitskopie, Index, unveröffentlichte
+    Commits) wird gemeldet, mit dem Pfad und nie dem Text, und per PR entfernt.
+  - **Dann:** Ein Treffer in der veröffentlichten Geschichte wird nur an Tobias gemeldet.
+- **F34** in `docs/offene-fragen.md`.

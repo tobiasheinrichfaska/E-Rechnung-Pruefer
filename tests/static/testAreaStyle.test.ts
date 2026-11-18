@@ -35,6 +35,27 @@ function blocks(css: string, prelude: string): string[] {
   }
 }
 
+/** Every `@media` heading of a style sheet (between `@media` and `{`), without comments, spaces folded. */
+function mediaHeadings(css: string): string[] {
+  const text = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  return [...text.matchAll(/@media\b([^{]*)\{/gi)].map((match) =>
+    (match[1] ?? '').replace(/\s+/g, ' ').trim(),
+  );
+}
+
+/**
+ * The `@media` headings app.css may have: the phone blocks, which `blocks` finds by exactly this
+ * heading, and print. Any other heading (`screen and (max-width: 640px)`, `(max-width: 600px)`,
+ * `(width <= 640px)`, a `min-width` block …) would escape the copy, so it is red until someone
+ * decides whether the test version needs it beside the test page and names it here (audit R4-T-02).
+ */
+const KNOWN_MEDIA = ['(max-width: 640px)', 'print'];
+const headingsOf = (css: string) => [...new Set(mediaHeadings(css))].sort();
+const unknownHeadings = (css: string) =>
+  headingsOf(css).filter((heading) => !KNOWN_MEDIA.includes(heading));
+const UNKNOWN_MEDIA =
+  'app.css has an @media heading this test does not know: decide whether the test version needs it beside the test page (a container query on .tr-app in src/testArea.css, else a reason in LEFT_OUT), then name it in KNOWN_MEDIA';
+
 const APP_CSS = read('src/ui/app.css');
 const TEST_CSS = read('src/testArea.css');
 const PHONE = blocks(APP_CSS, '@media (max-width: 640px)');
@@ -44,7 +65,8 @@ const COPY = blocks(TEST_CSS, '@container werkzeug (max-width: 640px)');
  * The phone blocks of app.css the copy leaves out, each with its reason; every other one must be
  * copied. A new phone block is red here until it is copied or named (audit R3-T-08: only the block
  * with `.pflicht-table` was compared, so a new block for another table would have stayed narrow
- * beside the test page, the fault of R2-U-01).
+ * beside the test page, the fault of R2-U-01); one under another heading is red in KNOWN_MEDIA
+ * (R4-T-02).
  */
 const LEFT_OUT: readonly { marker: string; reason: string }[] = [
   { marker: '.title-wide', reason: 'beside the test page the tool runs on a computer' },
@@ -68,12 +90,36 @@ describe('the phone layout in the test version (src/testArea.css)', () => {
     }
   });
 
-  it('turns red for a new phone block of app.css that is not copied', () => {
-    const grown = blocks(
-      `${APP_CSS}\n@media (max-width: 640px) {\n  .neue-tabelle td {\n    display: block;\n  }\n}\n`,
-      '@media (max-width: 640px)',
-    ).filter((body) => !leftOut(body));
-    expect(COPY).not.toEqual(grown);
+  it('knows every @media heading of app.css: the phone blocks and print', () => {
+    expect(headingsOf(APP_CSS), UNKNOWN_MEDIA).toEqual([...KNOWN_MEDIA].sort());
+  });
+
+  it('turns red for a new phone block of app.css that is not copied, whatever its heading', () => {
+    const grown = (heading: string) =>
+      `${APP_CSS}\n@media ${heading} {\n  .neue-tabelle td {\n    display: block;\n  }\n}\n`;
+    // the known heading: the copy no longer equals the blocks
+    const copied = blocks(grown('(max-width: 640px)'), '@media (max-width: 640px)').filter(
+      (body) => !leftOut(body),
+    );
+    expect(COPY).not.toEqual(copied);
+    expect(unknownHeadings(grown('(max-width: 640px)'))).toEqual(unknownHeadings(APP_CSS));
+    // another heading, which `blocks` does not see: the list of headings is red
+    const others = [
+      'screen and (max-width: 640px)',
+      '(max-width: 600px)',
+      '(width <= 640px)',
+      '(min-width: 641px)',
+      'only   screen\n  and (max-width: 640px)',
+    ];
+    for (const heading of others) {
+      expect(blocks(grown(heading), '@media (max-width: 640px)'), heading).toEqual(PHONE);
+      expect(unknownHeadings(grown(heading)), heading).toContain(heading.replace(/\s+/g, ' '));
+    }
+    expect(unknownHeadings('@MEDIA print, (max-width: 640px) { a { color: red; } }')).toEqual([
+      'print, (max-width: 640px)',
+    ]);
+    // a heading in a comment is none
+    expect(mediaHeadings('/* @media screen { */ a { color: red; }')).toEqual([]);
   });
 
   it('leaves out the title block: beside the test page the tool runs on a computer', () => {

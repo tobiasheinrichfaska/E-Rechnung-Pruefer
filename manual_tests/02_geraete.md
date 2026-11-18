@@ -46,7 +46,9 @@ Datei gespeichert, z. B. aus einer E-Mail oder eine Beispielrechnung von der
 3. Wählen Sie die Rechnung.
    - **Danach:** Das Ergebnis erscheint. Am Handy steht jede Pflichtangabe als eigener Block: oben
      die Bezeichnung und die Marke, darunter die Werte. Auf einem Tablet kann es eine Tabelle sein.
-     In beiden Fällen müssen Sie nichts seitlich verschieben, um es zu lesen. Kein Wort steht
-     getrennt auf zwei Zeilen, auch keine Kennung wie „BT-112“ und keine Angabe wie „19 %“. Ist
-     etwas abgeschnitten, zu klein oder getrennt: „Nicht bestanden“ mit diesem Schritt und dem Grund
-     „Darstellung falsch“. Gerät und Browser sagen Sie Tobias direkt.
+     In beiden Fällen müssen Sie nichts seitlich verschieben, um es zu lesen. Keine Bezeichnung
+     und kein Satz des Tools ist mitten im Wort getrennt, auch keine Kennung wie „BT-112“ und keine
+     Angabe wie „19 %“. Lange Dateinamen, technische Meldungen und die Kennung der Spezifikation
+     („urn:…“) dürfen mitten im Wort umbrechen. Ist etwas abgeschnitten, zu klein oder getrennt:
+     „Nicht bestanden“ mit diesem Schritt und dem Grund „Darstellung falsch“. Gerät und Browser
+     sagen Sie Tobias direkt.

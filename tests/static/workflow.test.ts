@@ -11,6 +11,7 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { loadAppConfig } from '../../src/build/kanzleiConfig';
 
 // The GitHub check „Tests“ is the gate of every upload. Its actions are pinned to a commit, as the
 // npm packages are pinned to a version (a moved tag cannot change the check), and checkout keeps no
@@ -18,6 +19,29 @@ import { fileURLToPath } from 'node:url';
 // configuration (QT-01).
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const workflow = readFileSync(`${ROOT}.github/workflows/tests.yml`, 'utf8');
+
+/** The step whose name starts so, up to the next step or comment at its depth; '' if missing. */
+function stepNamed(name: string): string {
+  const start = workflow.indexOf(`- name: ${name}`);
+  if (start < 0) return '';
+  const rest = workflow.slice(start);
+  const end = rest.search(/\n {6}(?:- |#)/);
+  return end < 0 ? rest : rest.slice(0, end);
+}
+
+/** The commands of a step's `run: |` block, one per line. */
+function runLines(step: string): string[] {
+  const lines = step.split('\n');
+  const at = lines.findIndex((line) => /^\s*run: \|$/.test(line));
+  return at < 0
+    ? []
+    : lines
+        .slice(at + 1)
+        .map((line) => line.trim())
+        .filter((line) => line !== '');
+}
+
+const INVENTED = 'tests/fixtures/config/beispiel-kanzlei.json';
 
 describe('the GitHub check „Tests“', () => {
   it('pins every action to a commit, with its version as a comment', () => {
@@ -37,9 +61,10 @@ describe('the GitHub check „Tests“', () => {
   });
 
   it('runs the Kanzlei branches against the invented configuration, which exists', () => {
-    const named = /KANZLEI_CONFIG:\s*(\S+)/.exec(workflow)?.[1];
-    expect(named).toBe('tests/fixtures/config/beispiel-kanzlei.json');
-    expect(existsSync(`${ROOT}${named}`)).toBe(true);
+    const named = [...workflow.matchAll(/KANZLEI_CONFIG:\s*(\S+)/g)].map((match) => match[1]);
+    // the live build's branches and the test version's (R4-T-01)
+    expect(named).toEqual([INVENTED, INVENTED]);
+    expect(existsSync(`${ROOT}${INVENTED}`)).toBe(true);
   });
 });
 
@@ -48,9 +73,7 @@ describe('the GitHub check „Tests“', () => {
 // guard looked only at the sum. Now the guard counts per spec, and this test keeps the list, the
 // --grep and the titles of the specs in step, and runs the guard on reports of its own.
 describe('the e2e run with the invented Beispielkanzlei', () => {
-  const start = workflow.indexOf('- name: E2E mit der erfundenen Beispielkanzlei');
-  const end = workflow.indexOf('\n      - ', start);
-  const step = start < 0 ? '' : workflow.slice(start, end < 0 ? undefined : end);
+  const step = stepNamed('E2E mit der erfundenen Beispielkanzlei');
   const specs = (/^\s*KANZLEI_SPECS:\s*(.+)$/m.exec(step)?.[1] ?? '').trim().split(/\s+/);
   const command = /^\s*npx playwright test .*$/m.exec(step)?.[0] ?? '';
   const grep = /--grep "([^"]+)"/.exec(command)?.[1] ?? '';
@@ -144,5 +167,35 @@ describe('the e2e run with the invented Beispielkanzlei', () => {
     expect(guardOn({ ...each(['expected']), [files[2] ?? '']: ['expected', 'skipped'] })).toBe(1);
     expect(guardOn({ ...each(['expected']), [files[0] ?? '']: ['unexpected'] })).toBe(1);
     expect(guardOn(each(['expected']), [])).toBe(1);
+  });
+});
+
+// Beside the test frame the tool asks the notice only where one is configured (audit 2026-11-16,
+// R4-T-01): in the run of every spec it never is, and the step above runs no testrahmen.spec.ts. So
+// a step of its own builds the test version with the invented notice after that run and runs the
+// whole spec, where passNotice throws if KANZLEI_CONFIG names a file without a notice.
+describe('the e2e run of the test version with the invented Beispielkanzlei', () => {
+  const step = stepNamed('E2E der Testfassung mit der erfundenen Beispielkanzlei');
+  const SPEC = 'tests/e2e/testrahmen.spec.ts';
+
+  it('builds the test version with the invented notice after the run of every spec and runs the whole testrahmen spec', () => {
+    expect(step).toContain(`KANZLEI_CONFIG: ${INVENTED}`);
+    // the whole spec in all three projects: no --grep, no --project, nothing left out
+    expect(runLines(step)).toEqual(['npm run build:test', `npx playwright test ${SPEC}`]);
+    const at = workflow.indexOf(step);
+    expect(at).toBeGreaterThan(workflow.indexOf('- run: npm run test:e2e'));
+    expect(at).toBeLessThan(workflow.indexOf('- if: failure()'));
+  });
+
+  it('cannot skip the notice: the invented file has one, and the spec reads it only through the helpers that throw', () => {
+    expect(loadAppConfig({ KANZLEI_CONFIG: INVENTED }).config.accessNotice).toBeDefined();
+    const spec = readFileSync(`${ROOT}${SPEC}`, 'utf8');
+    expect(spec).not.toContain('loadAppConfig');
+    expect(spec).toContain('passNotice(page');
+    expect(spec).toContain('configuredNotice() !== undefined');
+    const helpers = readFileSync(`${ROOT}tests/e2e/helpers.ts`, 'utf8');
+    expect(helpers).toMatch(
+      /function passNotice\([^)]*\)[^{]*\{\n\s*const notice = configuredNotice\(\);/,
+    );
   });
 });
