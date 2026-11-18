@@ -263,12 +263,14 @@ describe('payments of third parties in XRechnung with Extension (audit R5-L-01)'
     expect(invoice.part.schema?.count).toBe(0);
     expect(rules?.auffaellig).toEqual([]);
     expect(ids(rules)).not.toContain('BR-CO-16');
+    // the rule of XRechnung in place of one of EN 16931 is said in a note (audit R6-U-01)
+    expect(rules?.note).toBe(TEXTS.rulesThirdParty);
     const dex = rules?.results.find((r) => r.id === 'BR-DEX-09');
     expect(dex?.status).toBe('passt');
     expect(dex?.values).toEqual([
       { label: 'Gesamtbetrag mit Umsatzsteuer (BT-112)', value: '336,90 EUR' },
       { label: 'Vorausgezahlter Betrag (BT-113)', value: '– nicht angegeben' },
-      { label: 'Zahlungen Dritter (BG-DEX-09)', value: '29,96 EUR' },
+      { label: TEXTS.ruleThirdParty, value: '29,96 EUR' },
       { label: 'Rundungsbetrag (BT-114)', value: '– nicht angegeben' },
       { label: 'Fälliger Betrag (BT-115)', value: '366,86 EUR' },
       { label: 'Nach der Regel erwartet', value: '366,86 EUR' },
@@ -312,6 +314,25 @@ describe('payments of third parties in XRechnung with Extension (audit R5-L-01)'
     expect(cii.invoice.part.thirdPartyPayments).toBeUndefined();
     expect(ids(cii.rules)).toContain('BR-CO-16');
     expect(ids(cii.rules)).not.toContain('BR-DEX-09');
+    expect(cii.rules?.note).toBeUndefined();
+    // a UBL credit note has no Extension scenario at KoSIT: its prepaid payment is not added, even
+    // where it carries the Extension identifier (audit R6-T-02)
+    const taxTotal = '\t<cac:TaxTotal>';
+    const creditNote = officialText('cen/UBL_ubl-tc434-creditnote1.xml');
+    expect(creditNote.split(taxTotal)).toHaveLength(2);
+    const credit = await rulesFor(
+      withSpecId(creditNote, EXTENSION).replace(
+        taxTotal,
+        '\t<cac:PrepaidPayment><cbc:PaidAmount currencyID="EUR">10.00</cbc:PaidAmount></cac:PrepaidPayment>\n' +
+          taxTotal,
+      ),
+    );
+    expect(credit.invoice.part.syntax).toBe('ubl-creditnote');
+    expect(credit.invoice.profile.entry?.label).toBe('XRechnung 3.0 mit Extension');
+    expect(credit.invoice.part.thirdPartyPayments).toBeUndefined();
+    expect(ids(credit.rules)).toContain('BR-CO-16');
+    expect(ids(credit.rules)).not.toContain('BR-DEX-09');
+    expect(credit.rules?.auffaellig).toEqual([]);
     // 05.01a as plain XRechnung: its payments are not added, BR-CO-16 reports them
     const plain = await rulesFor(
       withSpecId(

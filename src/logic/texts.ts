@@ -234,6 +234,9 @@ export const TEXTS = {
     'Für das Profil EXTENDED gelten die Rechenregeln von FeRD (Factur-X 1.09.2): Logistikkosten zählen als Zuschläge, Gruppen- und Infozeilen zählen nicht mit, kleine Abweichungen je Betrag sind erlaubt.',
   rulesOwnRules:
     'Für das Profil EXTENDED gelten eigene Rechenregeln von FeRD. Diese werden hier nicht geprüft, nur die Regel BR-CO-14.',
+  // the rule of XRechnung in place of one of EN 16931, as the KoSIT validator (audit R6-U-01)
+  rulesThirdParty:
+    'Für XRechnung mit Extension prüft das Werkzeug wie der KoSIT-Validator die Regel BR-DEX-09 der XRechnung statt BR-CO-16 der EN 16931: Forderungen Dritter (BG-DEX-09) gehören zum fälligen Betrag.',
   rulesAuffaellig: 'Mögliche Auffälligkeit: {ids}.',
   // F23 by the kind of rule (Tobias 2026-11-14)
   adviceAmount: 'Sie könnten mit dem Lieferanten klären, welcher Betrag richtig ist.',
@@ -259,8 +262,10 @@ export const TEXTS = {
   ruleSumAllowances: 'Summe der Nachlässe auf Dokumentebene (BT-92)',
   ruleSumCharges: 'Summe der Zuschläge auf Dokumentebene (BT-99)',
   ruleSumTaxes: 'Summe der Steuerbeträge je Kategorie (BT-117)',
-  // XRechnung Extension, BR-DEX-09 (audit R5-L-01)
-  ruleThirdParty: 'Zahlungen Dritter (BG-DEX-09)',
+  // XRechnung Extension, BR-DEX-09 (audit R5-L-01). Our own German: KoSIT names the group only
+  // „THIRD PARTY PAYMENT“; the amounts are claims of third parties the supplier collects, added
+  // to the amount due (audit R6-U-01)
+  ruleThirdParty: 'Forderungen Dritter, im fälligen Betrag enthalten (BG-DEX-09)',
   // The sums of one VAT breakdown, named apart from the document totals (audit R3-U-07):
   // „Summe der Positionen mit diesem Satz (BT-131)“, „… dieser Kategorie (BT-131)“
   ruleOfRate: 'mit diesem Satz',
