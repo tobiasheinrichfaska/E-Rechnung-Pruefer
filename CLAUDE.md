@@ -267,31 +267,32 @@ Semantic versioning in `package.json`, injected as `__APP_VERSION__`. Workflow: 
 `package.json` → `chore: bump version to X.Y.Z` → after the merge, a row in the table below. **No git
 tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads them).
 
-| Version | Merge commit in `main` | Date       | Content                                                                                   |
-| ------- | ---------------------- | ---------- | ----------------------------------------------------------------------------------------- |
-| 0.10.2  | `4e25659`              | 2026-11-16 | Quality audit round 3: rules without BT-5 not checked, test frame 61c19c6, stricter tests |
-| 0.10.1  | `11335ff`              | 2026-11-16 | Quality audit round 2: comparison by value, rule forms pinned, test frame layout, CI      |
-| 0.10.0  | `1612bfd`              | 2026-11-16 | The shared test frame of Testumgebung instead of the own test page                        |
-| 0.9.1   | `f0996b3`              | 2026-11-16 | Quality audit round 1: rules per syntax, results, handling, tests, CI, security           |
-| 0.9.0   | `949c453`              | 2026-11-15 | The test version keeps the tester's run in the browser                                    |
-| 0.8.0   | `2374542`              | 2026-11-15 | Test page with reports without free text (test version only)                              |
-| 0.7.0   | `f342986`              | 2026-11-15 | GitHub check „Tests“, test version with „Tester einladen“, not installable                |
-| 0.6.3   | `5d906a1`              | 2026-11-15 | Not in search engines (`noindex`)                                                         |
-| 0.6.2   | `e3deb50`              | 2026-11-15 | Footer without „in Entwicklung“                                                           |
-| 0.6.1   | `0606720`              | 2026-11-15 | The Kanzlei colour through the whole design (title, tick boxes, secondary buttons)        |
-| 0.6.0   | `00e4ab0`              | 2026-11-15 | Kanzlei colours from the local configuration, weekly-check list                           |
-| 0.5.0   | `c2cd7a8`              | 2026-11-15 | Impressum and privacy links from the local configuration                                  |
-| 0.4.0   | `8877aed`              | 2026-11-15 | Access notice before the hosted copy opens (local Kanzlei configuration)                  |
-| 0.3.1   | `a3cf751`              | 2026-11-14 | F30: supply before 2025 needs no E-Rechnung (BMF 15.10.2024 Rn. 50)                       |
-| 0.3.0   | `c78be21`              | 2026-11-14 | Decisions F22–F29, G-1 … G-10, profile schemas, FeRD EXTENDED rules, ZUGFeRD 1.0 backed   |
-| 0.2.0   | `06e96a0`              | 2026-11-14 | Inventory and audit, F16–F21, schema check (2a/2b), rules (3a)                            |
-| 0.1.0   | (Fragebogen `76828a3`) | 2026-11-13 | Steps 1a–1c; the copy online in `NebenprojektERechnung/`                                  |
+| Version | Merge commit in `main` | Date       | Content                                                                                       |
+| ------- | ---------------------- | ---------- | --------------------------------------------------------------------------------------------- |
+| 0.10.3  | `2a5dd51`              | 2026-11-18 | Quality audit round 4: comparison table, Kanzlei-data scan of the history, test frame 288cc85 |
+| 0.10.2  | `4e25659`              | 2026-11-16 | Quality audit round 3: rules without BT-5 not checked, test frame 61c19c6, stricter tests     |
+| 0.10.1  | `11335ff`              | 2026-11-16 | Quality audit round 2: comparison by value, rule forms pinned, test frame layout, CI          |
+| 0.10.0  | `1612bfd`              | 2026-11-16 | The shared test frame of Testumgebung instead of the own test page                            |
+| 0.9.1   | `f0996b3`              | 2026-11-16 | Quality audit round 1: rules per syntax, results, handling, tests, CI, security               |
+| 0.9.0   | `949c453`              | 2026-11-15 | The test version keeps the tester's run in the browser                                        |
+| 0.8.0   | `2374542`              | 2026-11-15 | Test page with reports without free text (test version only)                                  |
+| 0.7.0   | `f342986`              | 2026-11-15 | GitHub check „Tests“, test version with „Tester einladen“, not installable                    |
+| 0.6.3   | `5d906a1`              | 2026-11-15 | Not in search engines (`noindex`)                                                             |
+| 0.6.2   | `e3deb50`              | 2026-11-15 | Footer without „in Entwicklung“                                                               |
+| 0.6.1   | `0606720`              | 2026-11-15 | The Kanzlei colour through the whole design (title, tick boxes, secondary buttons)            |
+| 0.6.0   | `00e4ab0`              | 2026-11-15 | Kanzlei colours from the local configuration, weekly-check list                               |
+| 0.5.0   | `c2cd7a8`              | 2026-11-15 | Impressum and privacy links from the local configuration                                      |
+| 0.4.0   | `8877aed`              | 2026-11-15 | Access notice before the hosted copy opens (local Kanzlei configuration)                      |
+| 0.3.1   | `a3cf751`              | 2026-11-14 | F30: supply before 2025 needs no E-Rechnung (BMF 15.10.2024 Rn. 50)                           |
+| 0.3.0   | `c78be21`              | 2026-11-14 | Decisions F22–F29, G-1 … G-10, profile schemas, FeRD EXTENDED rules, ZUGFeRD 1.0 backed       |
+| 0.2.0   | `06e96a0`              | 2026-11-14 | Inventory and audit, F16–F21, schema check (2a/2b), rules (3a)                                |
+| 0.1.0   | (Fragebogen `76828a3`) | 2026-11-13 | Steps 1a–1c; the copy online in `NebenprojektERechnung/`                                      |
 
 ---
 
 ## Known Limitations
 
-- **In development** — all steps of the plan are built (1a–3a) plus the access notice, the Impressum/privacy links and the Kanzlei colours. **Online since 2026-11-15** (Freigabe run, bunny.net): the public zone carries **0.6.3** (uploaded 17:27 Berlin time, read back the same evening); 0.7.0 … 0.10.2 come with the next upload.
+- **In development** — all steps of the plan are built (1a–3a) plus the access notice, the Impressum/privacy links and the Kanzlei colours. **Online since 2026-11-15** (Freigabe run, bunny.net): the public zone carries **0.6.3** (uploaded 17:27 Berlin time, read back the same evening); 0.7.0 … 0.10.3 come with the next upload.
 - **Calculation rules (3a)** are a selection (BR-CO-10 … -17, breakdown per category/rate), not a
   validator: no BR-DE/XRechnung rules, no line-level rules (price × quantity), no currency
   conversion (BT-111). For **Factur-X EXTENDED** the FeRD forms are rebuilt (F29,
@@ -369,7 +370,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
   `Testumgebung`; the copy is never edited here. No PDF copy for the tester (Tobias 2026-11-15: not
   needed). The receiving side (`/_zugang/bericht`) is live in all five test areas (Testumgebung,
   2026-11-15).
-- **E2E runs on file://**; the public copy at bunny.net is 0.6.3 (2026-11-15), the repo is at 0.10.2 (merge `4e25659`, see Versioning). Uploads run only through the repo `Freigabe`, started by Tobias.
+- **E2E runs on file://**; the public copy at bunny.net is 0.6.3 (2026-11-15), the repo is at 0.10.3 (merge `2a5dd51`, see Versioning). Uploads run only through the repo `Freigabe`, started by Tobias.
 - **Browsers:** the single inline script needs class static blocks and the CSP
   `'wasm-unsafe-eval'`, so the floor is about Chrome/Edge 98, Firefox 102, Safari 16.4 (derived from
   MDN data, not tested in those versions). Above it XML and PDF work (pdf.js legacy build, e2e test
