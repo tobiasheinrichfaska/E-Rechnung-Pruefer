@@ -686,12 +686,12 @@ describe('the compared total (audit R3-L-04, R3-U-05)', () => {
   it('shows a total by its value and marks one that is no number', () => {
     const parts = [part({ 'BT-112': ['336.900'] }), part({ 'BT-112': ['336,90'] }, 'b.xml')];
     expect(differingLine(parts, differingTerms(parts))).toBe(
-      'Unterschiedlich: Gesamtbetrag mit Umsatzsteuer (336,90 / 336,90 – keine Zahl).',
+      'Unterschiedlich: Gesamtbetrag mit Umsatzsteuer (336,90 / 336,90 – im XML keine Zahl).',
     );
     const total = comparisonRows(parts).find(
       (row) => row.label === 'Gesamtbetrag mit Umsatzsteuer (BT-112)',
     );
-    expect(total?.values).toEqual(['336,90', '336,90 – keine Zahl']);
+    expect(total?.values).toEqual(['336,90', '336,90 – im XML keine Zahl']);
   });
 });
 

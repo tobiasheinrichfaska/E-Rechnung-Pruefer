@@ -746,7 +746,7 @@ describe('two invoice XML of the same invoice, written another way', () => {
     expect(verdict.comparison).toEqual({ same: false, differing: ['BT-112'] });
     // the rules that cannot use it differ too: counted beside the total (audit R5-U-02)
     expect(differingLine(analysis.invoices, ['BT-112'])).toBe(
-      'Unterschiedlich: Gesamtbetrag mit Umsatzsteuer (336,90 / 336,90 – keine Zahl). ' +
+      'Unterschiedlich: Gesamtbetrag mit Umsatzsteuer (336,90 / 336,90 – im XML keine Zahl). ' +
         TEXTS.differingMoreOne,
     );
     expect(differingResults(analysis.invoices, ['BT-112']).map((item) => item.label)).toEqual([

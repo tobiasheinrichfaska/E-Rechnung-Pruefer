@@ -392,7 +392,7 @@ const labelList = (labels: readonly string[]): string =>
 
 /**
  * A compared value as the client reads it: German date, the amount by its value ("336.900" as
- * "336,90", audit R3-U-05) and one that is no number marked ("336,90 – keine Zahl", audit
+ * "336,90", audit R3-U-05) and one that is no number marked ("336,90 – im XML keine Zahl", audit
  * R3-L-04), "–" when missing.
  */
 function shownValue(part: InvoicePart, bt: BtId): string {

@@ -323,7 +323,7 @@ export function adviceFor(ids: readonly string[]): string[] {
 export function checkRules(model: InvoiceModel, options: RulesOptions = {}): RulesResult {
   const forms = ruleFormsOf(options.syntax);
   const currency = valuesOf(model, 'BT-5')[0]?.value;
-  // A value that is no number with its text, as the comparison shows it: „336,90 – keine Zahl“
+  // A value that is no number with its text, as the comparison shows it: „336,90 – im XML keine Zahl“
   // beside „336,90“ in the Pflichtangaben (audit R4-U-01); a sum has no one text and stays
   // „– keine Zahl“
   const money = (value: Decimal | null | undefined, text?: string) =>

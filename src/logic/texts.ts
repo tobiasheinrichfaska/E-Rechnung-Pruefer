@@ -277,7 +277,8 @@ export const TEXTS = {
   rulesOneNotChecked: 'Eine Regel ließ sich nicht prüfen (siehe unten).',
   rulesSomeNotChecked: '{count} Regeln ließen sich nicht prüfen (siehe unten).',
   ruleMissing: '– nicht angegeben',
-  ruleNoNumber: '– keine Zahl',
+  // „im XML“: „1,5“ is a number to a reader, only not in the XML format (audit R6-U-03)
+  ruleNoNumber: '– im XML keine Zahl',
   // A rate that is no number in a part of a breakdown per rate: the rate is named (audit R2-L-07)
   ruleLineRate: 'Umsatzsteuersatz einer Position (BT-152)',
   ruleChargeRate: 'Umsatzsteuersatz eines Zuschlags auf Dokumentebene (BT-103)',

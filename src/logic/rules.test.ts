@@ -820,7 +820,7 @@ describe('missing values and the names of the values (audit R2-L-07, R2-L-08)', 
     expect(result.auffaellig).toEqual([]);
     expect(marked.length).toBeGreaterThan(15);
     for (const v of marked.filter((m) => !SUMS.has(m.label))) {
-      expect(v.value, `${v.id} ${v.label}`).toMatch(/^\S.*,.* – keine Zahl$/);
+      expect(v.value, `${v.id} ${v.label}`).toMatch(/^\S.*,.* – im XML keine Zahl$/);
     }
     expect(result.results.some((r) => r.id === (payments ? 'BR-DEX-09' : 'BR-CO-16'))).toBe(true);
   });
