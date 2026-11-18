@@ -270,27 +270,28 @@ Semantic versioning in `package.json`, injected as `__APP_VERSION__`. Workflow: 
 `package.json` → `chore: bump version to X.Y.Z` → after the merge, a row in the table below. **No git
 tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads them).
 
-| Version | Merge commit in `main` | Date       | Content                                                                                       |
-| ------- | ---------------------- | ---------- | --------------------------------------------------------------------------------------------- |
-| 0.10.4  | `0da5c9b`              | 2026-11-18 | Quality audit round 5: BR-DEX-09 for XRechnung Extension, e2e with GitHub's font              |
-| 0.10.3  | `2a5dd51`              | 2026-11-18 | Quality audit round 4: comparison table, Kanzlei-data scan of the history, test frame 288cc85 |
-| 0.10.2  | `4e25659`              | 2026-11-16 | Quality audit round 3: rules without BT-5 not checked, test frame 61c19c6, stricter tests     |
-| 0.10.1  | `11335ff`              | 2026-11-16 | Quality audit round 2: comparison by value, rule forms pinned, test frame layout, CI          |
-| 0.10.0  | `1612bfd`              | 2026-11-16 | The shared test frame of Testumgebung instead of the own test page                            |
-| 0.9.1   | `f0996b3`              | 2026-11-16 | Quality audit round 1: rules per syntax, results, handling, tests, CI, security               |
-| 0.9.0   | `949c453`              | 2026-11-15 | The test version keeps the tester's run in the browser                                        |
-| 0.8.0   | `2374542`              | 2026-11-15 | Test page with reports without free text (test version only)                                  |
-| 0.7.0   | `f342986`              | 2026-11-15 | GitHub check „Tests“, test version with „Tester einladen“, not installable                    |
-| 0.6.3   | `5d906a1`              | 2026-11-15 | Not in search engines (`noindex`)                                                             |
-| 0.6.2   | `e3deb50`              | 2026-11-15 | Footer without „in Entwicklung“                                                               |
-| 0.6.1   | `0606720`              | 2026-11-15 | The Kanzlei colour through the whole design (title, tick boxes, secondary buttons)            |
-| 0.6.0   | `00e4ab0`              | 2026-11-15 | Kanzlei colours from the local configuration, weekly-check list                               |
-| 0.5.0   | `c2cd7a8`              | 2026-11-15 | Impressum and privacy links from the local configuration                                      |
-| 0.4.0   | `8877aed`              | 2026-11-15 | Access notice before the hosted copy opens (local Kanzlei configuration)                      |
-| 0.3.1   | `a3cf751`              | 2026-11-14 | F30: supply before 2025 needs no E-Rechnung (BMF 15.10.2024 Rn. 50)                           |
-| 0.3.0   | `c78be21`              | 2026-11-14 | Decisions F22–F29, G-1 … G-10, profile schemas, FeRD EXTENDED rules, ZUGFeRD 1.0 backed       |
-| 0.2.0   | `06e96a0`              | 2026-11-14 | Inventory and audit, F16–F21, schema check (2a/2b), rules (3a)                                |
-| 0.1.0   | (Fragebogen `76828a3`) | 2026-11-13 | Steps 1a–1c; the copy online in `NebenprojektERechnung/`                                      |
+| Version | Merge commit in `main` | Date       | Content                                                                                          |
+| ------- | ---------------------- | ---------- | ------------------------------------------------------------------------------------------------ |
+| 0.10.5  | `b5bd5d4`              | 2026-11-18 | Quality audit round 6: „Forderungen Dritter“, „im XML keine Zahl“, comparison for screen readers |
+| 0.10.4  | `0da5c9b`              | 2026-11-18 | Quality audit round 5: BR-DEX-09 for XRechnung Extension, e2e with GitHub's font                 |
+| 0.10.3  | `2a5dd51`              | 2026-11-18 | Quality audit round 4: comparison table, Kanzlei-data scan of the history, test frame 288cc85    |
+| 0.10.2  | `4e25659`              | 2026-11-16 | Quality audit round 3: rules without BT-5 not checked, test frame 61c19c6, stricter tests        |
+| 0.10.1  | `11335ff`              | 2026-11-16 | Quality audit round 2: comparison by value, rule forms pinned, test frame layout, CI             |
+| 0.10.0  | `1612bfd`              | 2026-11-16 | The shared test frame of Testumgebung instead of the own test page                               |
+| 0.9.1   | `f0996b3`              | 2026-11-16 | Quality audit round 1: rules per syntax, results, handling, tests, CI, security                  |
+| 0.9.0   | `949c453`              | 2026-11-15 | The test version keeps the tester's run in the browser                                           |
+| 0.8.0   | `2374542`              | 2026-11-15 | Test page with reports without free text (test version only)                                     |
+| 0.7.0   | `f342986`              | 2026-11-15 | GitHub check „Tests“, test version with „Tester einladen“, not installable                       |
+| 0.6.3   | `5d906a1`              | 2026-11-15 | Not in search engines (`noindex`)                                                                |
+| 0.6.2   | `e3deb50`              | 2026-11-15 | Footer without „in Entwicklung“                                                                  |
+| 0.6.1   | `0606720`              | 2026-11-15 | The Kanzlei colour through the whole design (title, tick boxes, secondary buttons)               |
+| 0.6.0   | `00e4ab0`              | 2026-11-15 | Kanzlei colours from the local configuration, weekly-check list                                  |
+| 0.5.0   | `c2cd7a8`              | 2026-11-15 | Impressum and privacy links from the local configuration                                         |
+| 0.4.0   | `8877aed`              | 2026-11-15 | Access notice before the hosted copy opens (local Kanzlei configuration)                         |
+| 0.3.1   | `a3cf751`              | 2026-11-14 | F30: supply before 2025 needs no E-Rechnung (BMF 15.10.2024 Rn. 50)                              |
+| 0.3.0   | `c78be21`              | 2026-11-14 | Decisions F22–F29, G-1 … G-10, profile schemas, FeRD EXTENDED rules, ZUGFeRD 1.0 backed          |
+| 0.2.0   | `06e96a0`              | 2026-11-14 | Inventory and audit, F16–F21, schema check (2a/2b), rules (3a)                                   |
+| 0.1.0   | (Fragebogen `76828a3`) | 2026-11-13 | Steps 1a–1c; the copy online in `NebenprojektERechnung/`                                         |
 
 ---
 
@@ -408,8 +409,8 @@ security without finding. Report: `docs/audit-qualitaet-2026-11-15.md`, section 
 
 - „Forderungen Dritter“ (BG-DEX-09) with a note on BR-DEX-09; „– im XML keine Zahl“; no „– / –“ row in
   the comparison; „Unterschiedlich:“ for screen readers; tests for BT-114 and the credit note.
-- **Paused** after round 6 (Tobias 2026-11-17). Open for Tobias: G-26, the wish R5-U-03, the earlier
-  questions.
+- **Paused** after round 6 (Tobias 2026-11-17). G-26 decided: keep it as it is (Tobias 2026-11-18). The
+  wish R5-U-03 sent to the `Testumgebung` session (2026-11-18). Open for Tobias: the earlier questions.
 
 **2026-11-18 — quality audit, round 5 (version 0.10.4):** 11 findings, two medium, none refuted.
 Report: `docs/audit-qualitaet-2026-11-15.md`, section „Runde 5“.
