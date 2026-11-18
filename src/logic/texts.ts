@@ -177,6 +177,8 @@ export const TEXTS = {
   attachmentsRow: 'Anhänge',
   ofPart: '{label}, Anhang „{name}“',
   comparisonHeading: 'Vergleich der Rechnungsdaten',
+  // for screen readers, before the name of each differing row of the comparison (audit R6-U-04)
+  comparisonDiffers: 'Unterschiedlich: ',
   comparisonValue: 'Wert',
   // G-4: pass the result on to the Kanzlei
   printResult: 'Ergebnis drucken',

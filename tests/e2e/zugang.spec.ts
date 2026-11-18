@@ -77,6 +77,20 @@ test('keeps the names of sections and tables unique with several invoice XML', a
   );
   await expect(page.getByRole('region', { name: /^Pflichtangaben/ })).toHaveCount(0);
   await expect(page.getByRole('table', { name: 'Vergleich der Rechnungsdaten' })).toHaveCount(1);
+  // R6-U-04: a differing row is named so, not only by its colour
+  const comparison = page.getByTestId('comparison');
+  await expect(
+    comparison.getByRole('rowheader', {
+      name: 'Unterschiedlich: Rechnungsnummer (BT-1)',
+      exact: true,
+    }),
+  ).toHaveCount(1);
+  await expect(
+    comparison.getByRole('rowheader', { name: 'Rechnungsdatum (BT-2)', exact: true }),
+  ).toHaveCount(1);
+  await expect(comparison.getByRole('rowheader', { name: /^Unterschiedlich: / })).toHaveCount(
+    await comparison.locator('tbody.differs').count(),
+  );
 
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);

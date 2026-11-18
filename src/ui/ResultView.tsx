@@ -250,6 +250,8 @@ function Comparison({
           <tbody key={row.label} className={row.differs ? 'differs' : undefined}>
             <tr>
               <th scope="rowgroup" colSpan={names.length} id={`vergleich-angabe-${rowIndex}`}>
+                {/* the colour alone tells no screen reader what differs (audit R6-U-04) */}
+                {row.differs && <span className="visually-hidden">{TEXTS.comparisonDiffers}</span>}
                 <Codes text={row.label} />
               </th>
             </tr>
