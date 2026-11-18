@@ -355,6 +355,15 @@ Steuerfragen: **F31** und **F32** in `docs/offene-fragen.md`.
 - **Testrahmen:** Die Kopie wurde auf `Testumgebung` `288cc85` erneuert, den Endstand nach dessen eigener
   Qualitätsprüfung (Runde 11 ohne Fehler).
 
+- **Nach dem Zusammenführen** (0.10.3, PR #38 gemergt als `2a5dd51`):
+  - Der erste Fix für R4-U-03 (`table-layout: fixed`) war auf GitHub rot, in den Läufen 43807893673
+    und 44193922531: `handy.spec.ts:228` in drei Browsern, „Umsatzsteuerkategorie“ mit DejaVu Sans
+    gebrochen.
+  - Neu gebaut in `373598c`: jede Angabe ist der Kopf ihrer Zeilengruppe (`headers`). Danach war die
+    Prüfung „Tests“ auf GitHub grün.
+  - Lokal beobachtet: Vitest 663 von 663, E2E 201 bestanden und 9 übersprungen, mit der Schrift von
+    GitHub 99 von 99 der betroffenen Specs.
+
 ### Ergebnis
 
 14 Befunde, **alle „niedrig“**, keiner „hoch“ oder „mittel“. Einer ist eine Steuerfrage (F34). Zum
