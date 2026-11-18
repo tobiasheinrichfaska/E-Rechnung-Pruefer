@@ -149,8 +149,8 @@
   .tr-huelle[data-reiter="tests"] .tr-app { display: none; }
 }
 
-/* The live region: read by screen readers, not shown. */
-.tr-ansage {
+/* The live region and text only for screen readers: read, not shown. */
+.tr-ansage, .tr-unsichtbar {
   position: absolute;
   width: 1px;
   height: 1px;
