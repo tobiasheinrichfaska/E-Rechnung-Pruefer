@@ -463,3 +463,44 @@ Vergleich: Runde 1 hatte 46, Runde 2 34, Runde 3 35 Befunde.
   sie nur, die Tabelle zeigt alle. Bei zwei ganz verschiedenen Rechnungen sind das 11 bis 15 Zeilen.
 - **Wunsch an `Testumgebung` (R5-U-03):** Links in den Handtests öffnen einen neuen Tab, ohne das für
   Screenreader zu sagen (`testrahmen/src/ansicht.ts`). Die Kopie hier bleibt unverändert.
+
+## Runde 6 (18.11.2026)
+
+### Vorgehen
+
+- **Stand:** `70a1ea2` (0.10.4, als PR #39 gemergt, `0da5c9b`).
+- **Ablauf:** vier Prüf-Agenten, ein Widerlegungs-Agent, ein Behebungs-Agent. Schwelle wie in Runde 4.
+- **Danach Pause** (Tobias 2026-11-17: „pausiere nach dem zweiten Auditlauf“).
+
+### Ergebnis
+
+7 Befunde, **alle „niedrig“**, keiner widerlegt. Sicherheit ohne Befund.
+
+| Bereich           | Befunde | bestätigt | teilweise |
+| ----------------- | ------- | --------- | --------- |
+| Logik (R6-L)      | 1       | 1         | 0         |
+| Sicherheit (R6-S) | 0       | 0         | 0         |
+| Bedienung (R6-U)  | 4       | 3         | 1         |
+| Tests/Doku (R6-T) | 2       | 1         | 1         |
+
+### Behoben
+
+- **Logik:** Eine Zeile, die sich nur im Grund unterscheidet (Wechsel zum Kleinbetrag), zählt neben einem
+  abweichenden Gesamtbetrag oder einer abweichenden Währung nicht mehr mit; bei gleichem Kopf zeigt sie
+  den Grund statt „– / –“ (R6-L-01).
+- **Bedienung:**
+  - „Forderungen Dritter, im fälligen Betrag enthalten (BG-DEX-09)“ statt „Zahlungen Dritter“, dazu eine
+    Notiz, dass das Tool hier wie der KoSIT-Validator BR-DEX-09 statt BR-CO-16 prüft (R6-U-01). Der
+    deutsche Name ist eine eigene Übersetzung; KoSIT nennt die Gruppe nur „THIRD PARTY PAYMENT“.
+  - „7 %“ bricht auch in einem Wert, der keine Zahl ist, nicht mehr um (R6-U-02).
+  - „– im XML keine Zahl“ statt „– keine Zahl“, weil „1,5“ für deutsche Leser eine Zahl ist (R6-U-03).
+  - Abweichende Zeilen der Vergleichstabelle sagen Screenreadern „Unterschiedlich: …“ (R6-U-04).
+- **Tests:** BR-DEX-09 mit Rundungsbetrag (BT-114) und Runden (R6-T-01); eine UBL-Gutschrift mit
+  Extension-Kennung behält BR-CO-16 (R6-T-02).
+- **Beobachtet:** Typecheck, Lint, Format grün; Vitest 684 von 684; E2E 204 bestanden, 9 übersprungen.
+
+### Bemerkungen
+
+- Die englische Schemameldung der Prüfbibliothek zeigt „7 %“ wie geschrieben und kann bei 320 px umbrechen;
+  die Meldungen bleiben unverändert.
+- Eine einzelne Forderung Dritter, die keine Zahl ist, zeigt nur „– im XML keine Zahl“ ohne ihren Text.

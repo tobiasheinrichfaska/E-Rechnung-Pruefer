@@ -272,6 +272,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 
 | Version | Merge commit in `main` | Date       | Content                                                                                       |
 | ------- | ---------------------- | ---------- | --------------------------------------------------------------------------------------------- |
+| 0.10.4  | `0da5c9b`              | 2026-11-18 | Quality audit round 5: BR-DEX-09 for XRechnung Extension, e2e with GitHub's font              |
 | 0.10.3  | `2a5dd51`              | 2026-11-18 | Quality audit round 4: comparison table, Kanzlei-data scan of the history, test frame 288cc85 |
 | 0.10.2  | `4e25659`              | 2026-11-16 | Quality audit round 3: rules without BT-5 not checked, test frame 61c19c6, stricter tests     |
 | 0.10.1  | `11335ff`              | 2026-11-16 | Quality audit round 2: comparison by value, rule forms pinned, test frame layout, CI          |
@@ -295,7 +296,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 
 ## Known Limitations
 
-- **In development** — all steps of the plan are built (1a–3a) plus the access notice, the Impressum/privacy links and the Kanzlei colours. **Online since 2026-11-15** (Freigabe run, bunny.net): the public zone carries **0.6.3** (uploaded 17:27 Berlin time, read back the same evening); 0.7.0 … 0.10.3 come with the next upload.
+- **In development** — all steps of the plan are built (1a–3a) plus the access notice, the Impressum/privacy links and the Kanzlei colours. **Online since 2026-11-15** (Freigabe run, bunny.net): the public zone carries **0.6.3** (uploaded 17:27 Berlin time, read back the same evening); 0.7.0 … 0.10.5 come with the next upload.
 - **Calculation rules (3a)** are a selection (BR-CO-10 … -17, breakdown per category/rate), not a
   validator: no BR-DE/XRechnung rules, no line-level rules (price × quantity), no currency
   conversion (BT-111). For **Factur-X EXTENDED** the FeRD forms are rebuilt (F29,
@@ -376,7 +377,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
   `Testumgebung`; the copy is never edited here. No PDF copy for the tester (Tobias 2026-11-15: not
   needed). The receiving side (`/_zugang/bericht`) is live in all five test areas (Testumgebung,
   2026-11-15).
-- **E2E runs on file://**; the public copy at bunny.net is 0.6.3 (2026-11-15), the repo is at 0.10.3 (merge `2a5dd51`, see Versioning). Uploads run only through the repo `Freigabe`, started by Tobias.
+- **E2E runs on file://**; the public copy at bunny.net is 0.6.3 (2026-11-15), the repo is at 0.10.5 (see Versioning). Uploads run only through the repo `Freigabe`, started by Tobias.
 - **Browsers:** the single inline script needs class static blocks and the CSP
   `'wasm-unsafe-eval'`, so the floor is about Chrome/Edge 98, Firefox 102, Safari 16.4 (derived from
   MDN data, not tested in those versions). Above it XML and PDF work (pdf.js legacy build, e2e test
@@ -402,6 +403,14 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 
 ## Status / next step
 
+**2026-11-18 — quality audit, round 6 (version 0.10.5):** 7 findings, all low, none refuted;
+security without finding. Report: `docs/audit-qualitaet-2026-11-15.md`, section „Runde 6“.
+
+- „Forderungen Dritter“ (BG-DEX-09) with a note on BR-DEX-09; „– im XML keine Zahl“; no „– / –“ row in
+  the comparison; „Unterschiedlich:“ for screen readers; tests for BT-114 and the credit note.
+- **Paused** after round 6 (Tobias 2026-11-17). Open for Tobias: G-26, the wish R5-U-03, the earlier
+  questions.
+
 **2026-11-18 — quality audit, round 5 (version 0.10.4):** 11 findings, two medium, none refuted.
 Report: `docs/audit-qualitaet-2026-11-15.md`, section „Runde 5“.
 
@@ -412,7 +421,7 @@ Report: `docs/audit-qualitaet-2026-11-15.md`, section „Runde 5“.
 - **Tests:** e2e with GitHub's font (`tests/e2e/fonts.conf`); the Kanzlei-data test shows no example
   content and ignores other worktrees; tests for non-numbers and `headers`.
 - **For Tobias:** G-26; a wish to `Testumgebung` (R5-U-03). Before: PR #38 merged (0.10.3).
-- **Next:** round 6, then pause (Tobias 2026-11-17).
+- **Next:** round 6.
 
 **2026-11-16 — quality audit, round 4 (version 0.10.3):** 14 findings, all low.
 Report: `docs/audit-qualitaet-2026-11-15.md`, section „Runde 4“.
