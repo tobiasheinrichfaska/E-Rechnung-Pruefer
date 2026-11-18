@@ -55,6 +55,11 @@ round((BT-112 − BT-113 + Σ ../cac:PrepaidPayment/cbc:PaidAmount) · 100) div 
 `instances/extension/05.01a-INVOICE_ubl.xml` der Testsuite oben, unverändert, SHA-256
 `bd61ec6dcb33b29b7a3a450106bf399bd41bd211aebcd96637458d59acc59127`.
 
+Der deutsche Name „Forderungen Dritter, im fälligen Betrag enthalten (BG-DEX-09)“ ist eine eigene
+Übersetzung (Audit R6-U-01): die KoSIT-Konfiguration nennt die Gruppe nur englisch „THIRD PARTY
+PAYMENT“ (BT-DEX-002 „Third party payment amount“); in 05.01a sind es „Brutto-Forderung für
+Fremdleistungen“, die zum fälligen Betrag hinzukommen.
+
 ## FeRD-Infopaket (von Tobias geladen)
 
 | Artefakt                                                                                                                                                                                                                     | Quelle                                                                                                                               | Stand                                                                        | Lizenz laut Nutzungsbedingungen                                                                                                                                                                                                                                                                                                                              | Ablage                                                                                                                                          | SHA-256                                                            |

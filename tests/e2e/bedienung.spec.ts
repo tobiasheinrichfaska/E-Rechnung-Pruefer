@@ -291,7 +291,10 @@ test('prints and copies the result for the Kanzlei (G-4)', async ({ page }) => {
     table.locator('tbody.differs', { hasText: 'Anzuwendender Steuersatz' }),
   ).toContainText('19\u00a0%');
   // the Pflichtangabe „Rechnungsnummer“ only repeats BT-1: no second row for it
-  await expect(table.locator('tbody.differs th', { hasText: /^Rechnungsnummer/ })).toHaveCount(1);
+  // (a differing row header starts with the hidden „Unterschiedlich: “, R6-U-04)
+  await expect(
+    table.locator('tbody.differs th', { hasText: /^Unterschiedlich: Rechnungsnummer/ }),
+  ).toHaveCount(1);
   const counted = await copy();
   expect(counted).toMatch(/Außerdem weichen \d+ weitere Angaben oder Regeln ab\.\n/);
   expect(counted).not.toContain('Vergleich der Rechnungsdaten');

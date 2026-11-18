@@ -571,6 +571,14 @@ describe('display', () => {
     expect(displayValue(bt, value, undefined)).toBe(`${value} ${TEXTS.ruleNoNumber}`);
   });
 
+  // Audit R6-U-02: „7 %“ as written broke between „7“ and „%“ on a phone
+  it('keeps a rate written with a space before „%“ on one line', () => {
+    expect(displayValue('BT-119', '7 %', undefined)).toBe(`7\u00a0% ${TEXTS.ruleNoNumber}`);
+    expect(displayValue('BT-152', '19 % und 7 %', undefined)).toBe(
+      `19\u00a0% und 7\u00a0% ${TEXTS.ruleNoNumber}`,
+    );
+  });
+
   it('shows the values of each VAT breakdown and each position', () => {
     const result = checkPflichtangaben(model());
     const lines = row(result, 'menge-art').groups[0];

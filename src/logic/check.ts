@@ -9,7 +9,7 @@ import { firstValue, groupsOf, valuesOf } from './model';
 import type { InvoiceModel, ModelGroup } from './model';
 import { ADDRESS_PARTS, MODES, PFLICHTANGABEN } from './pflichtangaben';
 import type { Condition, Mode, OccurrenceFilter, Pflichtangabe, Presence } from './pflichtangaben';
-import { CATEGORY_LABELS, TEXTS, TYPE_CODES, UNIT_LABELS, fill } from './texts';
+import { CATEGORY_LABELS, TEXTS, TYPE_CODES, UNIT_LABELS, fill, keepPercent } from './texts';
 
 export type Status = 'vorhanden' | 'fehlt' | 'einzelfall';
 
@@ -83,7 +83,8 @@ export function displayValue(bt: string, value: string, currency: string | undef
     const number = parseDecimal(value);
     // a rate or quantity that is no number as written and marked, as an amount: no „%“ and no
     // comma for its point, which made „7,00“ read „7,00 %“ beside „7 %“ (audit R5-L-02)
-    if (!number) return `${value} ${TEXTS.ruleNoNumber}`;
+    // „7 %“ as written keeps its no-break space, as in the box (collapse in verdict.ts, R6-U-02)
+    if (!number) return `${keepPercent(value)} ${TEXTS.ruleNoNumber}`;
     const text = germanNumber(number);
     // a no-break space: „19“ and „%“ never on two lines (audit R3-U-10)
     return kind === 'percent' ? `${text}\u00a0%` : text;

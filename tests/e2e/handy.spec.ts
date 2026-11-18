@@ -199,6 +199,31 @@ test('keeps codes, rates and margin numbers on one line, also on a phone', async
   expect(await sideEffects(page)).toEqual([]);
 });
 
+// Audit R6-U-02: a rate written „7 %“ is shown as written with „keine Zahl“ (R5-L-02), and kept
+// the plain space of the XML: „7“ and „%“ broke over two lines in the Pflichtangaben on a phone
+test('keeps a rate written with a space before „%“ on one line', async ({ page }) => {
+  const problems = await openApp(page);
+  const cii = officialText('kosit/paare/01.01a-INVOICE_uncefact.xml');
+  const spaced = cii.replace(
+    /(<ram:BasisAmount>314\.86<\/ram:BasisAmount>\s*<ram:CategoryCode>S<\/ram:CategoryCode>\s*<ram:RateApplicablePercent>)7(<\/ram:RateApplicablePercent>)/,
+    '$17 %$2',
+  );
+  if (spaced === cii) throw new Error('no rate to change');
+  const broken: string[] = [];
+  for (const width of [320, 330, 340, 350, 360, 375]) {
+    await page.setViewportSize({ width, height: 800 });
+    await upload(page, `satz-${width}.xml`, encode(spaced), 'application/xml');
+    await expect(page.locator('main')).toContainText(`7\u00a0% ${TEXTS.ruleNoNumber}`);
+    // the Pflichtangaben and the rules; the schema's own English message quotes the value as
+    // written (technical, lang="en")
+    const sections = 'section.pflicht, section.rules';
+    broken.push(...(await brokenCodes(page, sections)).map((code) => `${width} px: ${code}`));
+  }
+  expect(broken).toEqual([]);
+  expect(problems).toEqual([]);
+  expect(await sideEffects(page)).toEqual([]);
+});
+
 /**
  * The words of the comparison table broken inside a word, apart from the attachment names and the
  * identifier of the specification (BT-24), which have no break opportunity and must break.

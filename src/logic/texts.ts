@@ -177,6 +177,8 @@ export const TEXTS = {
   attachmentsRow: 'Anhänge',
   ofPart: '{label}, Anhang „{name}“',
   comparisonHeading: 'Vergleich der Rechnungsdaten',
+  // for screen readers, before the name of each differing row of the comparison (audit R6-U-04)
+  comparisonDiffers: 'Unterschiedlich: ',
   comparisonValue: 'Wert',
   // G-4: pass the result on to the Kanzlei
   printResult: 'Ergebnis drucken',
@@ -234,6 +236,9 @@ export const TEXTS = {
     'Für das Profil EXTENDED gelten die Rechenregeln von FeRD (Factur-X 1.09.2): Logistikkosten zählen als Zuschläge, Gruppen- und Infozeilen zählen nicht mit, kleine Abweichungen je Betrag sind erlaubt.',
   rulesOwnRules:
     'Für das Profil EXTENDED gelten eigene Rechenregeln von FeRD. Diese werden hier nicht geprüft, nur die Regel BR-CO-14.',
+  // the rule of XRechnung in place of one of EN 16931, as the KoSIT validator (audit R6-U-01)
+  rulesThirdParty:
+    'Für XRechnung mit Extension prüft das Werkzeug wie der KoSIT-Validator die Regel BR-DEX-09 der XRechnung statt BR-CO-16 der EN 16931: Forderungen Dritter (BG-DEX-09) gehören zum fälligen Betrag.',
   rulesAuffaellig: 'Mögliche Auffälligkeit: {ids}.',
   // F23 by the kind of rule (Tobias 2026-11-14)
   adviceAmount: 'Sie könnten mit dem Lieferanten klären, welcher Betrag richtig ist.',
@@ -259,8 +264,10 @@ export const TEXTS = {
   ruleSumAllowances: 'Summe der Nachlässe auf Dokumentebene (BT-92)',
   ruleSumCharges: 'Summe der Zuschläge auf Dokumentebene (BT-99)',
   ruleSumTaxes: 'Summe der Steuerbeträge je Kategorie (BT-117)',
-  // XRechnung Extension, BR-DEX-09 (audit R5-L-01)
-  ruleThirdParty: 'Zahlungen Dritter (BG-DEX-09)',
+  // XRechnung Extension, BR-DEX-09 (audit R5-L-01). Our own German: KoSIT names the group only
+  // „THIRD PARTY PAYMENT“; the amounts are claims of third parties the supplier collects, added
+  // to the amount due (audit R6-U-01)
+  ruleThirdParty: 'Forderungen Dritter, im fälligen Betrag enthalten (BG-DEX-09)',
   // The sums of one VAT breakdown, named apart from the document totals (audit R3-U-07):
   // „Summe der Positionen mit diesem Satz (BT-131)“, „… dieser Kategorie (BT-131)“
   ruleOfRate: 'mit diesem Satz',
@@ -272,7 +279,8 @@ export const TEXTS = {
   rulesOneNotChecked: 'Eine Regel ließ sich nicht prüfen (siehe unten).',
   rulesSomeNotChecked: '{count} Regeln ließen sich nicht prüfen (siehe unten).',
   ruleMissing: '– nicht angegeben',
-  ruleNoNumber: '– keine Zahl',
+  // „im XML“: „1,5“ is a number to a reader, only not in the XML format (audit R6-U-03)
+  ruleNoNumber: '– im XML keine Zahl',
   // A rate that is no number in a part of a breakdown per rate: the rate is named (audit R2-L-07)
   ruleLineRate: 'Umsatzsteuersatz einer Position (BT-152)',
   ruleChargeRate: 'Umsatzsteuersatz eines Zuschlags auf Dokumentebene (BT-103)',
@@ -390,6 +398,12 @@ export function fill(text: string, values: Readonly<Record<string, string | numb
     Object.hasOwn(values, key) ? String(values[key]) : whole,
   );
 }
+
+/**
+ * A no-break space before „%“, so „7 %“ as written in an XML never breaks over two lines (audit
+ * R3-U-10, R6-U-02)
+ */
+export const keepPercent = (text: string): string => text.replace(/(\d) %/g, '$1\u00a0%');
 
 /** VAT category codes (BT-118, BT-151; UNTDID 5305 as used by EN 16931). */
 export const CATEGORY_LABELS: Readonly<Record<string, string>> = {

@@ -13,7 +13,7 @@ import { adviceFor, checkRules } from './rules';
 import type { RuleResult, RuleStatus, RulesResult } from './rules';
 import type { Einordnung, ProfileMatch } from './profiles';
 import { syntaxById } from './syntax';
-import { TEXTS, fill } from './texts';
+import { TEXTS, fill, keepPercent } from './texts';
 import { commonTransition, transitionOf } from './uebergang';
 import type { Transition } from './uebergang';
 
@@ -112,7 +112,7 @@ const shorten = (text: string) =>
  * `\s` takes the no-break space too, so the one before „%“ (R3-U-10) is set again after — on every
  * part alike, so what compares equal stays the same (audit R4-L-02).
  */
-const collapse = (text: string) => text.replace(/\s+/g, ' ').replace(/(\d) %/g, '$1\u00a0%');
+const collapse = (text: string) => keepPercent(text.replace(/\s+/g, ' '));
 const tidyValue = (v: ShownValue): ShownValue => ({ label: v.label, value: collapse(v.value) });
 const tidyRow = (row: RowResult): RowResult => ({
   ...row,
@@ -157,10 +157,10 @@ const multiset = (items: readonly unknown[]): string[] =>
  * (audit R2-L-01). The values are already shown by their value (displayValue), so "7" and "7.00"
  * or "1" and "1.0000" agree, and with their whitespace collapsed (tidyRow, audit R3-L-03).
  */
-function rowSignature(row: RowResult): string {
+function rowSignature(row: RowResult, withReason = true): string {
   return JSON.stringify([
     row.status,
-    row.reason ?? '',
+    withReason ? (row.reason ?? '') : '',
     multiset(row.missing),
     multiset(row.hints),
     multiset(row.values),
@@ -312,6 +312,9 @@ function rulesDetails(results: readonly (RulesResult | undefined)[]): string[] {
   );
 }
 
+/** The header values the Kleinbetrag mode (§ 33 UStDV) depends on, and with it the rows' reasons */
+const MODE_TERMS: readonly BtId[] = ['BT-5', 'BT-112'];
+
 /**
  * F27: two invoice XML are the same invoice only if the result says the same of each — the
  * compared header values, and also the missing Pflichtangaben, the hints, the values of every row
@@ -344,6 +347,17 @@ export function differingResults(
       const label = each.find((o) => o !== undefined)?.label ?? key;
       // the status is named only where it differs between the parts (audit R3-U-04)
       const rows = each.map((o) => o?.row);
+      // only the reason differs (the Kleinbetrag mode in one part only): beside a differing value
+      // the mode depends on it says nothing new, else the reason is what the row shows, never
+      // „– / –“ (audit R6-L-01)
+      if (
+        key !== 'rules' &&
+        rows.every((r) => r !== undefined) &&
+        new Set(rows.map((r) => rowSignature(r, false))).size === 1
+      ) {
+        if (MODE_TERMS.some((bt) => header.includes(bt))) return [];
+        return [{ label, values: rows.map((r) => (r.reason ? shorten(r.reason) : '–')) }];
+      }
       if (key !== 'rules' && new Set(rows.map((r) => r?.status ?? '')).size > 1) {
         return [{ label, values: rows.map((r) => (r ? rowShown(r, true) : '–')) }];
       }
@@ -378,7 +392,7 @@ const labelList = (labels: readonly string[]): string =>
 
 /**
  * A compared value as the client reads it: German date, the amount by its value ("336.900" as
- * "336,90", audit R3-U-05) and one that is no number marked ("336,90 – keine Zahl", audit
+ * "336,90", audit R3-U-05) and one that is no number marked ("336,90 – im XML keine Zahl", audit
  * R3-L-04), "–" when missing.
  */
 function shownValue(part: InvoicePart, bt: BtId): string {

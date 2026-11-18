@@ -336,7 +336,7 @@ test('reports a schema problem with its line and lists the technical messages', 
   await expect(list.locator('li').first()).toContainText('336,90');
   // the rule shows the due amount as written, marked as no number (audit R4-U-01)
   await expect(page.getByTestId('rule-BR-CO-16')).toContainText(
-    'Fälliger Betrag (BT-115): 336,90 – keine Zahl',
+    'Fälliger Betrag (BT-115): 336,90 – im XML keine Zahl',
   );
   expect(problems).toEqual([]);
   expect(await sideEffects(page)).toEqual([]);

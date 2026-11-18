@@ -27,7 +27,7 @@ import { checkExtendedRules } from './rulesExtended';
 import { groupsOf, valuesOf } from './model';
 import type { InvoiceModel, ModelGroup } from './model';
 import type { SyntaxId } from './syntax';
-import { TEXTS, fill } from './texts';
+import { TEXTS, fill, keepPercent } from './texts';
 
 export type RuleStatus = 'passt' | 'auffaellig' | 'nichtPruefbar';
 
@@ -72,7 +72,7 @@ export const RULE_LABELS: Readonly<Record<string, string>> = {
   'BR-CO-16': 'Fälliger Betrag (BT-115) = BT-112 − Vorauszahlung (BT-113) + Rundung (BT-114)',
   // R5-L-01: XRechnung 3.0 with Extension (UBL Invoice), in place of BR-CO-16
   'BR-DEX-09':
-    'Fälliger Betrag (BT-115) = BT-112 − Vorauszahlung (BT-113) + Rundung (BT-114) + Zahlungen Dritter (BG-DEX-09)',
+    'Fälliger Betrag (BT-115) = BT-112 − Vorauszahlung (BT-113) + Rundung (BT-114) + Forderungen Dritter (BG-DEX-09)',
   // the tolerance of BR-CO-17 and of the breakdown follows its form (TOLERANCE_LABEL)
   'BR-CO-17': 'Steuerbetrag (BT-117) = Bemessungsgrundlage (BT-116) × Steuersatz (BT-119)',
   BREAKDOWN:
@@ -323,7 +323,7 @@ export function adviceFor(ids: readonly string[]): string[] {
 export function checkRules(model: InvoiceModel, options: RulesOptions = {}): RulesResult {
   const forms = ruleFormsOf(options.syntax);
   const currency = valuesOf(model, 'BT-5')[0]?.value;
-  // A value that is no number with its text, as the comparison shows it: „336,90 – keine Zahl“
+  // A value that is no number with its text, as the comparison shows it: „336,90 – im XML keine Zahl“
   // beside „336,90“ in the Pflichtangaben (audit R4-U-01); a sum has no one text and stays
   // „– keine Zahl“
   const money = (value: Decimal | null | undefined, text?: string) =>
@@ -331,7 +331,7 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
       ? TEXTS.ruleMissing
       : value === undefined
         ? text
-          ? `${text} ${TEXTS.ruleNoNumber}`
+          ? `${keepPercent(text)} ${TEXTS.ruleNoNumber}`
           : TEXTS.ruleNoNumber
         : `${formatAmount(normalize(value))}${currency ? ` ${currency}` : ''}`;
   /** One value of the rule as shown: a document total, or a term of a VAT breakdown */
@@ -755,7 +755,9 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
     advice: adviceFor(auffaellig),
     ...(options.ownRules
       ? { note: options.extended ? TEXTS.rulesFerdRules : TEXTS.rulesOwnRules }
-      : {}),
+      : options.thirdPartyPayments !== undefined
+        ? { note: TEXTS.rulesThirdParty }
+        : {}),
     notChecked,
     summary:
       checked.length === 0
