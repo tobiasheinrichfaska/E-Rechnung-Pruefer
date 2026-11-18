@@ -27,7 +27,7 @@ import { checkExtendedRules } from './rulesExtended';
 import { groupsOf, valuesOf } from './model';
 import type { InvoiceModel, ModelGroup } from './model';
 import type { SyntaxId } from './syntax';
-import { TEXTS, fill } from './texts';
+import { TEXTS, fill, keepPercent } from './texts';
 
 export type RuleStatus = 'passt' | 'auffaellig' | 'nichtPruefbar';
 
@@ -331,7 +331,7 @@ export function checkRules(model: InvoiceModel, options: RulesOptions = {}): Rul
       ? TEXTS.ruleMissing
       : value === undefined
         ? text
-          ? `${text} ${TEXTS.ruleNoNumber}`
+          ? `${keepPercent(text)} ${TEXTS.ruleNoNumber}`
           : TEXTS.ruleNoNumber
         : `${formatAmount(normalize(value))}${currency ? ` ${currency}` : ''}`;
   /** One value of the rule as shown: a document total, or a term of a VAT breakdown */

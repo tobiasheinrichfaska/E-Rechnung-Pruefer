@@ -13,7 +13,7 @@ import { adviceFor, checkRules } from './rules';
 import type { RuleResult, RuleStatus, RulesResult } from './rules';
 import type { Einordnung, ProfileMatch } from './profiles';
 import { syntaxById } from './syntax';
-import { TEXTS, fill } from './texts';
+import { TEXTS, fill, keepPercent } from './texts';
 import { commonTransition, transitionOf } from './uebergang';
 import type { Transition } from './uebergang';
 
@@ -112,7 +112,7 @@ const shorten = (text: string) =>
  * `\s` takes the no-break space too, so the one before „%“ (R3-U-10) is set again after — on every
  * part alike, so what compares equal stays the same (audit R4-L-02).
  */
-const collapse = (text: string) => text.replace(/\s+/g, ' ').replace(/(\d) %/g, '$1\u00a0%');
+const collapse = (text: string) => keepPercent(text.replace(/\s+/g, ' '));
 const tidyValue = (v: ShownValue): ShownValue => ({ label: v.label, value: collapse(v.value) });
 const tidyRow = (row: RowResult): RowResult => ({
   ...row,

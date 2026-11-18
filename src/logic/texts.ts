@@ -396,6 +396,12 @@ export function fill(text: string, values: Readonly<Record<string, string | numb
   );
 }
 
+/**
+ * A no-break space before „%“, so „7 %“ as written in an XML never breaks over two lines (audit
+ * R3-U-10, R6-U-02)
+ */
+export const keepPercent = (text: string): string => text.replace(/(\d) %/g, '$1\u00a0%');
+
 /** VAT category codes (BT-118, BT-151; UNTDID 5305 as used by EN 16931). */
 export const CATEGORY_LABELS: Readonly<Record<string, string>> = {
   S: 'steuerpflichtig',
