@@ -581,6 +581,30 @@ describe('the same header but other data in two invoice XML (audit QL-01)', () =
     );
   });
 
+  // Audit R6-L-01: rows that differ only in their reason (the Kleinbetrag mode in one part) read
+  // „– / –“; with the same header they show the reason, beside a differing total they are left out
+  it('shows a reason that alone differs, and leaves it out beside a differing total', () => {
+    const small = withSeller('DE123456789');
+    const smallModel = {
+      ...small,
+      groups: {
+        ...small.groups,
+        'BG-22': [{ bg: 'BG-22', terms: { 'BT-112': term('100.00') }, groups: {} }],
+      },
+    } as typeof small;
+    const regular = { ...part({}, 'a.xml'), model: withSeller('DE123456789') };
+    const kleinbetrag = { ...part({}, 'b.xml'), model: smallModel };
+    const reasonOnly = (rows: { values: string[] }[]) =>
+      rows.filter((row) => row.values.some((value) => value.includes('§ 33 UStDV')));
+    const rows = comparisonRows([regular, kleinbetrag]).filter((row) => row.differs);
+    for (const row of rows) expect(new Set(row.values).size, row.label).toBeGreaterThan(1);
+    expect(reasonOnly(rows).length).toBeGreaterThan(0);
+    // beside a differing total the mode is explained by it
+    const beside = differingResults([regular, kleinbetrag], ['BT-112']);
+    expect(reasonOnly(beside)).toEqual([]);
+    for (const item of beside) expect(new Set(item.values).size, item.label).toBeGreaterThan(1);
+  });
+
   // Audit R3-U-03: two rows that show the same differing value are named once, together
   it('names the same differing values of several rows once', () => {
     const other = { ...part({}, 'b.xml'), model: withSeller('DE987654321') };

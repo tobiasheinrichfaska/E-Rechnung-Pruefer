@@ -715,6 +715,27 @@ describe('two invoice XML of the same invoice, written another way', () => {
     );
   });
 
+  // Audit R6-L-01: two invoices, one a Kleinbetrag: seven rows differed only in their reason and
+  // read „– / –“, counted among the rest
+  it('names no row that differs only in the reason the differing total explains', async () => {
+    const ubl = officialText('kosit/paare/01.01a-INVOICE_ubl.xml');
+    const small = officialText('kosit/paare/01.02a-INVOICE_uncefact.xml');
+    const { analysis, verdict } = await check(
+      'r.pdf',
+      miniPdf({ attachments: [xml('a.xml', ubl), xml('b.xml', small)] }),
+    );
+    const differing = verdict.comparison?.differing ?? [];
+    expect(differing).toEqual(['BT-1', 'BT-2', 'BT-112']);
+    const rows = comparisonRows(analysis.invoices).filter((row) => row.differs);
+    for (const row of rows) expect(new Set(row.values).size, row.label).toBeGreaterThan(1);
+    expect(rows.map((row) => row.label).join()).not.toContain('Fiskalvertreter');
+    const more = rows.length - differing.length;
+    expect(more).toBe(7);
+    expect(differingLine(analysis.invoices, differing)).toContain(
+      fill(TEXTS.differingMore, { count: more }),
+    );
+  });
+
   // Audit R3-L-04: a total that is no number reads apart from the same total as a number
   it('marks a total that is no number in the line and the table', async () => {
     const comma = replaced(cii, '<ram:GrandTotalAmount>336.9<', '<ram:GrandTotalAmount>336,90<');
