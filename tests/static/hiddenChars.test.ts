@@ -46,8 +46,8 @@ const THIRD_PARTY = [
 ].map((dir) => join(root, dir));
 
 // .mjs/.mts/.cjs as well: the checker of the test frame's copy is pruefen.mjs (R2-S-03); .jsx, which
-// ESLint lints in src/ (R3-T-07)
-const SCANNED = /\.(ts|tsx|mts|cts|js|jsx|mjs|cjs|css|html|md|json|xml|txt|ya?ml)$/;
+// ESLint lints in src/ (R3-T-07); .conf, the font configuration of the e2e run (R5-T-01)
+const SCANNED = /\.(ts|tsx|mts|cts|js|jsx|mjs|cjs|css|html|md|json|xml|txt|ya?ml|conf)$/;
 
 function files(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -109,6 +109,7 @@ describe('source files', () => {
           'tests/fixtures/config/README.md',
           'tests/fixtures/config/beispiel-kanzlei.json',
           'tests/fixtures/offiziell/README.md',
+          'tests/e2e/fonts.conf',
         ].map((n) => join(root, n)),
       ),
     );
