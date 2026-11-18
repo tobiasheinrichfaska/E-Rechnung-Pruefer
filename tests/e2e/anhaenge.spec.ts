@@ -134,6 +134,15 @@ test('lists the schema messages of every part that has them, each named', async 
     // the engine's message stays marked as English
     await expect(line.locator('[lang="en"]')).toHaveCount(1);
   }
+  // the jump link opens every list, not only the first it jumps to (audit R5-U-01)
+  expect(await lists.evaluateAll((all) => all.map((list) => list.hasAttribute('open')))).toEqual([
+    false,
+    false,
+  ]);
+  await jump.click();
+  await expect(page).toHaveURL(/#technische-meldungen$/);
+  await expect(lists.nth(0)).toHaveAttribute('open', '');
+  await expect(lists.nth(1)).toHaveAttribute('open', '');
 
   // different data: the list after the comparison, the jump link to it
   const other = ublBad.replace('<cbc:ID>123456XX</cbc:ID>', '<cbc:ID>123456YY</cbc:ID>');
