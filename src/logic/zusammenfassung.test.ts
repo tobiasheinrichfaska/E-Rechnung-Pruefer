@@ -68,6 +68,24 @@ describe('the result as text for the Kanzlei (G-4)', () => {
     ]);
   });
 
+  // R5-U-02: the count of what else differs keeps its sentence, without the pointer to the table
+  it('counts what else differs without pointing to the table', () => {
+    const differing = `Unterschiedlich: Rechnungsnummer (A-1 / A-2). ${fill(TEXTS.differingMore, { count: 3 })}`;
+    const text = resultText({
+      fileName: 'zwei.pdf',
+      date: '15.11.2026',
+      time: '10:00',
+      verdict: { ...VERDICT, tone: 'bad', headline: TEXTS.contradicting },
+      differing,
+      notice: TEXTS.fixedNotice,
+      version: '0.10.4',
+    });
+    expect(text).toContain(
+      'Unterschiedlich: Rechnungsnummer (A-1 / A-2). Außerdem weichen 3 weitere Angaben oder Regeln ab.',
+    );
+    expect(text).not.toContain('Vergleich');
+  });
+
   it('says that only the reduced list was checked, before the Pflichtangaben', () => {
     const mode =
       'Gesamtbetrag bis 250 Euro: Es gelten die verringerten Angaben einer Kleinbetragsrechnung nach § 33 UStDV.';

@@ -554,10 +554,21 @@ describe('display', () => {
     expect(displayValue('BT-129', '245.11', undefined)).toBe('245,11');
     expect(displayValue('BT-109', '314.860', 'EUR')).toBe('314,86 EUR');
     expect(displayValue('BT-109', '100.004', 'EUR')).toBe('100,004 EUR');
-    expect(displayValue('BT-119', '19,00', undefined)).toBe('19,00\u00a0%');
-    expect(displayValue('BT-129', 'eins', undefined)).toBe('eins');
     // an amount that is no number marked as in the rules (audit R4-U-01)
     expect(displayValue('BT-115', '336,90', 'EUR')).toBe(`336,90 ${TEXTS.ruleNoNumber}`);
+  });
+
+  // Audit R5-L-02: a rate or quantity that is no number as written and marked, like an amount —
+  // no „%“, no comma for its point
+  it.each([
+    ['BT-119', '19,00'],
+    ['BT-152', '7,00'],
+    ['BT-119', 'abc'],
+    ['BT-119', '7.00x'],
+    ['BT-129', 'eins'],
+    ['BT-129', '2.5x'],
+  ])('shows %s %s as written with „keine Zahl“', (bt, value) => {
+    expect(displayValue(bt, value, undefined)).toBe(`${value} ${TEXTS.ruleNoNumber}`);
   });
 
   it('shows the values of each VAT breakdown and each position', () => {

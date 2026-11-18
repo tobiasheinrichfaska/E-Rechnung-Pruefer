@@ -164,10 +164,20 @@ function DetailTable({ rows, labelledBy }: { rows: DetailRow[]; labelledBy?: str
 /**
  * A browser opens a closed `<details>` for a link to something inside it, not for a link to the
  * element itself: the jump link „Technische Meldungen“ opens it before the page jumps (QU-11).
+ * The schema link opens the list of every part (`technische-meldungen`, `-2`, …), since the box
+ * points „below“ for the messages of any of them; the page jumps to the first (audit R5-U-01).
  */
 function openTarget(id: string) {
-  const target = document.getElementById(id);
-  if (target instanceof HTMLDetailsElement) target.open = true;
+  const same = new RegExp(`^${id}(-\\d+)?$`);
+  const targets =
+    id === ANCHOR.schema
+      ? Array.from(document.querySelectorAll(`details[id^="${id}"]`)).filter((each) =>
+          same.test(each.id),
+        )
+      : [document.getElementById(id)];
+  for (const target of targets) {
+    if (target instanceof HTMLDetailsElement) target.open = true;
+  }
 }
 
 /**

@@ -135,10 +135,11 @@ type Git = (args: readonly string[], input?: string) => Buffer;
 
 /** git in a folder, its output as bytes (stderr kept out of the test output). */
 const gitIn =
-  (cwd: string): Git =>
+  (cwd: string, env?: NodeJS.ProcessEnv): Git =>
   (args, input) =>
     execFileSync('git', args, {
       cwd,
+      env,
       input,
       maxBuffer: 1024 * 1024 * 1024,
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -163,9 +164,13 @@ export const UNPUBLISHED = ['HEAD', '--branches', '--not', '--remotes'];
 /**
  * The commits a remote has already: every ref of `--all` but HEAD, the local branches and the
  * stash, whose own commits UNPUBLISHED reads — the remote branches, the tags and any pull request
- * refs the clone fetched (audit 2026-11-16, R4-S-01). Both together: every commit but the stash's.
+ * refs the clone fetched (audit 2026-11-16, R4-S-01). `--single-worktree` keeps the HEADs of other
+ * working copies (`git worktree add`) out: a commit on a detached HEAD there is not published
+ * (audit 2026-11-17, R5-S-02); a run of this test in that working copy reads it as its own HEAD.
+ * Both together: every commit but the stash's and those of other working copies' detached HEADs.
  */
 export const PUBLISHED = [
+  '--single-worktree',
   '--exclude=HEAD',
   '--exclude=refs/heads/*',
   '--exclude=refs/stash',
@@ -344,7 +349,15 @@ describe('the Kanzlei configuration stays out of the public repo', () => {
   it('reads the neutral example only when no local configuration is there', () => {
     if (config.accessNotice === undefined)
       expect(configFile({})).toBe('config/kanzlei.example.json');
-    expect(JSON.parse(readFileSync(`${ROOT}config/kanzlei.example.json`, 'utf8'))).toEqual({});
+    // counts only: a failing toEqual({}) would print the file, and a real configuration copied
+    // over the example names the Kanzlei (audit 2026-11-17, R5-S-01)
+    const example: unknown = JSON.parse(readFileSync(`${ROOT}config/kanzlei.example.json`, 'utf8'));
+    const isObject = typeof example === 'object' && example !== null && !Array.isArray(example);
+    expect(isObject, 'kanzlei.example.json is no object (content not shown)').toBe(true);
+    expect(
+      Object.keys(example as object).length,
+      'kanzlei.example.json is not empty (content not shown)',
+    ).toBe(0);
   });
 
   it('finds an invented notice wrapped, quoted, in other case, by its name alone or as PDF bytes', () => {
@@ -368,6 +381,14 @@ describe('the Kanzlei configuration stays out of the public repo', () => {
     expect(leak('> Ein Hilfsmittel der [Kanzlei]. Er ist kostenlos.')).toBe(false);
   });
 
+  /**
+   * The environment of the probe repositories: without git's own variables, so a run from a git
+   * hook (which passes GIT_DIR, GIT_INDEX_FILE …) never writes into the real repository.
+   */
+  const probeEnv = Object.fromEntries(
+    Object.entries(process.env).filter(([name]) => !name.startsWith('GIT_')),
+  );
+
   /** A repository of its own in a temporary folder, with a commit helper; removed afterwards. */
   function inProbeRepo(
     run: (
@@ -378,7 +399,7 @@ describe('the Kanzlei configuration stays out of the public repo', () => {
   ) {
     const folder = mkdtempSync(join(tmpdir(), 'nobranding-'));
     try {
-      const git = gitIn(folder);
+      const git = gitIn(folder, probeEnv);
       const commit = (file: string, text: string, message = file) => {
         mkdirSync(dirname(join(folder, file)), { recursive: true });
         writeFileSync(join(folder, file), text);
@@ -462,11 +483,39 @@ describe('the Kanzlei configuration stays out of the public repo', () => {
       const shallow = `${folder}-flach`;
       try {
         execFileSync('git', ['clone', '-q', '--depth', '1', pathToFileURL(folder).href, shallow], {
+          env: probeEnv,
           stdio: 'pipe',
         });
-        expect(isShallow(gitIn(shallow))).toBe(true);
+        expect(isShallow(gitIn(shallow, probeEnv))).toBe(true);
       } finally {
         rmSync(shallow, { recursive: true, force: true });
+      }
+    });
+  });
+
+  it('reads a commit on the detached HEAD of another working copy neither as published nor from this one (R5-S-02)', (ctx) => {
+    ctx.skip(!repoReadable, 'git cannot read this checkout (no git, or no .git)');
+    inProbeRepo((folder, git, commit) => {
+      commit('neutral.md', 'Nichts.\n', 'base');
+      git(['update-ref', 'refs/remotes/origin/main', 'HEAD']);
+      const second = `${folder}-zweite`;
+      try {
+        git(['worktree', 'add', '-q', '--detach', second]);
+        const other = gitIn(second, probeEnv);
+        writeFileSync(join(second, 'lose.md'), 'Die Kanzlei Erika Probe.\n');
+        other(['add', 'lose.md']);
+        other([
+          ...['-c', 'user.name=Probe', '-c', 'user.email=probe@example.org'],
+          ...['-c', 'commit.gpgsign=false', 'commit', '-q', '--no-verify', '-m', 'lose'],
+        ]);
+        // from the main working copy: only what the remote has is published
+        expect(commitPaths(git, PUBLISHED)).toEqual(['neutral.md']);
+        expect(messagesOf(git, PUBLISHED).toString('utf8')).not.toContain('lose');
+        // from the second one, its own HEAD is unpublished
+        expect(commitPaths(other, UNPUBLISHED)).toEqual(['lose.md']);
+        expect(commitPaths(other, PUBLISHED)).toEqual(['neutral.md']);
+      } finally {
+        rmSync(second, { recursive: true, force: true });
       }
     });
   });

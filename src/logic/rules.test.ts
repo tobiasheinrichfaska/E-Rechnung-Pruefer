@@ -758,6 +758,66 @@ describe('missing values and the names of the values (audit R2-L-07, R2-L-08)', 
     });
   });
 
+  // Audit R5-T-03: every amount and rate written with a comma, in both syntax forms and with
+  // payments of third parties — each single value that is no number carries its text; only sums
+  // (and the rate of a part named instead of its sum) say „keine Zahl“ alone
+  it.each([
+    ['ubl-invoice', undefined],
+    ['cii', undefined],
+    ['ubl-invoice', ['1,00']],
+  ] as const)('%s with comma amounts: every single value keeps its text', (syntax, payments) => {
+    const comma = (spec: Spec): Spec =>
+      Object.fromEntries(
+        Object.entries(spec).map(([key, value]) => [
+          key,
+          typeof value === 'string' ? value.replace('.', ',') : value.map(comma),
+        ]),
+      );
+    const spec = comma({ ...BASE, 'BT-5': 'EUR' });
+    const totals = (spec['BG-22'] as Spec[])[0] ?? {};
+    Object.assign(totals, { 'BT-113': '0,00', 'BT-114': '0,00' });
+    const model = group('INVOICE', spec) as InvoiceModel;
+    const result = checkRules(model, { syntax, thirdPartyPayments: payments });
+    const sums = [TEXTS.ruleLineSum, TEXTS.ruleSumAllowances, TEXTS.ruleSumCharges];
+    const SUMS = new Set([
+      ...sums,
+      // the same sums of one VAT breakdown (R3-U-07)
+      ...sums.flatMap((label) =>
+        [TEXTS.ruleOfRate, TEXTS.ruleOfCategory].map((of) => label.replace(' (', ` ${of} (`)),
+      ),
+      TEXTS.ruleSumTaxes,
+      TEXTS.ruleThirdParty,
+      TEXTS.ruleLineRate,
+      TEXTS.ruleChargeRate,
+      TEXTS.ruleAllowanceRate,
+    ]);
+    const marked = result.results.flatMap((r) =>
+      r.values.filter((v) => v.value.endsWith(TEXTS.ruleNoNumber)).map((v) => ({ ...v, id: r.id })),
+    );
+    expect(result.auffaellig).toEqual([]);
+    expect(marked.length).toBeGreaterThan(15);
+    for (const v of marked.filter((m) => !SUMS.has(m.label))) {
+      expect(v.value, `${v.id} ${v.label}`).toMatch(/^\S.*,.* – keine Zahl$/);
+    }
+    expect(result.results.some((r) => r.id === (payments ? 'BR-DEX-09' : 'BR-CO-16'))).toBe(true);
+  });
+
+  it('names each of several VAT totals as written (rules.ts, BR-CO-15)', () => {
+    const model = group('INVOICE', BASE) as InvoiceModel;
+    const totals = model.groups['BG-22']?.[0];
+    if (!totals) throw new Error('no totals');
+    totals.terms['BT-110'] = [
+      { value: '26,60', raw: '26,60' },
+      { value: '26.60', raw: '26.60' },
+    ];
+    const co15 = find(checkRules(model), 'BR-CO-15');
+    expect(co15?.status).toBe('auffaellig');
+    expect(co15?.values).toContainEqual({
+      label: 'Summe der Umsatzsteuer (BT-110)',
+      value: `26,60 ${TEXTS.ruleNoNumber}${TEXTS.ruleAnd}26,60 EUR`,
+    });
+  });
+
   it('names the sums of a breakdown apart from the document totals (R3-U-07)', () => {
     const result = rules({
       'BG-23': [

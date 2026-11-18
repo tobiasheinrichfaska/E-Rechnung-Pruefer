@@ -538,8 +538,47 @@ describe('the same header but other data in two invoice XML (audit QL-01)', () =
       differs: true,
     });
     expect(rows).toHaveLength(2);
-    // with a differing header value only that is named, as before (E-04)
-    expect(comparisonRows([a, { ...b, header: { ...b.header, 'BT-1': ['R-2'] } }])).toHaveLength(7);
+  });
+
+  // Audit R5-U-02: a differing header value hid every other difference
+  it('names what else differs beside a differing header value, without repeating it', () => {
+    const numbered = (number: string, vat?: string) => {
+      const model = withSeller(vat);
+      return { ...model, terms: { ...model.terms, 'BT-1': term(number) } } as typeof model;
+    };
+    const first = { ...part({}, 'a.xml'), model: numbered('R-1', 'DE123456789') };
+    const second = {
+      ...part({ 'BT-1': ['R-2'] }, 'b.xml'),
+      model: numbered('R-2'),
+    };
+    const differing = differingTerms([first, second]);
+    expect(differing).toEqual(['BT-1']);
+    // the box names the header value and counts the rest, pointing to the table
+    expect(differingLine([first, second], differing)).toBe(
+      `Unterschiedlich: Rechnungsnummer (R-1 / R-2). ${fill(TEXTS.differingMore, { count: 2 })}`,
+    );
+    const rows = comparisonRows([first, second]).filter((row) => row.differs);
+    expect(rows.map((row) => row.label)).toEqual([
+      'Rechnungsnummer (BT-1)',
+      'Steuernummer oder USt-IdNr. des leistenden Unternehmers',
+      'USt-IdNr. des leistenden Unternehmers und des Leistungsempfängers',
+    ]);
+    // the Pflichtangabe „Rechnungsnummer“ differs too, but only repeats BT-1
+    expect(differingResults([first, second]).map((item) => item.label)).toContain(
+      'Rechnungsnummer',
+    );
+    // with nothing beside the header value, the line stays as it was (E-04)
+    const alone = { ...first, origin: 'b.xml', header: { ...first.header, 'BT-1': ['R-2'] } };
+    const aloneModel = { ...alone, model: numbered('R-2', 'DE123456789') };
+    expect(differingLine([first, aloneModel], ['BT-1'])).toBe(
+      'Unterschiedlich: Rechnungsnummer (R-1 / R-2).',
+    );
+    expect(comparisonRows([first, aloneModel]).filter((row) => row.differs)).toHaveLength(1);
+    // one more is said in the singular: two rows with the same differing VAT id count once
+    const one = { ...part({ 'BT-1': ['R-2'] }, 'b.xml'), model: withSeller('DE987654321') };
+    expect(differingLine([a, one], ['BT-1'])).toBe(
+      `Unterschiedlich: Rechnungsnummer (R-1 / R-2). ${TEXTS.differingMoreOne}`,
+    );
   });
 
   // Audit R3-U-03: two rows that show the same differing value are named once, together

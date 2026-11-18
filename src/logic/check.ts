@@ -63,8 +63,9 @@ const has = (group: ModelGroup, path: string) => valuesOf(group, path).length > 
 /**
  * A value as the client reads it. Numbers by their value, not as written: "7" and "7.00", "1" and
  * "1.0000", "314.86" and "314.860" give the same text, so the same invoice in two XML reads the same
- * (audit R2-L-01); a text that is no number stays as written, an amount marked „– keine Zahl“ as in
- * the rules (audit R4-U-01): „336,90“ beside „336,90 EUR“ differed only in „EUR“.
+ * (audit R2-L-01); a text that is no number stays as written, an amount, rate or quantity marked
+ * „– keine Zahl“ as in the rules (audit R4-U-01, R5-L-02): „336,90“ beside „336,90 EUR“ differed
+ * only in „EUR“.
  */
 export function displayValue(bt: string, value: string, currency: string | undefined): string {
   const kind = KIND.get(bt);
@@ -80,7 +81,10 @@ export function displayValue(bt: string, value: string, currency: string | undef
   }
   if (kind === 'percent' || kind === 'quantity') {
     const number = parseDecimal(value);
-    const text = number ? germanNumber(number) : value.replace('.', ',');
+    // a rate or quantity that is no number as written and marked, as an amount: no „%“ and no
+    // comma for its point, which made „7,00“ read „7,00 %“ beside „7 %“ (audit R5-L-02)
+    if (!number) return `${value} ${TEXTS.ruleNoNumber}`;
+    const text = germanNumber(number);
     // a no-break space: „19“ and „%“ never on two lines (audit R3-U-10)
     return kind === 'percent' ? `${text}\u00a0%` : text;
   }

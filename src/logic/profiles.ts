@@ -40,6 +40,14 @@ export interface ProfileEntry {
    * X11 and X19 carry logistics charges).
    */
   ownRules?: boolean;
+  /**
+   * XRechnung 3.0 with Extension, UBL Invoice only: payments of third parties (BG-DEX-09,
+   * `cac:PrepaidPayment/cbc:PaidAmount`) are added to the amount due. KoSIT lowers BR-CO-16 to
+   * „information“ in that scenario (scenarios.xml v2026-08-31) and checks BR-DEX-09 instead
+   * (XRechnung-UBL-validation.xsl 3.0.2); the tool rebuilds it in rules.ts with the sum analyze.ts
+   * reads (audit R5-L-01). The CII scenario keeps BR-CO-16 and knows no BR-DEX-09.
+   */
+  thirdPartyPayments?: boolean;
   source: string;
   checked: boolean;
 }
@@ -147,6 +155,7 @@ export const PROFILES: readonly ProfileEntry[] = [
     match: 'exact',
     label: 'XRechnung 3.0 mit Extension',
     einordnung: 'eRechnung',
+    thirdPartyPayments: true,
     source: 'KoSIT XRechnung-Testsuite v2026-08-31 (instances/extension)',
     checked: true,
   },
