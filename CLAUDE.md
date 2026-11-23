@@ -297,7 +297,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 
 ## Known Limitations
 
-- **In development** — all steps of the plan are built (1a–3a) plus the access notice, the Impressum/privacy links and the Kanzlei colours. **Online since 2026-11-15** (Freigabe run, bunny.net): the public zone carries **0.6.3** (uploaded 17:27 Berlin time, read back the same evening); 0.7.0 … 0.10.5 come with the next upload.
+- **In development** — all steps of the plan are built (1a–3a) plus the access notice, the Impressum/privacy links and the Kanzlei colours. **Online since 2026-11-15** (Freigabe run, bunny.net): the public zone carries **0.10.5** (Freigabe upload 2026-11-18 07:40 Berlin time, commit `b5bd5d4`, record `auslieferung/oeffentlich.json` in the private repo; read back 2026-11-23). The test frame copy `b102560` (merge `86bf233`) changes only the test version.
 - **Calculation rules (3a)** are a selection (BR-CO-10 … -17, breakdown per category/rate), not a
   validator: no BR-DE/XRechnung rules, no line-level rules (price × quantity), no currency
   conversion (BT-111). For **Factur-X EXTENDED** the FeRD forms are rebuilt (F29,
@@ -378,7 +378,7 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
   `Testumgebung`; the copy is never edited here. No PDF copy for the tester (Tobias 2026-11-15: not
   needed). The receiving side (`/_zugang/bericht`) is live in all five test areas (Testumgebung,
   2026-11-15).
-- **E2E runs on file://**; the public copy at bunny.net is 0.6.3 (2026-11-15), the repo is at 0.10.5 (see Versioning). Uploads run only through the repo `Freigabe`, started by Tobias.
+- **E2E runs on file://**; the public copy at bunny.net is 0.10.5 (uploaded 2026-11-18), the same as the repo (see Versioning). Uploads run only through the repo `Freigabe`, started by Tobias.
 - **Browsers:** the single inline script needs class static blocks and the CSP
   `'wasm-unsafe-eval'`, so the floor is about Chrome/Edge 98, Firefox 102, Safari 16.4 (derived from
   MDN data, not tested in those versions). Above it XML and PDF work (pdf.js legacy build, e2e test
@@ -403,6 +403,11 @@ tags** (Tobias 2026-11-14: cloud sessions cannot push tags and nothing reads the
 ---
 
 ## Status / next step
+
+**2026-11-23 — closed:** 0.10.5 is online (Freigabe upload 2026-11-18 07:40, `b5bd5d4`). Tobias:
+the compact drop zone „Andere Datei prüfen“ after a result stays as it is, no extra back button. The
+audit loop is paused after round 6; open for Tobias are the earlier questions (G-11 … G-25 in the
+audit report, F31 … F35 in `docs/offene-fragen.md`). A new session starts from this file.
 
 **2026-11-18 — quality audit, round 6 (version 0.10.5):** 7 findings, all low, none refuted;
 security without finding. Report: `docs/audit-qualitaet-2026-11-15.md`, section „Runde 6“.
